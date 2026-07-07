@@ -189,7 +189,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string", "enum": ["paid", "pending"] }
+                    "status": { "type": "string", "enum": ["succeeded", "pending"] }
                   }
                 },
                 "example": { "status": "pending" }
