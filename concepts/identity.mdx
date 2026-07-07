@@ -7,11 +7,12 @@ The two identities that matter on a payment call, who is calling and which busin
 called, never pass through the language model. Both arrive at Ringup on trusted headers the
 platform templates in at call time.
 
-## The caller: recognized by phone number
+## The Caller: recognized by phone number
 
-The caller's number rides the `X-Caller-Number` header, templated from the platform's
-native caller-ID variable (on Vapi, `{{customer.number}}`). When the payment step begins, it
-looks the caller up:
+The **Caller** is Ringup's record of a person and their saved cards, keyed by phone number and
+shared across every merchant (a wallet, not one merchant's contact list). The number rides the
+`X-Caller-Number` header, templated from the platform's native caller-ID variable (on Vapi,
+`{{customer.number}}`). Ringup looks the Caller up:
 
 ```json
 {
@@ -21,9 +22,10 @@ looks the caller up:
 }
 ```
 
-A recognized caller is offered their saved card by name and last four, with no identity
-questions. An unknown caller is offered a texted pay link instead; once they pay, they are
-recognized on every call after that.
+A recognized Caller is offered their saved Card by name and last four, with no identity
+questions. An unknown caller is offered a texted pay link instead; once they pay, they become a
+Caller and are recognized on every call after that, at any Ringup merchant. Recognition is
+automatic: you never manage a Caller object, it just happens inside the Checkout Session.
 
 ## The merchant: resolved from the dialed number
 

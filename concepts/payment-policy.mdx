@@ -1,39 +1,37 @@
 ---
 title: "Payment policy"
-description: "Whether payment is required, optional, or absent is a merchant setting Ringup serves per purchase."
+description: "Whether payment is required, optional, or absent is a merchant setting Ringup serves per purchase, returned as payment_required on the Checkout Session."
 ---
 
-Every purchase gets exactly one policy decision, resolved server-side by Ringup at the
-moment the payment step asks. Your agent never hard-codes it, and the merchant changes it
-with no redeploy.
+Whether an order needs payment is not logic in your agent. It is a merchant setting Ringup
+resolves per purchase and returns as the `payment_required` field when you create a Checkout
+Session. The merchant changes the rule with no redeploy, and your agent never hard-codes it.
 
-## The three states
+## The three values
 
-```json
-{ "status": "required" | "optional" | "not_required", "reason": "..." }
-```
+When you create a Checkout Session, `payment_required` comes back as one of:
 
-| Status | Meaning | What the caller hears |
+| Value | Meaning | What happens |
 |---|---|---|
-| `required` | Payment must complete before the call ends | "Let's knock out payment now so your order's all set..." |
-| `optional` | Offer once, never block; unpaid is a valid outcome | One offer: "Want to take care of payment now?" |
-| `not_required` | No payment step at all for this business or purchase | Nothing. The call proceeds as the business's normal flow |
+| `required` | Payment must complete before the call ends | The session returns a `transfer_to`; take payment |
+| `optional` | Offer once, never block; unpaid is a valid outcome | The session returns a `transfer_to`; offer, but do not require |
+| `none` | No payment for this business or purchase | No `transfer_to`; carry on and end the call normally |
 
-## The policy is per purchase, not per merchant
+## It is per purchase, not per merchant
 
-The same merchant can produce different statuses on different orders. A parts shop might
-make payment optional under $50 and required above it; only the amount changes the rule.
-That is why the payment step passes `amount_cents` when it asks, and why the answer cannot
-be cached across calls.
+The same merchant can produce different values on different orders. A parts shop might make
+payment optional under $50 and required above it; only the amount changes the rule. That is why
+creating the session passes `amount_cents`, and why the answer cannot be cached across calls.
 
-## `not_required` is the graceful floor
+## `none` is the graceful floor
 
-Unknown merchant, unconnected processor, a business that simply does not take phone
-payments: all of these resolve to `not_required`, and the payment layer becomes inaudible.
-This is a design guarantee, not an error path. It means the same agent configuration is
-safe to run in front of every merchant on your platform, connected or not, from day one.
+Unknown merchant, unconnected processor, a business that simply does not take phone payments:
+all of these resolve to `none`, and the payment layer becomes inaudible. This is a design
+guarantee, not an error path. It means the same agent configuration is safe to run in front of
+every merchant on your platform, connected or not, from day one.
 
 <Note>
-The `reason` field is written for the model, not for display: it tells the payment step how
-to behave in one sentence, so prompt and policy can never disagree.
+In native mode (see the [Vapi](/integrations/vapi/native) guide) the payment step reads
+`payment_required` for you and branches silently, so your agent still never hard-codes payment
+logic. In call transfer mode you read it off the Checkout Session directly.
 </Note>

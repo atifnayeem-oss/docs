@@ -1,0 +1,90 @@
+---
+title: "Call transfer"
+description: "Ringup's call transfer works like a hosted web checkout, over the phone: create a Checkout Session, transfer the call to it, and get the caller back."
+---
+
+If you have ever used a hosted web checkout, you already know this model. In a web checkout you
+create a checkout session, redirect the browser to the hosted page, and pass a return URL; the
+customer pays and lands back on your site. Ringup's call transfer is the same shape over the
+phone: you create a **Checkout Session**, transfer the live call to it, and pass a return
+destination; the caller pays on the Ringup line and the call comes back to your agent.
+
+## The mapping
+
+| Hosted web checkout | Ringup call transfer |
+|---|---|
+| Create a checkout session (amount, line items, order) | Create a **Checkout Session** with `create_checkout` (amount, line items, order) |
+| Get a checkout URL | Get a `transfer_to` SIP URI |
+| Redirect the browser to it | Transfer the call to it |
+| Hosted page collects payment | Ringup payment line takes payment in a voice you configure |
+| Redirect back to `return_url` | Transfer back to `return_to` (optional) |
+| `checkout.session.completed` webhook | `checkout.completed` webhook |
+
+Everything that is true of a hosted checkout is true here. The session is short-lived. The
+sensitive step happens on Ringup's side. Your caller is recognized and their saved card is used
+automatically, the way a wallet remembers a returning shopper. You reconcile from the webhook.
+
+## Creating a Checkout Session
+
+The upfront call takes the same inputs a hosted checkout session takes: the amount, optional
+line items, and an optional order to settle against. Plus how you want the call to end.
+
+```jsonc
+create_checkout({
+  "amount_cents": 2500,
+  "line_items": [                          // optional, like a checkout's line items
+    { "name": "Large pepperoni", "quantity": 1, "amount_cents": 2500 }
+  ],
+  "order_id": "sq_abc",                     // optional: settle against an existing order
+  "return_to": "sip:agent@your-number",     // optional: transfer the caller back after payment
+  "success_message": "You are all set, your order will be ready in fifteen minutes.",
+  "failure_message": "That card was declined. Please call back with another card."
+})
+// -> {
+//   "id": "cs_x9f2",                        // the Checkout Session id
+//   "payment_required": "required",         // "required" | "optional" | "none"
+//   "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
+// }
+```
+
+- `payment_required` is Ringup's policy decision for this order. `none` means the merchant does
+  not take payment for it: there is nothing to do, and `transfer_to` is absent. `required` or
+  `optional` means transfer the call to `transfer_to`.
+- `transfer_to` (in the response) is where you send the call. `return_to` (in the request) is
+  where Ringup sends the caller back. They are the two ends of the same trip.
+- `id` (the Checkout Session id) is the correlation token you attach to the transfer.
+
+## The flow
+
+```text
+1. Order confirmed -> create_checkout(amount, line_items?, order_id?, return_to?, messages?)
+2. If payment_required is not "none", it returns a transfer_to SIP URI (the "checkout URL")
+3. Transfer the call to transfer_to  (the "redirect")
+4. Ringup recognizes the Caller, charges the saved Card, texts a receipt
+5. The call ends one of three ways (see below)
+6. checkout.completed webhook to your server
+```
+
+## After payment: three ways to end
+
+`return_to` and the spoken messages are complementary. Use whichever fits; you do not need both.
+
+1. **Transfer back (`return_to`).** Symmetric to `transfer_to`: Ringup transfers the caller
+   back to your agent and attaches the outcome as SIP headers (`X-Payment-Status`,
+   `X-Confirmation`), so your agent resumes already knowing payment succeeded and closes the
+   call in its own voice. Best when you want to keep talking (upsell, fulfillment, goodbye).
+2. **Let Ringup speak the result (`success_message` / `failure_message`).** For developers who
+   do not want a transfer back: tell Ringup what to read on success and on failure, and it
+   speaks your line and ends the call. Best when payment is the last thing on the call but you
+   still want the closing words in your words.
+3. **Neither.** Ringup reads a short default confirmation and ends. The SMS receipt is the proof.
+
+Two things keep this safe. A `return_to` that cannot connect falls back to reading the
+`success_message` (or the default) and ending, so a failed return never strands the caller. And
+Ringup speaks a short line while a return connects, so there is no dead air.
+
+## The webhook
+
+However the call ends, your server learns the outcome from a `checkout.completed`
+[webhook](/concepts/webhooks), which carries the **Payment** (`payment_id`, your `order_id`, the
+confirmation). That is your server-side source of truth, independent of what the caller heard.

@@ -16,20 +16,38 @@
         "groups": [
           {
             "group": "Get started",
-            "pages": ["index", "quickstart"]
+            "pages": [
+              "index",
+              "quickstart"
+            ]
           },
           {
             "group": "Concepts",
             "pages": [
               "concepts/how-it-works",
+              "concepts/call-transfer",
               "concepts/payment-policy",
               "concepts/identity",
-              "concepts/testing"
+              "concepts/testing",
+              "concepts/webhooks"
             ]
           },
           {
             "group": "Integrations",
-            "pages": ["integrations/vapi"]
+            "pages": [
+              {
+                "group": "Vapi",
+                "pages": [
+                  "integrations/vapi/native",
+                  "integrations/vapi/call-transfer"
+                ]
+              },
+              "integrations/retell",
+              "integrations/elevenlabs",
+              "integrations/deepgram",
+              "integrations/twilio-conversationrelay",
+              "integrations/livekit"
+            ]
           }
         ]
       },
@@ -38,7 +56,9 @@
         "groups": [
           {
             "group": "API reference",
-            "pages": ["api-reference/introduction"]
+            "pages": [
+              "api-reference/introduction"
+            ]
           },
           {
             "group": "Tools",
@@ -50,7 +70,10 @@
   },
   "navbar": {
     "links": [
-      { "label": "ringup.dev", "href": "https://ringup.dev" }
+      {
+        "label": "ringup.dev",
+        "href": "https://ringup.dev"
+      }
     ],
     "primary": {
       "type": "button",
@@ -62,5 +85,11 @@
     "socials": {
       "website": "https://ringup.dev"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/integrations/vapi",
+      "destination": "/integrations/vapi/native"
+    }
+  ]
 }

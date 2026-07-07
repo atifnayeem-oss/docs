@@ -1,0 +1,123 @@
+---
+title: "Twilio ConversationRelay"
+description: "Add card-on-file payments to a ConversationRelay app by call transfer: create a Checkout Session in your server and Dial the caller to the Ringup SIP URI."
+---
+
+Add card-on-file payments to a Twilio ConversationRelay app by call transfer. This works like a
+hosted web checkout, over the phone: when the order is confirmed, your server creates a
+**Checkout Session** and transfers the live call to a Ringup payment line, the caller pays
+there, and the call optionally returns to your app. Ringup recognizes the caller, charges their
+saved card, settles it against the order, and texts a receipt. Your server reconciles from a
+webhook. If the model is new to you, read [Call transfer](/concepts/call-transfer) first.
+
+With ConversationRelay you own the WebSocket server and the whole tool loop, so there is nothing
+to register on a platform: you call one HTTP endpoint and emit one piece of TwiML.
+
+This page is end to end: setup, the call, the return, and what happens after payment.
+
+## How the pieces map to ConversationRelay
+
+| Ringup piece | On ConversationRelay |
+|---|---|
+| `create_checkout` | An HTTP `POST` your server makes when the order is confirmed |
+| The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
+| The transfer | A `<Dial><Sip>` returned to Twilio (via the action URL) to the Ringup SIP URI |
+| The result | A `checkout.completed` webhook to your server |
+
+## Prerequisites
+
+- A running ConversationRelay app (your own WebSocket server driving the LLM and tool loop).
+- Your Twilio account (the number the call comes in on).
+- A Ringup account and API key. Test mode works out of the box on a shared sandbox. See
+  [Testing](/concepts/testing).
+
+## Step 1: Create a Checkout Session in your server
+
+When your loop determines the order is confirmed, `POST` to Ringup's `create_checkout` endpoint
+with your Ringup API key. This is the setup and the call in one: there is no platform tool to
+register.
+
+```bash
+POST https://api.ringup.dev/v1/checkouts
+Authorization: Bearer <YOUR_RINGUP_KEY>
+Content-Type: application/json
+
+{
+  "amount_cents": 2500,
+  "line_items": [{ "name": "Large pepperoni", "quantity": 1, "amount_cents": 2500 }], // optional
+  "order_id": "sq_abc",                              // optional: settle against an existing order
+  "return_to": "sip:your-app@your-twilio-number",    // optional: transfer the caller back after payment
+  "success_message": "You are all set, your order will be ready shortly."  // optional (if no return_to)
+}
+```
+
+Response (the Checkout Session):
+
+```jsonc
+{
+  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
+  "payment_required": "required",                    // "required" | "optional" | "none"
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
+}
+```
+
+If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
+
+## Step 2: Transfer with a Dial to the SIP URI
+
+Send an `end` message to close the ConversationRelay session, and have your action URL return
+TwiML that dials the caller to the Ringup SIP URI, carrying the Checkout Session `id` as a URI
+parameter (or SIP header). Speak one line first so the caller is not on silence:
+
+```xml
+<Response>
+  <Say>One moment, connecting you to secure payment.</Say>
+  <Dial>
+    <Sip>sip:cs_x9f2@transfer.ringup.dev?X-Session-Id=cs_x9f2</Sip>
+  </Dial>
+</Response>
+```
+
+Because you control the TwiML, the header path is fully reliable here: Twilio passes the URI
+parameter through to the Ringup line, which matches it to the Checkout Session.
+
+## Step 3: The return, and the result (the webhook)
+
+Ringup answers the transferred call, recognizes the Caller, charges the saved Card, and texts a
+receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the
+call ends one of three ways, from what you passed in Step 1:
+
+- **`return_to` set**: Ringup `<Dial>`s the caller back to your app with the outcome in SIP
+  headers (`X-Payment-Status`, `X-Confirmation`), so your app resumes and closes the call.
+- **`success_message` / `failure_message` set (no `return_to`)**: Ringup reads your line and ends.
+- **Neither**: Ringup reads a short default and ends. The receipt is the proof.
+
+A `return_to` that cannot connect falls back to reading your `success_message` (or the default),
+so a failed return never strands the caller. Either way, your server reconciles from a webhook:
+
+```jsonc
+{
+  "id": "evt_9f2",
+  "type": "checkout.completed",         // or "checkout.failed"
+  "data": {
+    "checkout_id": "cs_x9f2",
+    "payment_id": "pay_abc",
+    "amount_cents": 2500,
+    "order_id": "sq_abc",               // echoed back
+    "confirmation": "2PJJZY",
+    "caller": "+14155551234",
+    "card": { "brand": "VISA", "last_4": "5858" }
+  }
+}
+```
+
+Match on the `order_id` you passed, store the `payment_id`, and flip your order to paid. See
+[Webhooks](/concepts/webhooks) for the full catalog, statuses, signature verification, and
+idempotency.
+
+## Validation status
+
+ConversationRelay gives you full control of the TwiML, so the transfer and the header path are
+standard Twilio `<Dial><Sip>`. Ringup's hosted transfer endpoint is rolling out; confirm access
+in your Ringup dashboard before relying on this in production. The recognition, charge, receipt,
+and webhook behavior is the same payment path Ringup runs everywhere.

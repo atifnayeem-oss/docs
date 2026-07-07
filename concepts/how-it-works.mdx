@@ -1,49 +1,80 @@
 ---
 title: "How it works"
-description: "Your agent always hands off the same way; Ringup decides what happens next."
+description: "Ringup is a remembered checkout for phone calls: returning callers are recognized by phone number and pay with a saved card in one sentence."
 ---
 
-Ringup's architecture rests on one rule: **your agent never branches on payment logic.**
-When the order is confirmed, it always does the same thing: a silent handoff ("One moment.")
-to the Ringup payment step. The payment step, not your agent, decides what happens next.
+Ringup is the payments layer for AI voice agents. It lets an agent take payment on a phone call
+the way a good checkout does on the web. The first time, the caller pays through a texted link
+and saves a card. Every time after, the agent recognizes them and charges that card in one
+sentence. Charges settle on the merchant's own payment processor.
+
+## A remembered checkout
+
+The heart of Ringup is memory. An ordinary phone payment makes the caller read a card number
+aloud on every single call. Ringup does it once. A first-time caller gets a texted link, pays
+on a hosted page, and their card is saved. From then on, any business connected to Ringup
+recognizes them and charges the saved card on a spoken yes. It is a checkout that remembers the
+customer, over the phone.
+
+> "That is nineteen dollars on your Visa ending 4242, shall I put it through?"
+>
+> "Yep."
+>
+> "Done. Your confirmation number is 2PJJZY."
+
+Capturing a card during a call is table stakes; every platform that offers it makes the caller
+enter the card every time. Recognizing a returning caller and reusing a saved card is the part
+nobody else does, and it is the product.
+
+## The core principles
+
+**Phone number is the identity.** The caller is recognized by the number they are calling from,
+resolved from trusted call metadata, never typed by the model or spoken by the caller. No
+logins, no account numbers, no passwords. See [Caller and merchant identity](/concepts/identity).
+
+**First time by link, every time after by memory.** A caller Ringup does not recognize is texted
+a secure pay link and pays on their phone; the card is saved with their consent. A caller Ringup
+recognizes is offered their saved card by brand and last four. One path enrolls, the other
+remembers.
+
+**Processor-agnostic.** Charges settle on the merchant's own payment processor, at their rates,
+in their dashboard. Ringup never becomes the merchant of record and never holds the money. Each
+merchant connects their own processor once.
+
+**No card number ever touches you.** Card entry happens once, on a hosted page served by the
+processor. The number never appears in audio, transcripts, or your servers, which keeps both
+you and the merchant out of PCI scope. On the voice path there is no card field at all.
+
+**The merchant owns the policy.** Whether payment is required, optional, or not needed for an
+order is a merchant setting Ringup serves per purchase, not logic in your agent. A merchant
+changes the rule with no redeploy and no agent edit, and a merchant who has not connected yet
+simply gets their normal, payment-free call. See [Payment policy](/concepts/payment-policy).
+
+**No model in the money path.** The code that moves money is deterministic. The language model
+asks Ringup to charge; it never computes or moves money itself, and it never sees a card number.
+
+## How a call flows
+
+At a high level, on any platform:
 
 ```text
-your agent takes the order -> "One moment." (always the same silent handoff)
-  -> payment step silently asks Ringup: is payment needed for THIS purchase?
-       required      -> "Let's knock out payment now..." (must complete before the call ends)
-       optional      -> one offer, never blocks
-       not_required  -> says nothing at all
-  -> wrap-up (your agent): announces success, reads the confirmation number, closes politely
+caller is recognized by phone number
+  -> Ringup checks the merchant's policy for this order (required / optional / not needed)
+  -> if payment is needed, the caller confirms and the saved card is charged
+       (a first-time caller is texted a link instead)
+  -> the caller gets an SMS receipt; your server gets a webhook
 ```
 
-## Why the decision lives with the payment step
+Everything above is the same on every platform. What differs is only how your agent reaches
+Ringup.
 
-If your agent decided when to hand off, every merchant policy change would be a prompt
-change, and every prompt change a redeploy. Because the handoff is unconditional and the
-policy is resolved server-side per purchase, a merchant switching from payment-optional to
-payment-required changes call behavior immediately, with zero agent edits.
+## Two ways to integrate
 
-The `not_required` branch is what makes this safe to run everywhere: for a business that
-does not take payment on calls (or has not connected a processor yet), the payment step
-checks the policy, says nothing, and passes straight to the wrap-up. The caller never hears
-a word about payment. Payments switch on the day the merchant connects, with no changes on
-your side.
+- **Native handoff.** Payment happens inside your agent, in its own voice, with no transfer.
+  The most seamless option where the platform supports it. See the [Vapi](/integrations/vapi/native)
+  guide.
+- **Call transfer.** Your agent transfers the call to a Ringup payment line, like redirecting to
+  a hosted checkout, and optionally gets the caller back afterward. Works on any platform. See
+  [Call transfer](/concepts/call-transfer).
 
-## The three steps on a call
-
-| Step | Who it is | What it does |
-|---|---|---|
-| Your agent | Yours, untouched | Takes the order, confirms it, collects a name, hands off |
-| Payment step | Ringup's, inherits your agent's voice, model, and transcriber | Silently checks the policy and the caller, then takes payment, offers it, or stays silent |
-| Wrap-up | Your own agent in wrap-up mode: its prompt verbatim with only the task replaced | Announces success, reads back the confirmation code, thanks the caller, ends the call |
-
-The wrap-up matters more than it looks: business confirmation stays in your agent's voice
-and persona. Ringup never makes business claims; it confirms only that money moved, grounded
-in the charge result.
-
-## Handoffs, not call transfers
-
-Ringup rides the platform's native handoff mechanism (on Vapi, squads), not a phone-network
-call transfer. The conversation context carries over, there is no second dial tone, no
-hold music, and no way to strand a caller between two phone legs. And because the caller
-never reads a card number aloud, there is nothing PCI-sensitive in the audio to protect.
+Same payment underneath, same principles. Only the front door changes.

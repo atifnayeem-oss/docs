@@ -1,12 +1,17 @@
 ---
-title: "Vapi"
-description: "Add payments to an existing Vapi agent or squad: provision, rehearse on a private line, go live, roll back."
+title: "Native handoff"
+description: "Add payments to a Vapi agent the seamless way: the payment step runs inside your squad, in your agent's own voice. Provision, rehearse, go live, roll back."
 ---
 
+Vapi supports two ways to add Ringup payments. **Native handoff** (this page) keeps the caller
+in your agent's own voice from greeting to receipt and is the recommended path on Vapi. The
+other is [call transfer](/integrations/vapi/call-transfer), for standardizing one integration
+across several platforms.
+
 Give your existing Vapi agent the ability to take payment mid-call. Returning callers are
-recognized by phone number and pay with their saved card in one sentence. You write no
-payment prompt and configure no models, transcribers, or languages: the payment step
-inherits everything from your agent.
+recognized by phone number and pay with their saved card in one sentence. You write no payment
+prompt and configure no models, transcribers, or languages: the payment step inherits
+everything from your agent.
 
 ## Prerequisites
 
@@ -56,7 +61,7 @@ and the new squad carries no traffic. Everything Ringup created is new:
 |---|---|
 | Payment step | Silently checks whether payment is needed for THIS purchase, then takes it, offers it, or says nothing at all. Inherits your agent's voice, model, and transcriber. |
 | Wrap-up step | Your own agent in wrap-up mode: its prompt verbatim with only the task replaced. It announces success, reads back the payment confirmation number, thanks the caller, and ends the call. |
-| Five `ringup_*` tools | payment_policy, identify, charge, payment_status, send_link: static tools against Ringup's API, resolved server-side per call. The model never types a phone number or merchant id. |
+| Five `ringup_*` tools | create_checkout (returns the Checkout Session and its `payment_required`), identify, charge, payment_status, send_link: static tools against Ringup's API, resolved server-side per call. The model never types a phone number or merchant id. |
 | A new squad | Your agent (referenced live) -> payment step -> wrap-up step. |
 
 ## Step 2: Rehearse on a private line
@@ -133,10 +138,10 @@ is the source of truth.
 
 ```text
 your agent takes the order -> "One moment." (always the same silent handoff)
-  -> payment step silently asks Ringup: is payment needed for THIS purchase?
-       required      -> "Let's knock out payment now..." (must complete before the call ends)
-       optional      -> one offer, never blocks ("Want to take care of payment now?")
-       not_required  -> says nothing at all
+  -> payment step creates a Checkout Session; Ringup returns payment_required for THIS purchase:
+       required  -> "Let's knock out payment now..." (must complete before the call ends)
+       optional  -> one offer, never blocks ("Want to take care of payment now?")
+       none      -> says nothing at all
   -> wrap-up (your agent): announces success, reads the confirmation number, closes politely
 ```
 
@@ -146,7 +151,7 @@ onboarding later) changes call behavior immediately with no agent edits.
 There is no processor to connect and no merchant setup in this flow: each merchant connects
 their own payment processor to Ringup once, on their own schedule, and charges settle there
 at their rates. A merchant who has not connected yet simply gets their normal, payment-free
-call flow (that is the `not_required` state above).
+call flow (that is the `none` state above).
 
 ## Manual wiring (platforms with their own squad templates)
 

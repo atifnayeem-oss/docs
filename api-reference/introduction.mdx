@@ -3,9 +3,16 @@ title: "Introduction"
 description: "Five REST tools for platforms that own their whole conversation flow."
 ---
 
-Most integrations never touch these endpoints directly: the pre-built payment step calls
-them for you. They are documented for platforms that own their entire conversation loop and
-want to register Ringup's tools on their own LLM.
+Ringup has two tiers, like a hosted-checkout provider. Most integrations use the high-level
+**Checkout Session** (create one, transfer the call, reconcile on the webhook); see
+[Call transfer](/concepts/call-transfer). The low-level endpoints below are the **Payment**
+tier, for platforms that own their entire conversation loop and drive the payment operations
+themselves. Use a Checkout Session unless you have a reason not to.
+
+<Note>
+These low-level endpoint names are being aligned to the Checkout Session and Payment object
+model. The behavior is stable; some names will change before this is final.
+</Note>
 
 ## Base URL
 

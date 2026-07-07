@@ -16,7 +16,7 @@ working call.
 | Unconnected merchant (payment never mentioned) | any unknown merchant id |
 | Test caller with a saved card | `+14155550142` (Visa ending 5858) |
 
-A successful test charge returns `COMPLETED` with a real confirmation code, which the
+A successful test charge returns `succeeded` with a real confirmation code, which the
 wrap-up step speaks back to the caller.
 
 ## Three tiers of testing
@@ -41,7 +41,7 @@ wrap-up step speaks back to the caller.
 
 ## Reading test results
 
-**The charge response is ground truth, not the assistant's words.** Only a `COMPLETED`
+**The charge response is ground truth, not the assistant's words.** Only a `succeeded`
 charge result with a payment id and confirmation code proves a payment happened. An agent
 can narrate success it did not have; the API result cannot.
 

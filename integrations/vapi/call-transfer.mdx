@@ -1,0 +1,113 @@
+---
+title: "Call transfer"
+description: "Take payment on a Vapi call by creating a Checkout Session and transferring the call to it. Set up the tool, transfer, and reconcile on the webhook."
+---
+
+Vapi supports two ways to add Ringup payments. This page is **call transfer**: your agent
+creates a Checkout Session and transfers the live call to a Ringup payment line, like a hosted
+web checkout (see [Call transfer](/concepts/call-transfer)). Reach for it when you are
+standardizing on a single integration across several platforms. The other way,
+[native handoff](/integrations/vapi/native), keeps the caller in your agent's own voice and is
+the more seamless option on Vapi.
+
+This page is end to end: setup, the call, the return, and what happens after payment.
+
+## Prerequisites
+
+- A Vapi agent you already run, with a phone number.
+- Your Vapi API key.
+- A Ringup account and API key (from your Ringup dashboard). Test mode works out of the box on
+  a shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
+
+## Step 1: Add the Ringup checkout tool to your agent
+
+This is the one-time setup. Create an apiRequest tool in Vapi that calls Ringup's
+`create_checkout` endpoint with your Ringup API key, and attach it to your agent. Add it in the
+Vapi dashboard (Tools, then Create Tool, then apiRequest) or via the API:
+
+```jsonc
+{
+  "type": "apiRequest",
+  "name": "create_checkout",
+  "method": "POST",
+  "url": "https://api.ringup.dev/v1/checkouts",
+  "headers": { "type": "object", "properties": {
+    "Authorization": { "type": "string", "value": "Bearer <YOUR_RINGUP_KEY>" }
+  }},
+  "body": { "type": "object", "properties": {
+    "amount_cents": { "type": "number" },
+    "order_id":     { "type": "string" }
+  }}
+}
+```
+
+Attach the tool to your agent (add its id to the assistant's `toolIds`), and add one line to
+its prompt:
+
+> When the caller has confirmed their order, call `create_checkout` with the order total.
+
+That is the whole setup. Your agent is otherwise unchanged.
+
+## Step 2: Create a Checkout Session
+
+When the order is confirmed, your agent calls `create_checkout`. If `payment_required` comes
+back `none`, carry on. If `required` or `optional`, it returns a `transfer_to` SIP URI.
+
+```jsonc
+// like creating a hosted checkout session: amount, line items, order, and how the call ends
+create_checkout({
+  "amount_cents": 1900,
+  "line_items": [{ "name": "Large pepperoni", "quantity": 1, "amount_cents": 1900 }], // optional
+  "order_id": "sq_abc",                          // optional: settle against an existing order
+  "return_to": "sip:agent@your-vapi-number",     // optional: transfer the caller back after payment
+  "success_message": "You are all set, your order will be ready shortly."  // optional (if no return_to)
+})
+
+// response (the Checkout Session)
+{
+  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
+  "payment_required": "required",                    // "required" | "optional" | "none"
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
+}
+```
+
+`order_id` and `line_items` mirror a checkout. `return_to` transfers the caller back to your
+agent after payment (the twin of `transfer_to`), or pass `success_message` / `failure_message`
+to have Ringup read the result and end. The `id` and `transfer_to` are what Step 3 uses.
+
+## Step 3: Transfer, silently and with context
+
+```jsonc
+{
+  "type": "transferCall",
+  "destination": {
+    "type": "sip",
+    "sipUri": "{{transfer_to}}",
+    "sipHeaders": { "X-Session-Id": "{{id}}", "X-Caller": "{{customer.number}}" },
+    "transferPlan": { "mode": "blind-transfer-add-summary-to-sip-header", "sipVerb": "refer" }
+  },
+  "messages": [{ "type": "request-start", "content": "One moment, connecting you to secure payment." }]
+}
+```
+
+Two Vapi specifics make this smooth for the caller:
+
+- **No destination `message`**, so the caller hears no robotic announcement. The
+  `request-start` line covers the brief connect gap so there is never dead air.
+- **`blind-transfer-add-summary-to-sip-header`** hands the payment line a short summary of the
+  call in a SIP header, so it opens already knowing the order rather than re-asking.
+
+<Note>
+The payment line's voice and model are configurable in your Ringup dashboard, so you can match
+it to your agent. The caller is recognized from the number your agent already has, so
+recognition does not depend on the caller ID surviving the transfer.
+</Note>
+
+## Step 4: After payment
+
+Ringup charges and texts the caller a receipt. Then the call ends one of three ways: `return_to`
+transfers the caller back to your agent with the outcome in the SIP headers so your agent closes
+in its own voice; `success_message` / `failure_message` has Ringup read your line and end; or
+neither, and Ringup reads a short default and ends. Either way, your server reconciles from a
+`checkout.completed` webhook, which carries the Payment (`payment_id`, your `order_id`, the
+confirmation). See [Webhooks](/concepts/webhooks) for the event catalog and statuses.

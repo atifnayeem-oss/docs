@@ -34,11 +34,11 @@
     }
   },
   "paths": {
-    "/payment_policy": {
+    "/create_checkout": {
       "post": {
-        "operationId": "payment_policy",
-        "summary": "Get the payment policy for this purchase",
-        "description": "Ask Ringup how payment should be handled for this purchase, before taking payment. Resolved per purchase from the merchant's settings and the amount: the same merchant can return different statuses for different orders.",
+        "operationId": "create_checkout",
+        "summary": "Create a Checkout Session for this order",
+        "description": "Create a Ringup Checkout Session for this order, before taking payment. Returns the session id and payment_required, resolved per purchase from the merchant's settings and the amount.",
         "parameters": [
           { "$ref": "#/components/parameters/CallerNumber" },
           { "$ref": "#/components/parameters/Merchant" },
@@ -65,11 +65,12 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": { "type": "string", "enum": ["required", "optional", "not_required"], "description": "required: payment must complete before the call ends. optional: offer once, never block. not_required: do not offer payment at all; proceed as the business's normal flow." },
+                    "id": { "type": "string", "description": "The Checkout Session id (cs_...)." },
+                    "payment_required": { "type": "string", "enum": ["required", "optional", "none"], "description": "required: payment must complete before the call ends. optional: offer once, never block. none: do not offer payment at all; proceed as the business's normal flow." },
                     "reason": { "type": "string", "description": "One sentence written for the model, telling the payment step how to behave." }
                   }
                 },
-                "example": { "status": "required", "reason": "amount over $50 requires payment before the call ends" }
+                "example": { "id": "cs_x9f2", "payment_required": "required", "reason": "amount over $50 requires payment before the call ends" }
               }
             }
           }
@@ -142,14 +143,14 @@
         },
         "responses": {
           "200": {
-            "description": "The charge result. Only a COMPLETED status with a payment id and confirmation code proves a payment.",
+            "description": "The charge result. Only a succeeded status with a payment id and confirmation code proves a payment.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "ok": { "type": "boolean" },
-                    "status": { "type": "string", "description": "COMPLETED on success." },
+                    "status": { "type": "string", "description": "succeeded on success." },
                     "order_id": { "type": "string" },
                     "payment_id": { "type": "string" },
                     "confirmation": { "type": "string", "description": "Short code the wrap-up speaks back to the caller." },
@@ -163,7 +164,7 @@
                     }
                   }
                 },
-                "example": { "ok": true, "status": "COMPLETED", "order_id": "ord_x", "payment_id": "pay_x", "confirmation": "2PJJZY", "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 } }
+                "example": { "ok": true, "status": "succeeded", "order_id": "ord_x", "payment_id": "pay_x", "confirmation": "2PJJZY", "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 } }
               }
             }
           }
