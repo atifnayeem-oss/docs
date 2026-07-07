@@ -1,0 +1,195 @@
+---
+title: "Vapi"
+description: "Add payments to an existing Vapi agent or squad: provision, rehearse on a private line, go live, roll back."
+---
+
+Give your existing Vapi agent the ability to take payment mid-call. Returning callers are
+recognized by phone number and pay with their saved card in one sentence. You write no
+payment prompt and configure no models, transcribers, or languages: the payment step
+inherits everything from your agent.
+
+## Prerequisites
+
+- A Vapi agent (or squad) you already run
+- Your Vapi API key (private key)
+- A Ringup account. Test mode works out of the box on a shared sandbox, so there is nothing
+  to connect. See [Testing](/concepts/testing).
+
+## Step 0 (optional): Talk to a demo first
+
+```bash
+npx ringup-vapi-init test
+```
+
+Pick a vertical (food ordering, auto parts, appointment booking, insurance) and get a fully
+wired demo squad in your own Vapi org, backed by Ringup's sandbox: a demo caller with a
+saved Visa, a sandbox merchant with a real payment policy, and a try-saying script that
+walks the optional and required branches. Talk to it from the dashboard, then remove it with
+`test --clean`. Nothing about the demo touches anything you own.
+
+## Step 1: Provision
+
+```bash
+npx ringup-vapi-init
+```
+
+It asks for two things and nothing else:
+
+1. **Your Vapi private key** (hidden input; used for these API calls, never stored).
+2. **What to add payments to:**
+   - **(a)ssistant**: pick your agent from a list. Ringup assembles the squad around it.
+   - **(s)quad**: pick the squad, then pick which member confirms the order. Ringup builds
+     a new squad with your members referenced live, plus the payment and wrap-up steps;
+     your original squad keeps running untouched.
+   - **(m)anual**: Ringup provisions only the pieces and prints the wiring steps, for
+     platforms that manage their own squads and templates (see Manual wiring below).
+
+You are never asked for a business name, a payment policy, a model, a transcriber, or a
+language. The business is identified from the number the call comes in on; the policy is a
+merchant setting served by Ringup per purchase; everything else is inherited from your
+agent.
+
+**After provision, nothing you own has changed.** Your assistant is byte-for-byte unmodified
+and the new squad carries no traffic. Everything Ringup created is new:
+
+| Object | What it does |
+|---|---|
+| Payment step | Silently checks whether payment is needed for THIS purchase, then takes it, offers it, or says nothing at all. Inherits your agent's voice, model, and transcriber. |
+| Wrap-up step | Your own agent in wrap-up mode: its prompt verbatim with only the task replaced. It announces success, reads back the payment confirmation number, thanks the caller, and ends the call. |
+| Five `ringup_*` tools | payment_policy, identify, charge, payment_status, send_link: static tools against Ringup's API, resolved server-side per call. The model never types a phone number or merchant id. |
+| A new squad | Your agent (referenced live) -> payment step -> wrap-up step. |
+
+## Step 2: Rehearse on a private line
+
+```bash
+npx ringup-vapi-init stage
+```
+
+Stage gives you a real phone number only you know about, wired to a disposable copy of your
+agent with payments already in. It builds three things, touching nothing you own:
+
+- A **staging twin**: a byte-copy of your order-confirming member with the two go-live
+  changes baked in. Your real assistant is untouched.
+- A rehearsal squad: twin -> payment step -> wrap-up step. Only the part go-live changes is
+  rehearsed; the rest of your squad runs identically before and after, so it is not copied.
+- A **free canary number** pointed at that squad, ready to call the moment the command
+  prints it.
+
+Call the number from a real phone. The call starts at the order-confirmation step, so jump
+straight in: place an order, confirm it, give a name. You hear exactly what your customers
+are about to hear: the silent handoff, the recognition, the policy branch, the charge, the
+wrap-up with a confirmation code. Call it as many times as you like; re-run `stage` after
+any fix (it replaces the rig).
+
+## Step 3: Go live
+
+```bash
+npx ringup-vapi-init go-live
+```
+
+This is the moment call behavior changes, and it is deliberately explicit. It shows the full
+plan and asks once, then does two things in this order:
+
+1. **Points your phone number at the squad.** Number first on purpose: a caller landing in
+   the seconds mid-switch simply gets your current payment-free flow. (The reverse order
+   strands callers with an agent reaching for a payment step that is not there yet.)
+2. **Makes exactly two changes to your assistant**: appends the `handoff_to_Payment` tool
+   to its toolIds, and appends one line to its prompt (hand off once the order and name are
+   confirmed).
+
+It records where each number pointed before the switch, then offers to delete the rehearsal
+rig (canary number, twin, staging squad); keep it if you want a permanent test line.
+Running several numbers or locations? Move one number first as a canary.
+
+Undo everything, any time:
+
+```bash
+npx ringup-vapi-init rollback
+```
+
+Rollback removes exactly those two changes and points each number back at its recorded
+pre-go-live destination. Your assistant is restored byte-for-byte. (Your squad and member
+choices are remembered locally in `~/.ringup/vapi.json`, so these commands need no flags;
+flags override for scripting.)
+
+## Step 4: Verify
+
+```bash
+npx ringup-vapi-init check
+```
+
+`check` verifies the entire wiring from the API: squad structure, payment and wrap-up
+configuration, the handoff tool shape, live/not-live state, and that every transcriber
+model name is a known-good value (Vapi accepts typos silently and they only fail at
+runtime).
+
+<Note>
+Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names; the squad
+canvas may show "No handoff tools configured" for working wiring. `check` reads the API and
+is the source of truth.
+</Note>
+
+## The call flow, on every call, for every merchant
+
+```text
+your agent takes the order -> "One moment." (always the same silent handoff)
+  -> payment step silently asks Ringup: is payment needed for THIS purchase?
+       required      -> "Let's knock out payment now..." (must complete before the call ends)
+       optional      -> one offer, never blocks ("Want to take care of payment now?")
+       not_required  -> says nothing at all
+  -> wrap-up (your agent): announces success, reads the confirmation number, closes politely
+```
+
+Your agent never branches on payment logic, and a merchant changing their payment rule (or
+onboarding later) changes call behavior immediately with no agent edits.
+
+There is no processor to connect and no merchant setup in this flow: each merchant connects
+their own payment processor to Ringup once, on their own schedule, and charges settle there
+at their rates. A merchant who has not connected yet simply gets their normal, payment-free
+call flow (that is the `not_required` state above).
+
+## Manual wiring (platforms with their own squad templates)
+
+Pick **(m)anual** in the CLI. Ringup provisions the payment step, wrap-up step, tools, and a
+saved handoff tool, creates no squad, and prints the ids plus the wiring rules:
+
+1. Add the payment and wrap-up members to your squad's `members` array (plain references).
+2. Attach the printed handoff tool id to the member that confirms the order, by appending it
+   to that assistant's `model.toolIds` in your own template. Keep your existing toolIds: a
+   PATCH replaces the whole `model` object. Note: member `assistantOverrides` cannot deliver
+   tools on voice calls (toolIds are ignored; inline tools reach chat only); the saved
+   assistant is the only wiring that works on voice.
+3. Append the printed handoff line to that member's prompt.
+4. Never hand back to your greeter after payment; the payment step exits to wrap-up on its
+   own, and the wrap-up ends the call.
+
+The `RINGUP_INIT_RESULT` JSON line at the end is machine-readable, so your own provisioning
+scripts can consume it and template the ids across many squads.
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Do I write a payment prompt?">
+    No. The payment step ships pre-validated and inherits your agent's voice and model. You
+    change nothing about how it works.
+  </Accordion>
+  <Accordion title="How does Ringup know the caller and the business?">
+    Server-side: the caller number and the dialed number arrive on trusted headers set by
+    the platform, never typed by the model, so neither can be spoofed or hallucinated. See
+    [Caller and merchant identity](/concepts/identity).
+  </Accordion>
+  <Accordion title="What if Ringup is unreachable mid-call?">
+    The handoff fails neutrally ("Give me one second.") and your agent continues. The
+    scripted line never asserts an outcome, so a caller is never told payment happened (or
+    was not needed) when Ringup could not be reached.
+  </Accordion>
+  <Accordion title="What does a merchant have to do?">
+    Connect their payment processor to Ringup once. Until they do, their calls behave
+    exactly as they do today; the moment they connect, payment starts happening on their
+    calls with no agent changes.
+  </Accordion>
+  <Accordion title="Why does the squad canvas say no handoff tools are configured?">
+    Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names. The
+    wiring is real; `ringup-vapi-init check` reads the API and is the source of truth.
+  </Accordion>
+</AccordionGroup>

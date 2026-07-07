@@ -1,0 +1,49 @@
+---
+title: "Testing"
+description: "A shared sandbox with ready-made merchants and callers. Test mode works before you configure anything."
+---
+
+Ringup's test mode is a shared sandbox that is live for every account from the first
+command. There are no test keys to mint and no merchants to create before your first
+working call.
+
+## Fixtures
+
+| Fixture | Value |
+|---|---|
+| Test merchant, payment optional under $50 | `tonys-pizza` |
+| Test merchant, payment always required | `beacon-insurance` |
+| Unconnected merchant (payment never mentioned) | any unknown merchant id |
+| Test caller with a saved card | `+14155550142` (Visa ending 5858) |
+
+A successful test charge returns `COMPLETED` with a real confirmation code, which the
+wrap-up step speaks back to the caller.
+
+## Three tiers of testing
+
+<Steps>
+  <Step title="Canned demos">
+    `npx ringup-vapi-init test` builds a complete demo squad in your org: sandbox merchant,
+    demo caller, try-saying script covering the required and optional branches. Zero contact
+    with anything you own; `test --clean` removes it.
+  </Step>
+  <Step title="Rehearsal on a private line">
+    `npx ringup-vapi-init stage` wires a disposable copy of your own agent to a free test
+    number. You hear your actual agent, your actual prompts, and the full payment flow on a
+    real phone call, before anything you own changes.
+  </Step>
+  <Step title="Post-go-live verification">
+    `npx ringup-vapi-init check` reads the wiring from the platform API (squad structure,
+    tool shapes, live state, transcriber model names) and is the source of truth when a
+    dashboard renders squad wiring incompletely.
+  </Step>
+</Steps>
+
+## Reading test results
+
+**The charge response is ground truth, not the assistant's words.** Only a `COMPLETED`
+charge result with a payment id and confirmation code proves a payment happened. An agent
+can narrate success it did not have; the API result cannot.
+
+**Text-chat smoke tests cannot prove voice.** Platform chat pipelines assemble handoffs
+differently from voice pipelines. Validate squads with a voice call.

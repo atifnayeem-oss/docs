@@ -1,0 +1,48 @@
+---
+title: "Caller and merchant identity"
+description: "Both identities are resolved server-side from call context. The model never types either one."
+---
+
+The two identities that matter on a payment call, who is calling and which business they
+called, never pass through the language model. Both arrive at Ringup on trusted headers the
+platform templates in at call time.
+
+## The caller: recognized by phone number
+
+The caller's number rides the `X-Caller-Number` header, templated from the platform's
+native caller-ID variable (on Vapi, `{{customer.number}}`). When the payment step begins, it
+looks the caller up:
+
+```json
+{
+  "known": true,
+  "name": "Alex",
+  "card": { "brand": "VISA", "last_4": "5858", "exp_month": 7, "exp_year": 2028 }
+}
+```
+
+A recognized caller is offered their saved card by name and last four, with no identity
+questions. An unknown caller is offered a texted pay link instead; once they pay, they are
+recognized on every call after that.
+
+## The merchant: resolved from the dialed number
+
+The number the caller dialed rides the `X-Ringup-Merchant` header (on Vapi,
+`{{phoneNumber.number}}`). The dialed number is the near-universal per-merchant key on
+multi-tenant voice platforms: one number per business, no per-agent configuration. Ringup
+maps it to the merchant server-side and applies that merchant's policy and processor.
+
+A platform that prefers explicit tenant ids can send its own merchant identifier in the same
+header instead; both forms resolve server-side.
+
+## Why headers, not tool arguments
+
+A model-generated `phone_number` or `merchant_id` argument can be mistyped, hallucinated, or
+prompt-injected by a hostile caller. A header set by the platform's template engine cannot.
+The tools accept no identity arguments at all; there is nothing to spoof.
+
+<Warning>
+Dashboard and web test calls carry no real caller ID, so the platform's caller-ID template
+resolves to nothing. For those, pin a test caller explicitly (the Vapi CLI's
+`--demo-caller` flag). Real inbound phone calls resolve both identities natively.
+</Warning>

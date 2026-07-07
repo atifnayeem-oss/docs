@@ -1,0 +1,49 @@
+---
+title: "How it works"
+description: "Your agent always hands off the same way; Ringup decides what happens next."
+---
+
+Ringup's architecture rests on one rule: **your agent never branches on payment logic.**
+When the order is confirmed, it always does the same thing: a silent handoff ("One moment.")
+to the Ringup payment step. The payment step, not your agent, decides what happens next.
+
+```text
+your agent takes the order -> "One moment." (always the same silent handoff)
+  -> payment step silently asks Ringup: is payment needed for THIS purchase?
+       required      -> "Let's knock out payment now..." (must complete before the call ends)
+       optional      -> one offer, never blocks
+       not_required  -> says nothing at all
+  -> wrap-up (your agent): announces success, reads the confirmation number, closes politely
+```
+
+## Why the decision lives with the payment step
+
+If your agent decided when to hand off, every merchant policy change would be a prompt
+change, and every prompt change a redeploy. Because the handoff is unconditional and the
+policy is resolved server-side per purchase, a merchant switching from payment-optional to
+payment-required changes call behavior immediately, with zero agent edits.
+
+The `not_required` branch is what makes this safe to run everywhere: for a business that
+does not take payment on calls (or has not connected a processor yet), the payment step
+checks the policy, says nothing, and passes straight to the wrap-up. The caller never hears
+a word about payment. Payments switch on the day the merchant connects, with no changes on
+your side.
+
+## The three steps on a call
+
+| Step | Who it is | What it does |
+|---|---|---|
+| Your agent | Yours, untouched | Takes the order, confirms it, collects a name, hands off |
+| Payment step | Ringup's, inherits your agent's voice, model, and transcriber | Silently checks the policy and the caller, then takes payment, offers it, or stays silent |
+| Wrap-up | Your own agent in wrap-up mode: its prompt verbatim with only the task replaced | Announces success, reads back the confirmation code, thanks the caller, ends the call |
+
+The wrap-up matters more than it looks: business confirmation stays in your agent's voice
+and persona. Ringup never makes business claims; it confirms only that money moved, grounded
+in the charge result.
+
+## Handoffs, not call transfers
+
+Ringup rides the platform's native handoff mechanism (on Vapi, squads), not a phone-network
+call transfer. The conversation context carries over, there is no second dial tone, no
+hold music, and no way to strand a caller between two phone legs. And because the caller
+never reads a card number aloud, there is nothing PCI-sensitive in the audio to protect.

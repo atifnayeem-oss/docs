@@ -1,47 +1,57 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "Talk to a working payments demo in about a minute, then take your own agent live."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+The fastest way to understand Ringup is to hear it. The CLI can build a fully wired demo in
+your own Vapi org, backed by Ringup's shared sandbox: nothing to sign up for, nothing to
+connect, nothing you own is touched.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
+  <Step title="Talk to a demo">
     ```bash
-    npm install your-package
+    npx ringup-vapi-init test
     ```
+
+    Pick a vertical (food ordering, auto parts, appointment booking, insurance). You get a
+    demo squad with a sandbox merchant, a demo caller with a saved Visa, and a try-saying
+    script that walks the policy branches. Talk to it from the Vapi dashboard, then remove
+    it with `test --clean`.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
-
+  <Step title="Provision around your own agent">
     ```bash
-    your-cli init
+    npx ringup-vapi-init
     ```
+
+    Two questions: your Vapi private key (hidden input, never stored) and which agent or
+    squad. Ringup builds the payment step, the wrap-up step, and a new squad around your
+    agent. Your assistant is byte-for-byte unmodified and no call behavior changes.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
-
+  <Step title="Rehearse on a private line">
     ```bash
-    your-cli start
+    npx ringup-vapi-init stage
     ```
+
+    You get a free test number wired to a disposable copy of your agent with payments in.
+    Call it from a real phone and hear exactly what your customers are about to hear. Your
+    real number and real agent stay untouched.
+  </Step>
+  <Step title="Go live">
+    ```bash
+    npx ringup-vapi-init go-live
+    ```
+
+    One consented command: points your real number at the squad, then makes the two changes
+    to your agent (one tool, one prompt line), in that order. `rollback` reverses everything,
+    your number included, byte-for-byte.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+The full lifecycle, including `check` verification and manual wiring for platforms that
+manage their own squads, is in the [Vapi integration guide](/integrations/vapi).
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+<Note>
+Test mode works out of the box on a shared sandbox with ready-made merchants and callers, so
+there is no account setup between you and a first working call. See
+[Testing](/concepts/testing) for the fixtures.
+</Note>

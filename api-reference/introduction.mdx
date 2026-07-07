@@ -1,0 +1,47 @@
+---
+title: "Introduction"
+description: "Five REST tools for platforms that own their whole conversation flow."
+---
+
+Most integrations never touch these endpoints directly: the pre-built payment step calls
+them for you. They are documented for platforms that own their entire conversation loop and
+want to register Ringup's tools on their own LLM.
+
+## Base URL
+
+```text
+https://ringup.dev/api/tools
+```
+
+All five tools are `POST` endpoints with JSON bodies.
+
+## Identity rides headers, not arguments
+
+The caller and the merchant are resolved server-side from three headers your platform
+templates in at call time. The model never types either identity, so neither can be
+mistyped, hallucinated, or prompt-injected. See
+[Caller and merchant identity](/concepts/identity).
+
+| Header | Value | Purpose |
+|---|---|---|
+| `X-Caller-Number` | The caller's number, E.164 (platform caller-ID variable) | Who is calling |
+| `X-Ringup-Merchant` | The dialed number, E.164, or your explicit merchant id | Which business they called |
+| `X-Call-Id` | The platform's call id | Charge idempotency: retries can never double-charge |
+
+<Warning>
+Web and dashboard test calls carry no real caller ID, so the caller-ID template resolves to
+nothing. Pin a test caller explicitly for those; real inbound phone calls resolve
+everything natively.
+</Warning>
+
+## Idempotency
+
+Charges are deduplicated server-side against the call id and amount. A platform retry, a
+model retry, or a duplicated tool call returns the original payment result instead of
+charging twice. This is a server guarantee, not a client convention.
+
+## Test mode
+
+The shared sandbox answers these endpoints for every account with ready-made fixtures
+(merchants with different policies, a caller with a saved Visa). See
+[Testing](/concepts/testing).

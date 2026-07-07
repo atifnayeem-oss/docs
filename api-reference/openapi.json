@@ -1,0 +1,245 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ringup tools API",
+    "description": "Five REST tools for taking payment on a voice call. Identity rides trusted headers; the model never types a phone number or merchant id.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://ringup.dev/api/tools" }
+  ],
+  "components": {
+    "parameters": {
+      "CallerNumber": {
+        "name": "X-Caller-Number",
+        "in": "header",
+        "required": true,
+        "description": "The caller's phone number in E.164, templated from the platform's caller-ID variable. Never model-generated.",
+        "schema": { "type": "string", "example": "+14155550142" }
+      },
+      "Merchant": {
+        "name": "X-Ringup-Merchant",
+        "in": "header",
+        "required": true,
+        "description": "The dialed number in E.164 (resolved to a merchant server-side) or an explicit merchant id.",
+        "schema": { "type": "string", "example": "tonys-pizza" }
+      },
+      "CallId": {
+        "name": "X-Call-Id",
+        "in": "header",
+        "required": false,
+        "description": "The platform's call id. Used for charge idempotency: retries within a call can never double-charge.",
+        "schema": { "type": "string" }
+      }
+    }
+  },
+  "paths": {
+    "/payment_policy": {
+      "post": {
+        "operationId": "payment_policy",
+        "summary": "Get the payment policy for this purchase",
+        "description": "Ask Ringup how payment should be handled for this purchase, before taking payment. Resolved per purchase from the merchant's settings and the amount: the same merchant can return different statuses for different orders.",
+        "parameters": [
+          { "$ref": "#/components/parameters/CallerNumber" },
+          { "$ref": "#/components/parameters/Merchant" },
+          { "$ref": "#/components/parameters/CallId" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount_cents": { "type": "number", "description": "The purchase amount in cents." }
+                }
+              },
+              "example": { "amount_cents": 8500 }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The policy decision for this purchase.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "enum": ["required", "optional", "not_required"], "description": "required: payment must complete before the call ends. optional: offer once, never block. not_required: do not offer payment at all; proceed as the business's normal flow." },
+                    "reason": { "type": "string", "description": "One sentence written for the model, telling the payment step how to behave." }
+                  }
+                },
+                "example": { "status": "required", "reason": "amount over $50 requires payment before the call ends" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identify": {
+      "post": {
+        "operationId": "identify",
+        "summary": "Look up the caller",
+        "description": "Whether the caller has a saved card with Ringup, resolved from the caller number header. Call this as soon as the payment step begins; never mention a card on file before this confirms one.",
+        "parameters": [
+          { "$ref": "#/components/parameters/CallerNumber" },
+          { "$ref": "#/components/parameters/Merchant" },
+          { "$ref": "#/components/parameters/CallId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's saved-card status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "known": { "type": "boolean" },
+                    "name": { "type": "string" },
+                    "card": {
+                      "type": "object",
+                      "properties": {
+                        "brand": { "type": "string" },
+                        "last_4": { "type": "string" },
+                        "exp_month": { "type": "number" },
+                        "exp_year": { "type": "number" }
+                      }
+                    }
+                  }
+                },
+                "example": { "known": true, "name": "Alex", "card": { "brand": "VISA", "last_4": "5858", "exp_month": 7, "exp_year": 2028 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/charge": {
+      "post": {
+        "operationId": "charge",
+        "summary": "Charge the saved card",
+        "description": "Charge the caller's saved card, off-session, settling to the merchant's own payment processor. Only after the caller verbally agrees. Idempotent per call id and amount: retries return the original payment.",
+        "parameters": [
+          { "$ref": "#/components/parameters/CallerNumber" },
+          { "$ref": "#/components/parameters/Merchant" },
+          { "$ref": "#/components/parameters/CallId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount_cents"],
+                "properties": {
+                  "amount_cents": { "type": "number", "description": "Order total in cents." },
+                  "description": { "type": "string", "description": "Short order description for the receipt." }
+                }
+              },
+              "example": { "amount_cents": 8500, "description": "Front brake pads, 2022 Toyota Highlander" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The charge result. Only a COMPLETED status with a payment id and confirmation code proves a payment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "status": { "type": "string", "description": "COMPLETED on success." },
+                    "order_id": { "type": "string" },
+                    "payment_id": { "type": "string" },
+                    "confirmation": { "type": "string", "description": "Short code the wrap-up speaks back to the caller." },
+                    "charged": {
+                      "type": "object",
+                      "properties": {
+                        "brand": { "type": "string" },
+                        "last_4": { "type": "string" },
+                        "amount_cents": { "type": "number" }
+                      }
+                    }
+                  }
+                },
+                "example": { "ok": true, "status": "COMPLETED", "order_id": "ord_x", "payment_id": "pay_x", "confirmation": "2PJJZY", "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment_status": {
+      "post": {
+        "operationId": "payment_status",
+        "summary": "Check payment completion",
+        "description": "Whether the caller has completed payment, for example after send_link while the call is still going.",
+        "parameters": [
+          { "$ref": "#/components/parameters/CallerNumber" },
+          { "$ref": "#/components/parameters/Merchant" },
+          { "$ref": "#/components/parameters/CallId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current payment state for this call.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "enum": ["paid", "pending"] }
+                  }
+                },
+                "example": { "status": "pending" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/send_link": {
+      "post": {
+        "operationId": "send_link",
+        "summary": "Text the caller a pay link",
+        "description": "Text the caller a secure pay link: first-time callers, or a caller who wants a different card. Only after the caller clearly says yes to the text. Card entry happens on a Ringup-hosted page; the number never touches the call.",
+        "parameters": [
+          { "$ref": "#/components/parameters/CallerNumber" },
+          { "$ref": "#/components/parameters/Merchant" },
+          { "$ref": "#/components/parameters/CallId" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount_cents": { "type": "number", "description": "Order total in cents." }
+                }
+              },
+              "example": { "amount_cents": 1900 }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Confirmation the text was sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "sent_to": { "type": "string" },
+                    "link": { "type": "string" }
+                  }
+                },
+                "example": { "ok": true, "sent_to": "+14155550142", "link": "https://ringup.dev/pay" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
