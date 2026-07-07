@@ -1,0 +1,125 @@
+---
+title: "OpenAI Realtime"
+description: "Add card-on-file payments to an OpenAI Realtime agent by call transfer: create a Checkout Session in your bridge and Dial the caller to the Ringup SIP URI."
+---
+
+Add card-on-file payments to an OpenAI Realtime agent by call transfer. This works like a hosted
+web checkout, over the phone: when the order is confirmed, your bridge creates a **Checkout
+Session** and transfers the live call to a Ringup payment line, the caller pays there, and the
+call optionally returns to your agent. Ringup recognizes the caller, charges their saved card,
+settles it against the order, and texts a receipt. Your server reconciles from a webhook. If the
+model is new to you, read [Call transfer](/concepts/call-transfer) first.
+
+With the Realtime API you bring the transport (WebRTC, a WebSocket, or the SIP connector) and the
+telephony under it, so your bridge owns the call leg. The transfer happens on that bridge, and
+setup is code there.
+
+This page is end to end: setup, the call, the return, and what happens after payment.
+
+## How the pieces map to OpenAI Realtime
+
+| Ringup piece | On your Realtime bridge |
+|---|---|
+| `create_checkout` | An HTTP `POST` your bridge makes when the order is confirmed |
+| The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
+| The transfer | A `<Dial><Sip>` (or SIP REFER) on your telephony to the Ringup SIP URI |
+| The result | A `checkout.completed` webhook to your server |
+
+## Prerequisites
+
+- A running OpenAI Realtime agent reachable over the phone (Twilio media streams, the SIP
+  connector, or your own SIP trunk).
+- The telephony account that owns the inbound call leg.
+- A Ringup account and API key. Test mode works out of the box on a shared sandbox. See
+  [Testing](/concepts/testing).
+
+## Step 1: Create a Checkout Session when the order is confirmed
+
+Give the model a tool (a Realtime `function`) that signals the order is ready to pay, and handle
+that tool call in your bridge by calling Ringup. There is no platform tool to register with
+Ringup; this is a plain HTTP call from your server with your Ringup API key.
+
+```bash
+POST https://api.ringup.dev/v1/checkouts
+Authorization: Bearer <YOUR_RINGUP_KEY>
+Content-Type: application/json
+
+{
+  "amount_cents": 2500,
+  "line_items": [{ "name": "Large pepperoni", "quantity": 1, "amount_cents": 2500 }], // optional
+  "order_id": "sq_abc",                              // optional: settle against an existing order
+  "return_to": "sip:your-bridge@your-telephony",     // optional: transfer the caller back after payment
+  "success_message": "You are all set, your order will be ready shortly."  // optional (if no return_to)
+}
+```
+
+Response (the Checkout Session):
+
+```jsonc
+{
+  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
+  "payment_required": "required",                    // "required" | "optional" | "none"
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
+}
+```
+
+If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
+
+## Step 2: Transfer on your bridge
+
+Have the agent speak one short bridge line ("One moment, connecting you to secure payment"), then
+transfer the caller on your telephony. On Twilio, redirect the call to TwiML that dials the Ringup
+SIP URI, carrying the Checkout Session `id`:
+
+```xml
+<Response>
+  <Dial>
+    <Sip>sip:cs_x9f2@transfer.ringup.dev?X-Session-Id=cs_x9f2</Sip>
+  </Dial>
+</Response>
+```
+
+If your call arrives over the SIP connector, a SIP REFER to the same URI works too. Because your
+bridge controls the telephony, the header path is reliable: the URI parameter reaches the Ringup
+line, which matches it to the Checkout Session.
+
+## Step 3: The return, and the result (the webhook)
+
+Ringup answers the transferred call, recognizes the Caller, charges the saved Card, and texts a
+receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the call
+ends one of three ways, from what you passed in Step 1:
+
+- **`return_to` set**: Ringup transfers the caller back to your bridge with the outcome in SIP
+  headers (`X-Payment-Status`, `X-Confirmation`), so your agent resumes and closes the call.
+- **`success_message` / `failure_message` set (no `return_to`)**: Ringup reads your line and ends.
+- **Neither**: Ringup reads a short default and ends. The receipt is the proof.
+
+A `return_to` that cannot connect falls back to reading your `success_message` (or the default),
+so a failed return never strands the caller. Either way, your server reconciles from a webhook:
+
+```jsonc
+{
+  "id": "evt_9f2",
+  "type": "checkout.completed",         // or "checkout.failed"
+  "data": {
+    "checkout_id": "cs_x9f2",
+    "payment_id": "pay_abc",
+    "amount_cents": 2500,
+    "order_id": "sq_abc",               // echoed back
+    "confirmation": "2PJJZY",
+    "caller": "+14155551234",
+    "card": { "brand": "VISA", "last_4": "5858" }
+  }
+}
+```
+
+Match on the `order_id` you passed, store the `payment_id`, and flip your order to paid. See
+[Webhooks](/concepts/webhooks) for the full catalog, statuses, signature verification, and
+idempotency.
+
+## Validation status
+
+Because your bridge owns the telephony, the transfer is standard `<Dial><Sip>` (or SIP REFER) on
+your provider. Ringup's hosted transfer endpoint is rolling out; confirm access in your Ringup
+dashboard before relying on this in production. The recognition, charge, receipt, and webhook
+behavior is the same payment path Ringup runs everywhere.

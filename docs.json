@@ -46,7 +46,9 @@
               "integrations/elevenlabs",
               "integrations/deepgram",
               "integrations/twilio-conversationrelay",
-              "integrations/livekit"
+              "integrations/livekit",
+              "integrations/openai-realtime",
+              "integrations/pipecat"
             ]
           }
         ]
