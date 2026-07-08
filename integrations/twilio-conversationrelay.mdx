@@ -31,16 +31,17 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and API key. Test mode works out of the box on a shared sandbox. See
   [Testing](/concepts/testing).
 
-## Recognize the caller at the start
+## Step 1: Recognize the caller at the start
 
-Call `identify` at the greeting, not just at payment. It needs only the caller's phone number,
-which is available the instant the call connects. For a returning caller it returns their name
-and saved card, so your agent greets them by name and skips re-asking for anything recognition
-already provides (for example, never ask "what name for the order?" when `identify` returned it).
-This is separate from and happens earlier than creating the Checkout Session and transferring for
-payment. See [Recognize at the start of the call](/concepts/identity).
+Call `identify` from your server at the greeting (a plain HTTP call, like the checkout call), not
+just at payment. It needs only the caller's phone number, which is available the instant the call
+connects. For a returning caller it returns their name and saved card, so your agent greets them
+by name and skips re-asking for anything recognition already provides (for example, never ask
+"what name for the order?" when `identify` returned it). This is separate from and happens earlier
+than creating the Checkout Session and transferring for payment. See
+[Recognize at the start of the call](/concepts/identity).
 
-## Step 1: Create a Checkout Session in your server
+## Step 2: Create a Checkout Session in your server
 
 When your loop determines the order is confirmed, `POST` to Ringup's `create_checkout` endpoint
 with your Ringup API key. This is the setup and the call in one: there is no platform tool to
@@ -72,7 +73,7 @@ Response (the Checkout Session):
 
 If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
 
-## Step 2: Transfer with a Dial to the SIP URI
+## Step 3: Transfer with a Dial to the SIP URI
 
 Send an `end` message to close the ConversationRelay session, and have your action URL return
 TwiML that dials the caller to the Ringup SIP URI, carrying the Checkout Session `id` as a URI
@@ -90,11 +91,11 @@ parameter (or SIP header). Speak one line first so the caller is not on silence:
 Because you control the TwiML, the header path is fully reliable here: Twilio passes the URI
 parameter through to the Ringup line, which matches it to the Checkout Session.
 
-## Step 3: The return, and the result (the webhook)
+## Step 4: The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the Caller, charges the saved Card, and texts a
 receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the
-call ends one of three ways, from what you passed in Step 1:
+call ends one of three ways, from what you passed in Step 2:
 
 - **`return_to` set**: Ringup `<Dial>`s the caller back to your app with the outcome in SIP
   headers (`X-Payment-Status`, `X-Confirmation`), so your app resumes and closes the call.

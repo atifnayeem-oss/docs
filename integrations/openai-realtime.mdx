@@ -33,16 +33,17 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and API key. Test mode works out of the box on a shared sandbox. See
   [Testing](/concepts/testing).
 
-## Recognize the caller at the start
+## Step 1: Recognize the caller at the start
 
-Call `identify` at the greeting, not just at payment. It needs only the caller's phone number,
-which is available the instant the call connects. For a returning caller it returns their name
-and saved card, so your agent greets them by name and skips re-asking for anything recognition
-already provides (for example, never ask "what name for the order?" when `identify` returned it).
-This is separate from and happens earlier than creating the Checkout Session and transferring for
-payment. See [Recognize at the start of the call](/concepts/identity).
+Call `identify` from your bridge at the greeting (a plain HTTP call, like the checkout call), not
+just at payment. It needs only the caller's phone number, which is available the instant the call
+connects. For a returning caller it returns their name and saved card, so your agent greets them
+by name and skips re-asking for anything recognition already provides (for example, never ask
+"what name for the order?" when `identify` returned it). This is separate from and happens earlier
+than creating the Checkout Session and transferring for payment. See
+[Recognize at the start of the call](/concepts/identity).
 
-## Step 1: Create a Checkout Session when the order is confirmed
+## Step 2: Create a Checkout Session when the order is confirmed
 
 Give the model a tool (a Realtime `function`) that signals the order is ready to pay, and handle
 that tool call in your bridge by calling Ringup. There is no platform tool to register with
@@ -74,7 +75,7 @@ Response (the Checkout Session):
 
 If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
 
-## Step 2: Transfer on your bridge
+## Step 3: Transfer on your bridge
 
 Have the agent speak one short bridge line ("One moment, connecting you to secure payment"), then
 transfer the caller on your telephony. On Twilio, redirect the call to TwiML that dials the Ringup
@@ -92,11 +93,11 @@ If your call arrives over the SIP connector, a SIP REFER to the same URI works t
 bridge controls the telephony, the header path is reliable: the URI parameter reaches the Ringup
 line, which matches it to the Checkout Session.
 
-## Step 3: The return, and the result (the webhook)
+## Step 4: The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the Caller, charges the saved Card, and texts a
 receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the call
-ends one of three ways, from what you passed in Step 1:
+ends one of three ways, from what you passed in Step 2:
 
 - **`return_to` set**: Ringup transfers the caller back to your bridge with the outcome in SIP
   headers (`X-Payment-Status`, `X-Confirmation`), so your agent resumes and closes the call.

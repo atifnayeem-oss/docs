@@ -19,15 +19,6 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and API key (from your Ringup dashboard). Test mode works out of the box on
   a shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
 
-## Recognize the caller at the start
-
-Call `identify` at the greeting, not just at payment. It needs only the caller's phone number,
-which is available the instant the call connects. For a returning caller it returns their name and
-saved card, so your agent greets them by name and skips re-asking for anything recognition already
-provides (for example, never ask "what name for the order?" when `identify` returned it). This is
-separate from and happens earlier than creating the Checkout Session and transferring for payment.
-See [Recognize at the start of the call](/concepts/identity).
-
 ## Step 1: Add the Ringup checkout tool to your agent
 
 This is the one-time setup. Create an apiRequest tool in Vapi that calls Ringup's
@@ -57,7 +48,18 @@ its prompt:
 
 That is the whole setup. Your agent is otherwise unchanged.
 
-## Step 2: Create a Checkout Session
+## Step 2: Recognize the caller at the start
+
+Register `identify` the same way you added the checkout tool in the previous step (it takes no
+inputs; the caller's number comes from the call), then call it at the greeting, not just at
+payment. It needs only the caller's phone number, which is available the instant the call
+connects. For a returning caller it returns their name and saved card, so your agent greets them
+by name and skips re-asking for anything recognition already provides (for example, never ask
+"what name for the order?" when `identify` returned it). This is separate from and happens
+earlier than creating the Checkout Session and transferring for payment. See
+[Recognize at the start of the call](/concepts/identity).
+
+## Step 3: Create a Checkout Session
 
 When the order is confirmed, your agent calls `create_checkout`. If `payment_required` comes
 back `none`, carry on. If `required` or `optional`, it returns a `transfer_to` SIP URI.
@@ -82,9 +84,9 @@ create_checkout({
 
 `order_id` and `line_items` mirror a checkout. `return_to` transfers the caller back to your
 agent after payment (the twin of `transfer_to`), or pass `success_message` / `failure_message`
-to have Ringup read the result and end. The `id` and `transfer_to` are what Step 3 uses.
+to have Ringup read the result and end. The `id` and `transfer_to` are what Step 4 uses.
 
-## Step 3: Transfer, silently and with context
+## Step 4: Transfer, silently and with context
 
 ```jsonc
 {
@@ -112,7 +114,7 @@ it to your agent. The caller is recognized from the number your agent already ha
 recognition does not depend on the caller ID surviving the transfer.
 </Note>
 
-## Step 4: After payment
+## Step 5: After payment
 
 Ringup charges and texts the caller a receipt. Then the call ends one of three ways: `return_to`
 transfers the caller back to your agent with the outcome in the SIP headers so your agent closes

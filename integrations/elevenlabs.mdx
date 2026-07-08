@@ -29,15 +29,6 @@ This page is end to end: first-time setup, the call, the return, and what happen
 - A Ringup account and API key (from your Ringup dashboard). Test mode works out of the box on a
   shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
 
-## Recognize the caller at the start
-
-Call `identify` at the greeting, not just at payment. It needs only the caller's phone number,
-which is available the instant the call connects. For a returning caller it returns their name
-and saved card, so your agent greets them by name and skips re-asking for anything recognition
-already provides (for example, never ask "what name for the order?" when `identify` returned it).
-This is separate from and happens earlier than creating the Checkout Session and transferring for
-payment. See [Recognize at the start of the call](/concepts/identity).
-
 ## Step 1: Add the Ringup checkout tool to your agent
 
 This is the one-time setup. On your ElevenLabs agent, add a **server tool** that calls Ringup's
@@ -64,7 +55,18 @@ Then add one line to your agent's prompt:
 > When the caller has confirmed their order, call `create_checkout` with the order total, then
 > transfer to the returned target.
 
-## Step 2: Create a Checkout Session when the order is confirmed
+## Step 2: Recognize the caller at the start
+
+Register `identify` the same way you added the checkout tool in the previous step (it takes no
+inputs; the caller's number comes from the call), then call it at the greeting, not just at
+payment. It needs only the caller's phone number, which is available the instant the call
+connects. For a returning caller it returns their name and saved card, so your agent greets them
+by name and skips re-asking for anything recognition already provides (for example, never ask
+"what name for the order?" when `identify` returned it). This is separate from and happens
+earlier than creating the Checkout Session and transferring for payment. See
+[Recognize at the start of the call](/concepts/identity).
+
+## Step 3: Create a Checkout Session when the order is confirmed
 
 Your agent calls the tool from Step 1. It takes the same inputs a hosted checkout session takes
 (amount, line items, order), plus how you want the call to end, and returns where to send the
@@ -90,7 +92,7 @@ create_checkout({
 If `payment_required` is `none`, do not transfer: carry on and end the call normally. Otherwise
 transfer to `transfer_to`.
 
-## Step 3: Transfer with SIP REFER
+## Step 4: Transfer with SIP REFER
 
 Call the `transfer_to_number` system tool with a SIP-URI destination and the Checkout Session
 `id` as a custom SIP header. The `client_message` is spoken to the caller as the handoff line,
@@ -114,11 +116,11 @@ endpoint but are stripped on a native-Twilio ElevenLabs number, which would drop
 match.
 </Warning>
 
-## Step 4: The return, and the result (the webhook)
+## Step 5: The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the Caller, charges the saved Card, and texts a
 receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the
-call ends one of three ways, from what you passed in Step 2:
+call ends one of three ways, from what you passed in Step 3:
 
 - **`return_to` set**: Ringup transfers the caller back to your agent with the outcome in SIP
   headers (`X-Payment-Status`, `X-Confirmation`), so your agent resumes and closes in its voice.
