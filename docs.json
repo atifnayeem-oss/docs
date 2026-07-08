@@ -29,6 +29,12 @@
             ]
           },
           {
+            "group": "Go live",
+            "pages": [
+              "guides/connect-merchants"
+            ]
+          },
+          {
             "group": "Concepts",
             "pages": [
               "concepts/identity",
