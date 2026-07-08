@@ -8,7 +8,7 @@ checkout, over the phone: when the order is confirmed, your agent creates a **Ch
 and transfers the live call to a Ringup payment line, the caller pays there, and the call
 optionally returns to your agent. Ringup recognizes the caller, charges their saved card,
 settles it against the order, and texts a receipt. Your server reconciles from a webhook. If the
-model is new to you, read [Call transfer](/concepts/call-transfer) first.
+model is new to you, read [Call transfer](/concepts/checkout-session) first.
 
 With LiveKit you own the agent in code, so setup is a function call, not a platform tool.
 
@@ -131,3 +131,14 @@ LiveKit's `transfer_sip_participant` accepts REFER headers, so the header path i
 Ringup's hosted transfer endpoint is rolling out; confirm access in your Ringup dashboard before
 relying on this in production. The recognition, charge, receipt, and webhook behavior is the
 same payment path Ringup runs everywhere.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Testing" icon="flask" href="/concepts/testing">
+    The sandbox, the test card, and the fixtures to run a full payment.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>

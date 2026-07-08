@@ -17,31 +17,74 @@ sign up for and nothing to connect between you and a first working response. See
     Ringup recognizes a caller from their phone number, which arrives the instant the call
     connects. Call `identify` for the sandbox demo caller:
 
-    ```bash
+    <CodeGroup>
+    ```bash curl
     curl -X POST https://ringup.dev/api/tools/identify \
       -H "X-Caller-Number: +14155550142"
     ```
 
-    ```json
+    ```javascript Node
+    const res = await fetch("https://ringup.dev/api/tools/identify", {
+      method: "POST",
+      headers: { "X-Caller-Number": "+14155550142" },
+    });
+    const caller = await res.json();
+    ```
+
+    ```python Python
+    import requests
+
+    caller = requests.post(
+        "https://ringup.dev/api/tools/identify",
+        headers={"X-Caller-Number": "+14155550142"},
+    ).json()
+    ```
+    </CodeGroup>
+
+    ```json Response
     { "known": true, "name": "Alex", "card": { "brand": "VISA", "last_4": "5858" } }
     ```
 
     That is the identity layer: at the start of the call your agent greets a returning caller by
     name and can offer their saved card, with no card number spoken. See
-    [Caller and merchant identity](/concepts/identity).
+    [Caller Identity](/concepts/identity).
   </Step>
   <Step title="Create a Checkout Session">
     When the order is ready to pay, create a Checkout Session. Ringup resolves whether payment is
     required from the merchant's own rule and returns it to you:
 
-    ```bash
+    <CodeGroup>
+    ```bash curl
     curl -X POST https://ringup.dev/api/tools/create_checkout \
       -H "Content-Type: application/json" \
       -H "X-Ringup-Merchant: tonys-pizza" \
       -d '{ "amount_cents": 2500 }'
     ```
 
-    ```json
+    ```javascript Node
+    const res = await fetch("https://ringup.dev/api/tools/create_checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Ringup-Merchant": "tonys-pizza",
+      },
+      body: JSON.stringify({ amount_cents: 2500 }),
+    });
+    const checkout = await res.json();
+    ```
+
+    ```python Python
+    import requests
+
+    checkout = requests.post(
+        "https://ringup.dev/api/tools/create_checkout",
+        headers={"X-Ringup-Merchant": "tonys-pizza"},
+        json={"amount_cents": 2500},
+    ).json()
+    ```
+    </CodeGroup>
+
+    ```json Response
     { "id": "cs_d00993cf0f3e", "payment_required": "optional" }
     ```
 
@@ -62,7 +105,7 @@ sign up for and nothing to connect between you and a first working response. See
     - **Vapi**: a [native handoff](/integrations/vapi/native), wired by one CLI command, keeps the
       caller in your agent's own voice throughout.
     - **Every other platform** (Retell, ElevenLabs, Deepgram, LiveKit, OpenAI Realtime, Pipecat,
-      Twilio ConversationRelay): a [call transfer](/concepts/call-transfer), one integration you
+      Twilio ConversationRelay): a [call transfer](/concepts/checkout-session), one integration you
       reuse everywhere. Pick your platform in the Integrations section.
   </Step>
 </Steps>

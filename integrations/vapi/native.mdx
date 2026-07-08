@@ -188,7 +188,7 @@ scripts can consume it and template the ids across many squads.
   <Accordion title="How does Ringup know the caller and the business?">
     Server-side: the caller number and the dialed number arrive on trusted headers set by
     the platform, never typed by the model, so neither can be spoofed or hallucinated. See
-    [Caller and merchant identity](/concepts/identity).
+    [Caller Identity](/concepts/identity) and [Merchant Identity](/concepts/merchant-identity).
   </Accordion>
   <Accordion title="What if Ringup is unreachable mid-call?">
     The handoff fails neutrally ("Give me one second.") and your agent continues. The
@@ -205,3 +205,14 @@ scripts can consume it and template the ids across many squads.
     wiring is real; `ringup-vapi-init check` reads the API and is the source of truth.
   </Accordion>
 </AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Vapi testing" icon="flask" href="/integrations/vapi/testing">
+    The demo caller, the test card, and how to run a full payment on Vapi.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>

@@ -16,7 +16,7 @@ on a hosted page, and their card is saved. From then on, any business connected 
 recognizes them and charges the saved card on a spoken yes. It is a checkout that remembers the
 customer, over the phone.
 
-> "That is nineteen dollars on your Visa ending 4242, shall I put it through?"
+> "That is nineteen dollars on your Visa ending 5858, shall I put it through?"
 >
 > "Yep."
 >
@@ -30,7 +30,7 @@ nobody else does, and it is the product.
 
 **Phone number is the identity.** The caller is recognized by the number they are calling from,
 resolved from trusted call metadata, never typed by the model or spoken by the caller. No
-logins, no account numbers, no passwords. See [Caller and merchant identity](/concepts/identity).
+logins, no account numbers, no passwords. See [Caller Identity](/concepts/identity) and [Merchant Identity](/concepts/merchant-identity).
 
 **Recognition happens at the start of the call.** The caller's number arrives the instant the
 call connects, so Ringup identifies them upfront, before payment. For a returning caller that
@@ -61,14 +61,19 @@ asks Ringup to charge; it never computes or moves money itself, and it never see
 
 ## How a call flows
 
-At a high level, on any platform:
+At a high level, the same flow runs on every platform:
 
-```text
-caller is recognized by phone number
-  -> Ringup checks the merchant's policy for this order (required / optional / not needed)
-  -> if payment is needed, the caller confirms and the saved card is charged
-       (a first-time caller is texted a link instead)
-  -> the caller gets an SMS receipt; your server gets a webhook
+```mermaid
+flowchart TD
+    A[Caller dials your agent] --> B[Recognized by phone number]
+    B --> C[Your agent takes the order]
+    C --> D[Ringup returns the merchant's policy for this order]
+    D -->|none| E[No payment: end the call normally]
+    D -->|required or optional| F{Saved card on file?}
+    F -->|yes| G[Caller confirms, saved card is charged]
+    F -->|no| H[Ringup texts a pay link, caller pays on their phone]
+    G --> I[SMS receipt to caller, webhook to your server]
+    H --> I
 ```
 
 Everything above is the same on every platform. What differs is only how your agent reaches
@@ -80,6 +85,6 @@ Ringup.
   The most seamless option where the platform supports it. See your platform's integration guide.
 - **Call transfer.** Your agent transfers the call to a Ringup payment line, like redirecting to
   a hosted checkout, and optionally gets the caller back afterward. Works on any platform. See
-  [Call transfer](/concepts/call-transfer).
+  [Call transfer](/concepts/checkout-session).
 
 Same payment underneath, same principles. Only the front door changes.

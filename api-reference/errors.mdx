@@ -1,0 +1,82 @@
+---
+title: "Errors"
+description: "How Ringup signals failure: transport errors on the HTTP status, and payment outcomes in the response body."
+---
+
+Ringup fails in two different places, and telling them apart is the whole game. A **transport
+error** means the request never ran: bad key, malformed body, unknown route. It arrives as a
+`4xx` or `5xx` with an error envelope. A **payment outcome** means the request ran fine and the
+answer is "no": a declined card, a caller with no card on file, a merchant who takes no payment.
+That arrives as a `200` with a status in the body.
+
+<Warning>
+A declined card is **not** an HTTP error. `charge` returns `200` with `"status": "failed"`. If
+you only check the HTTP status, you will read a decline as a success. Always branch on the
+`status` field, never on `200` alone.
+</Warning>
+
+## The error envelope
+
+Every transport error has the same shape, so you write one handler:
+
+```json
+{
+  "error": {
+    "type": "invalid_request",
+    "code": "missing_caller_number",
+    "message": "This endpoint needs the X-Caller-Number header."
+  }
+}
+```
+
+`type` is the broad class (branch on it), `code` is the specific reason (log it, show it), and
+`message` is a human sentence (safe to surface to yourself, never to a caller).
+
+## Transport errors
+
+| Status | `type` | When it happens | What to do |
+|---|---|---|---|
+| `400` | `invalid_request` | A required header or field is missing or malformed. | Fix the request. The `message` names the field. |
+| `401` | `authentication_error` | Missing, malformed, or unknown API key. | Check the `Authorization: Bearer` header and that the key matches the mode (`rk_test_` vs `rk_live_`). See [Authentication](/authentication). |
+| `403` | `permission_error` | The key is valid but not allowed to act for this merchant. | Use a key that owns the merchant. |
+| `404` | `not_found` | Unknown route, or an id that does not exist. | Check the path and the id. |
+| `409` | `conflict` | A concurrent write raced this one. | Retry once; the [idempotency](#idempotency) guarantee makes a retry safe. |
+| `429` | `rate_limit` | Too many requests in a short window. | Back off and retry with the `Retry-After` header. |
+| `5xx` | `api_error` | A fault on Ringup's side. | Retry with backoff. If it persists, the [status page](https://ringup.dev) and support can help. |
+
+## Payment outcomes (all `200`)
+
+These are not errors. The request ran; the answer is simply not "charged." Each has a first-class
+field, so you never parse a message to find out what happened.
+
+| Outcome | Where it shows | The signal |
+|---|---|---|
+| Card declined | `charge`, and the `checkout.failed` [webhook](/concepts/webhooks) | `"status": "failed"` with a `reason` |
+| Caller has no card on file | `identify` | `"known": false` (offer a [pay link](/concepts/send-link) instead) |
+| Merchant takes no payment for this order | `create_checkout` | `"payment_required": "none"` (proceed as the normal call) |
+| First-time caller has not paid yet | `payment_status` | `"status": "pending"` (keep waiting, or end and reconcile on the webhook) |
+
+<Note>
+`reason` on a decline is written for your logs, not for the caller. Your agent should say
+something graceful ("that card did not go through, want to try another?"), which your platform
+handles, not read the raw reason aloud.
+</Note>
+
+## Idempotency
+
+Every `charge` is deduplicated server-side on the call id and amount. A network retry, a model
+retry, or a duplicated tool call returns the **original** payment result instead of charging
+again. This is a server guarantee, so a `409` or a timeout is always safe to retry: you cannot
+double-charge a caller by retrying. See the idempotency note in the
+[API introduction](/api-reference/introduction).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile the real outcome out of band, independent of what the caller heard.
+  </Card>
+  <Card title="Testing" icon="flask" href="/concepts/testing">
+    The decline card and fixtures to exercise every path above.
+  </Card>
+</CardGroup>

@@ -8,7 +8,7 @@ checkout, over the phone: when the order is confirmed, your agent creates a **Ch
 and transfers the live call to it, the caller pays on the Ringup line, and the call optionally
 returns to your agent. Ringup recognizes the caller, charges their saved card, settles it
 against the order, and texts a receipt. Your server reconciles from a webhook. If the model is
-new to you, read [Call transfer](/concepts/call-transfer) first.
+new to you, read [Call transfer](/concepts/checkout-session) first.
 
 This page is end to end: first-time setup, the call, the return, and what happens after payment.
 
@@ -186,3 +186,14 @@ Session id arrives as expected; until that check runs for your account, treat th
 wiring as documented, not yet validated on your specific Retell and telephony setup. The
 recognition, charge, receipt, and webhook behavior is the same payment path Ringup runs
 everywhere.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Testing" icon="flask" href="/concepts/testing">
+    The sandbox, the test card, and the fixtures to run a full payment.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>

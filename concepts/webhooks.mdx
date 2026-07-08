@@ -83,6 +83,18 @@ Add your endpoint URL in the Ringup dashboard (or via the API). Ringup shows the
 once at creation. You can register more than one endpoint, and test mode delivers to its own.
 
 <Note>
-The exact `Ringup-Signature` format is being finalized. The event shapes and the catalog above
-are stable; the signature header spec will be confirmed before this goes live.
+**Signature scheme.** `Ringup-Signature` is an HMAC-SHA256 over the timestamp and the raw request
+body, signed with your endpoint's secret. When you register an endpoint the dashboard shows the
+exact recipe and a copy-paste verification snippet next to your signing secret.
 </Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Testing" icon="flask" href="/concepts/testing">
+    Trigger real events against the sandbox and watch them arrive.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/introduction">
+    Every field of every tool, with a live playground.
+  </Card>
+</CardGroup>

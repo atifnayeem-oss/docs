@@ -16,7 +16,7 @@ step inherits everything from your agent.
 Before Ringup, a caller who wants to pay reads a card number aloud to a machine, or does not
 pay at all. After Ringup:
 
-> "That's one large pepperoni, $19. I can put that on your Visa ending 4242. Sound good?"
+> "That's one large pepperoni, $19. I can put that on your Visa ending 5858. Sound good?"
 >
 > "Yep."
 >
@@ -27,18 +27,25 @@ call after that.
 
 ## Where to start
 
+Two paths, depending on whether you want to hear it first or start building.
+
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Talk to a working demo in about a minute, then wire your own agent.
+  <Card title="See it work" icon="play" href="/quickstart">
+    **About a minute.** Recognize a caller and create a Checkout Session on the live
+    sandbox, with no signup, then hear a fully wired demo call.
   </Card>
-  <Card title="How it works" icon="diagram-project" href="/concepts/how-it-works">
-    The handoff architecture: why your agent never branches on payment logic.
+  <Card title="Add it to your agent" icon="wrench" href="/concepts/how-it-works">
+    **About thirty minutes.** The architecture, the two ways to integrate, and the guide
+    for your platform. The same payment path everywhere.
   </Card>
-  <Card title="Vapi integration" icon="phone" href="/integrations/vapi">
-    The full CLI lifecycle: provision, stage, go-live, rollback.
-  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
   <Card title="API reference" icon="code" href="/api-reference/introduction">
-    Five REST tools for platforms that own their whole conversation flow.
+    Every tool, with a live playground and a full error catalog.
+  </Card>
+  <Card title="Changelog" icon="clock-rotate-left" href="/changelog">
+    What has shipped, and the versioning you can build against.
   </Card>
 </CardGroup>
 

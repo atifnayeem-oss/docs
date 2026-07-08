@@ -69,3 +69,22 @@ can narrate success it did not have; the API result cannot.
 
 **Text-chat smoke tests cannot prove voice.** Platform chat pipelines assemble handoffs
 differently from voice pipelines. Validate with a voice call.
+
+## Edge cases and gotchas
+
+<AccordionGroup>
+  <Accordion title="A declined card is a 200, not an error" icon="triangle-exclamation">
+    The decline card (`4000 0000 0000 0002`) returns `200` with `"status": "failed"`, not an HTTP
+    error. Branch on the `status` field, never on the HTTP code alone. See
+    [Errors](/api-reference/errors).
+  </Accordion>
+  <Accordion title="Web and dashboard test calls have no caller ID" icon="phone-slash">
+    A call placed from a dashboard or web widget carries no real caller number, so recognition
+    resolves to nothing. Pin the test caller (`+14155550142`) explicitly to exercise the
+    recognized path. Real inbound phone calls resolve the caller natively.
+  </Accordion>
+  <Accordion title="The sandbox card never works live" icon="lock">
+    `4111 1111 1111 1111` is sandbox-only. It never reaches a live payment processor and never
+    moves real money, and a live key rejects it. Use a real card only under a `rk_live_` key.
+  </Accordion>
+</AccordionGroup>

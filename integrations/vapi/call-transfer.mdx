@@ -5,12 +5,21 @@ description: "Take payment on a Vapi call by creating a Checkout Session and tra
 
 Vapi supports two ways to add Ringup payments. This page is **call transfer**: your agent
 creates a Checkout Session and transfers the live call to a Ringup payment line, like a hosted
-web checkout (see [Call transfer](/concepts/call-transfer)). Reach for it when you are
+web checkout (see [Call transfer](/concepts/checkout-session)). Reach for it when you are
 standardizing on a single integration across several platforms. The other way,
 [native handoff](/integrations/vapi/native), keeps the caller in your agent's own voice and is
 the more seamless option on Vapi.
 
 This page is end to end: setup, the call, the return, and what happens after payment.
+
+## How the pieces map to Vapi
+
+| Ringup piece | On Vapi |
+|---|---|
+| `create_checkout` | An apiRequest tool on your agent that creates a Checkout Session and returns where to transfer |
+| The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
+| The transfer | Vapi's `transferCall` with a SIP `destination` and `sipHeaders` |
+| The result | A `checkout.completed` webhook to your server |
 
 ## Prerequisites
 
@@ -122,3 +131,14 @@ in its own voice; `success_message` / `failure_message` has Ringup read your lin
 neither, and Ringup reads a short default and ends. Either way, your server reconciles from a
 `checkout.completed` webhook, which carries the Payment (`payment_id`, your `order_id`, the
 confirmation). See [Webhooks](/concepts/webhooks) for the event catalog and statuses.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Vapi testing" icon="flask" href="/integrations/vapi/testing">
+    The demo caller, the test card, and how to run a full payment on Vapi.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>

@@ -5,7 +5,8 @@ description: "Charge a recognized caller's saved card off-session, settling on t
 
 `charge` runs a recognized caller's saved card. The caller is already known by phone number, so
 there is no Checkout Session to create and no link to text: you pass the amount, and Ringup charges
-the card off-session and settles the money on the merchant's own processor.
+the card <Tooltip tip="A charge run against a card the caller saved earlier, with their consent, while they are not actively entering card details.">off-session</Tooltip>
+and settles the money on the merchant's own processor.
 
 ```jsonc
 charge({
@@ -48,3 +49,14 @@ Whether or not you pass one, your server gets the same `checkout.completed`
 [`send_link`](/concepts/send-link) instead; if you want Ringup to run the whole payment step for
 you, create a [Checkout Session](/concepts/checkout-session). Whether payment is required at all is
 the merchant's [policy](/concepts/payment-policy).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Your out-of-band source of truth for every charge.
+  </Card>
+  <Card title="Testing" icon="flask" href="/concepts/testing">
+    The fixtures and cards to exercise a charge end to end.
+  </Card>
+</CardGroup>

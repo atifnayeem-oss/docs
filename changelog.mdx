@@ -1,0 +1,45 @@
+---
+title: "Changelog"
+description: "What has shipped in Ringup, most recent first."
+---
+
+The notable changes to Ringup's API, tools, and docs. The request and response shapes are
+versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
+ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
+
+<Update label="July 2026" description="Interactive docs">
+## Interactive API reference, errors, and language tabs
+
+- A live **playground** on every tool in the [API reference](/api-reference/introduction): call
+  the sandbox from the page.
+- A new [Errors](/api-reference/errors) page that separates transport errors (`4xx`/`5xx`) from
+  payment outcomes (a decline is a `200` with `status: failed`, not an HTTP error).
+- `curl`, Node, and Python tabs on the [Quickstart](/quickstart).
+- A rendered flow diagram on [How it works](/concepts/how-it-works), and a "Next steps" trail on
+  every page.
+</Update>
+
+<Update label="July 2026" description="Identity">
+## Recognize at the start of the call
+
+- `identify` is documented and wired to run at the **greeting**, not at the payment moment, so a
+  returning caller is greeted by name and never re-asked for anything recognition already knows.
+  See [Caller Identity](/concepts/identity).
+- Caller and merchant identity are now two concepts: who is paying
+  ([Caller Identity](/concepts/identity)) and which business they reached
+  ([Merchant Identity](/concepts/merchant-identity)).
+- The **Checkout Session** is the object every payment turns on: `create_checkout` returns
+  `payment_required` as `required`, `optional`, or `none`. See
+  [Checkout Session](/concepts/checkout-session).
+</Update>
+
+<Update label="June 2026" description="Integrations">
+## Eight platforms and a keyless sandbox
+
+- Integration guides for Vapi (native handoff and call transfer), Retell, ElevenLabs, Deepgram,
+  LiveKit, OpenAI Realtime, Pipecat, and Twilio ConversationRelay.
+- A shared **test sandbox** that is live for every account from the first command, with ready-made
+  merchants and a recognized caller. No keys to mint. See [Testing](/concepts/testing).
+- Charges settle on each merchant's own payment processor: Ringup never becomes the merchant of
+  record and never holds the money.
+</Update>

@@ -8,7 +8,7 @@ hosted web checkout, over the phone: when the order is confirmed, your server cr
 **Checkout Session** and transfers the live call to a Ringup payment line, the caller pays
 there, and the call optionally returns to your app. Ringup recognizes the caller, charges their
 saved card, settles it against the order, and texts a receipt. Your server reconciles from a
-webhook. If the model is new to you, read [Call transfer](/concepts/call-transfer) first.
+webhook. If the model is new to you, read [Call transfer](/concepts/checkout-session) first.
 
 With ConversationRelay you own the WebSocket server and the whole tool loop, so there is nothing
 to register on a platform: you call one HTTP endpoint and emit one piece of TwiML.
@@ -131,3 +131,14 @@ ConversationRelay gives you full control of the TwiML, so the transfer and the h
 standard Twilio `<Dial><Sip>`. Ringup's hosted transfer endpoint is rolling out; confirm access
 in your Ringup dashboard before relying on this in production. The recognition, charge, receipt,
 and webhook behavior is the same payment path Ringup runs everywhere.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Testing" icon="flask" href="/concepts/testing">
+    The sandbox, the test card, and the fixtures to run a full payment.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>
