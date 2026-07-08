@@ -139,7 +139,7 @@ your agent.
 
 ## Step 6: The return, and the result (the webhook)
 
-Ringup answers the transferred call, recognizes the Caller, charges the saved Card on the
+Ringup answers the transferred call, recognizes the caller, charges the saved card on the
 merchant's own payment processor, and texts the caller a receipt. A first-time caller with no
 saved card is texted a secure pay link instead. Then the call ends one of three ways, depending
 on what you passed in Step 3:
@@ -160,12 +160,11 @@ outcome from a webhook. This is how you mark the order paid:
 {
   "id": "evt_9f2",
   "type": "checkout.completed",         // or "checkout.failed"
-  "created": "2026-07-07T18:05:12Z",
   "data": {
     "checkout_id": "cs_x9f2",
-    "payment_id": "pay_abc",            // the Payment
+    "payment_id": "pay_abc",
     "amount_cents": 2500,
-    "order_id": "sq_abc",               // the id you passed in Step 3, echoed back
+    "order_id": "sq_abc",               // echoed back
     "confirmation": "2PJJZY",
     "caller": "+14155551234",
     "card": { "brand": "VISA", "last_4": "5858" }

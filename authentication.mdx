@@ -24,12 +24,35 @@ kinds, and the same code works with either, so you promote by swapping the key:
 Every Ringup call, `create_checkout`, `identify`, `charge`, and the rest, takes the key as a
 Bearer token:
 
-```bash
+<CodeGroup>
+```bash curl
 curl -X POST https://api.ringup.dev/v1/checkouts \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
   -d '{ "amount_cents": 2500 }'
 ```
+
+```javascript Node
+const res = await fetch("https://api.ringup.dev/v1/checkouts", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ amount_cents: 2500 }),
+});
+```
+
+```python Python
+import requests
+
+res = requests.post(
+    "https://api.ringup.dev/v1/checkouts",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={"amount_cents": 2500},
+)
+```
+</CodeGroup>
 
 In an agent integration you set the key once and it rides every call:
 

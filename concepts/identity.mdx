@@ -8,14 +8,38 @@ they are calling from. That number arrives at Ringup on a trusted header the pla
 at call time, so it never passes through the language model. Which business they reached is a
 separate identity, see [Merchant Identity](/concepts/merchant-identity).
 
-## The Caller record
+## The caller record
 
-The Caller is Ringup's record of a person and their saved cards, keyed by phone number and shared
-across every merchant (a wallet, not one merchant's contact list). The number rides the
-`X-Caller-Number` header, templated from the platform's caller-ID variable. Ringup looks the Caller
-up:
+Ringup keeps a record of each caller: the person and their saved cards, keyed by phone number and
+shared across every merchant (a wallet, not one merchant's contact list). The number rides the
+`X-Caller-Number` header, templated from the platform's caller-ID variable. Call `identify` to look
+the caller up:
 
-```json
+<CodeGroup>
+```bash curl
+curl -X POST https://ringup.dev/api/tools/identify \
+  -H "X-Caller-Number: +14155550142"
+```
+
+```javascript Node
+const res = await fetch("https://ringup.dev/api/tools/identify", {
+  method: "POST",
+  headers: { "X-Caller-Number": "+14155550142" },
+});
+const caller = await res.json();
+```
+
+```python Python
+import requests
+
+caller = requests.post(
+    "https://ringup.dev/api/tools/identify",
+    headers={"X-Caller-Number": "+14155550142"},
+).json()
+```
+</CodeGroup>
+
+```json Response
 {
   "known": true,
   "name": "Alex",
@@ -23,10 +47,10 @@ up:
 }
 ```
 
-A recognized Caller is offered their saved Card by name and last four, with no identity questions.
-An unknown caller is offered a texted pay link instead; once they pay, they become a Caller and are
-recognized on every call after that, at any Ringup merchant. Recognition is automatic: you never
-manage a Caller object, it just happens.
+A recognized caller is offered their saved card by name and last four, with no identity questions.
+An unknown caller is offered a texted pay link instead; once they pay, they become a recognized
+caller, known on every call after that, at any Ringup merchant. Recognition is automatic: you never
+manage a caller record, it just happens.
 
 ## Recognize at the start of the call
 

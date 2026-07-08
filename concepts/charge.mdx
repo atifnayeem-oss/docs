@@ -8,21 +8,62 @@ there is no Checkout Session to create and no link to text: you pass the amount,
 the card <Tooltip tip="A charge run against a card the caller saved earlier, with their consent, while they are not actively entering card details.">off-session</Tooltip>
 and settles the money on the merchant's own processor.
 
-```jsonc
-charge({
-  "amount_cents": 8500,
-  "description": "Front brake pads, 2022 Toyota Highlander"
-  // order_id is optional
-})
-// -> {
-//   "ok": true,
-//   "status": "succeeded",                 // "succeeded" | "failed" | "pending"
-//   "payment_id": "pay_x",                 // the Payment
-//   "order_id": "ord_x",
-//   "confirmation": "2PJJZY",              // short code to speak back to the caller
-//   "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 }
-// }
+<CodeGroup>
+```bash curl
+curl -X POST https://ringup.dev/api/tools/charge \
+  -H "Content-Type: application/json" \
+  -H "X-Caller-Number: +14155550142" \
+  -H "X-Ringup-Merchant: tonys-pizza" \
+  -H "X-Call-Id: call_abc123" \
+  -d '{ "amount_cents": 8500, "description": "Front brake pads, 2022 Toyota Highlander" }'
 ```
+
+```javascript Node
+const res = await fetch("https://ringup.dev/api/tools/charge", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Caller-Number": "+14155550142",
+    "X-Ringup-Merchant": "tonys-pizza",
+    "X-Call-Id": "call_abc123",
+  },
+  body: JSON.stringify({
+    amount_cents: 8500,
+    description: "Front brake pads, 2022 Toyota Highlander",
+  }),
+});
+const payment = await res.json();
+```
+
+```python Python
+import requests
+
+payment = requests.post(
+    "https://ringup.dev/api/tools/charge",
+    headers={
+        "X-Caller-Number": "+14155550142",
+        "X-Ringup-Merchant": "tonys-pizza",
+        "X-Call-Id": "call_abc123",
+    },
+    json={"amount_cents": 8500, "description": "Front brake pads, 2022 Toyota Highlander"},
+).json()
+```
+</CodeGroup>
+
+```json Response
+{
+  "ok": true,
+  "status": "succeeded",
+  "payment_id": "pay_x",
+  "order_id": "ord_x",
+  "confirmation": "2PJJZY",
+  "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 }
+}
+```
+
+`amount_cents` is the only required field. `description` and `order_id` are optional, and
+`X-Call-Id` keys [idempotency](#idempotent-under-retries) so a retry within a call never
+double-charges. `status` is `succeeded`, `failed`, or `pending`; only `succeeded` moved money.
 
 ## Only after the caller agrees, and only `succeeded` is true
 

@@ -8,22 +8,65 @@ moment an order is ready to pay, and it carries everything the payment step need
 Ringup's [policy decision](/concepts/payment-policy) for this order, and, when payment runs by
 transfer, the destination to send the live call.
 
-```jsonc
-create_checkout({
-  "amount_cents": 2500,
-  "line_items": [                          // optional
-    { "name": "Large pepperoni", "quantity": 1, "amount_cents": 2500 }
-  ],
-  "order_id": "sq_abc",                     // optional: settle against an existing order
-  "return_to": "sip:agent@your-number",     // optional: bring the caller back after payment
-  "success_message": "You are all set, ready in fifteen minutes."
-})
-// -> {
-//   "id": "cs_x9f2",                        // the Checkout Session id
-//   "payment_required": "required",         // "required" | "optional" | "none"
-//   "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // present in transfer mode; embeds the id
-// }
+<CodeGroup>
+```bash curl
+curl -X POST https://ringup.dev/api/tools/create_checkout \
+  -H "Content-Type: application/json" \
+  -H "X-Ringup-Merchant: tonys-pizza" \
+  -d '{
+    "amount_cents": 2500,
+    "order_id": "sq_abc",
+    "return_to": "sip:agent@your-number",
+    "success_message": "You are all set, ready in fifteen minutes."
+  }'
 ```
+
+```javascript Node
+const res = await fetch("https://ringup.dev/api/tools/create_checkout", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Ringup-Merchant": "tonys-pizza",
+  },
+  body: JSON.stringify({
+    amount_cents: 2500,
+    order_id: "sq_abc",
+    return_to: "sip:agent@your-number",
+    success_message: "You are all set, ready in fifteen minutes.",
+  }),
+});
+const checkout = await res.json();
+```
+
+```python Python
+import requests
+
+checkout = requests.post(
+    "https://ringup.dev/api/tools/create_checkout",
+    headers={"X-Ringup-Merchant": "tonys-pizza"},
+    json={
+        "amount_cents": 2500,
+        "order_id": "sq_abc",
+        "return_to": "sip:agent@your-number",
+        "success_message": "You are all set, ready in fifteen minutes.",
+    },
+).json()
+```
+</CodeGroup>
+
+```json Response
+{
+  "id": "cs_x9f2",
+  "payment_required": "required",
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"
+}
+```
+
+`amount_cents` is the only required field. `line_items`, `order_id`, `return_to`,
+`success_message`, and `failure_message` are optional: `order_id` settles against an existing
+order, `return_to` brings the caller back after payment, and `success_message` / `failure_message`
+let Ringup speak the outcome and end the call. `transfer_to` comes back only in transfer mode and
+embeds the session id. See the [API reference](/api-reference/introduction) for the full schema.
 
 ## Two ways it is delivered
 
@@ -44,6 +87,11 @@ Ringup sends the caller back. They are the two ends of the same trip.
 
 ## Three ways a transfer ends
 
+However the transfer ends, the payment itself is identical: Ringup charges the caller, texts them
+an SMS receipt, and posts a [webhook](/concepts/webhooks) to your server. The three options below
+change only what the caller hears and where the call goes next, never whether they get a receipt or
+whether you get the webhook.
+
 `return_to` and the spoken messages are complementary. Use whichever fits; you do not need both.
 
 1. **Transfer back (`return_to`).** Ringup returns the caller to your agent and attaches the
@@ -52,7 +100,7 @@ Ringup sends the caller back. They are the two ends of the same trip.
 2. **Ringup speaks the result (`success_message`).** No transfer back: Ringup reads your line and
    ends the call. Best when payment is the last thing on the call but you want the closing words in
    your words.
-3. **Neither.** Ringup reads a short default confirmation and ends. The SMS receipt is the proof.
+3. **Neither.** Ringup reads a short default confirmation and ends.
 
 A `return_to` that cannot connect falls back to speaking `success_message` (or the default) and
 ending, so a failed return never strands the caller.

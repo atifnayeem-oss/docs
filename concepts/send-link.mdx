@@ -7,9 +7,44 @@ When a caller has no saved card, or a recognized caller wants to use a different
 nothing to charge yet. `send_link` texts them a secure pay link so they can pay on their own
 phone, without ever reading a card number aloud on the call.
 
-```jsonc
-send_link({ "amount_cents": 1900 })
-// -> { "ok": true, "sent_to": "+14155550142", "link": "https://ringup.dev/pay" }
+<CodeGroup>
+```bash curl
+curl -X POST https://ringup.dev/api/tools/send_link \
+  -H "Content-Type: application/json" \
+  -H "X-Caller-Number: +14155550142" \
+  -H "X-Ringup-Merchant: tonys-pizza" \
+  -d '{ "amount_cents": 1900 }'
+```
+
+```javascript Node
+const res = await fetch("https://ringup.dev/api/tools/send_link", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-Caller-Number": "+14155550142",
+    "X-Ringup-Merchant": "tonys-pizza",
+  },
+  body: JSON.stringify({ amount_cents: 1900 }),
+});
+const link = await res.json();
+```
+
+```python Python
+import requests
+
+link = requests.post(
+    "https://ringup.dev/api/tools/send_link",
+    headers={
+        "X-Caller-Number": "+14155550142",
+        "X-Ringup-Merchant": "tonys-pizza",
+    },
+    json={"amount_cents": 1900},
+).json()
+```
+</CodeGroup>
+
+```json Response
+{ "ok": true, "sent_to": "+14155550142", "link": "https://ringup.dev/pay" }
 ```
 
 ## What happens
@@ -30,7 +65,7 @@ Payment can complete either way:
 - **After the call ends.** The caller hangs up and pays later from the same link. The call does not
   have to wait.
 
-Either way, the caller gets an SMS confirmation, and your server learns the outcome from a
+Either way, the caller gets an SMS receipt, and your server learns the outcome from a
 `checkout.completed` [webhook](/concepts/webhooks) with `method: "link"`. A link payment is not a
 separate event: it is a `checkout.completed` like any other, so one webhook handler covers both a
 saved-card charge and a first-time link payment.
