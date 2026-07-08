@@ -27,7 +27,7 @@ The hosted page lists the processors Ringup supports and lets the merchant conne
 
 ## How it fits your integration
 
-Connecting is the **merchant's** step, and it happens whenever they are ready, asynchronously to your own launch. Until a merchant connects, the payment layer stays inaudible on their calls (`create_checkout` returns `payment_required: "none"`), so you can ship Ringup across your whole fleet while merchants onboard at their own pace. When a merchant finishes, Ringup fires `merchant.connected` (carrying `merchant_id`) so you can flip them live.
+Connecting is the **merchant's** step, and it happens whenever they are ready, asynchronously to your own launch. Until a merchant connects, the payment layer stays inaudible on their calls (`create_checkout` returns `payment_required: "none"`), so you can ship Ringup across your whole fleet while merchants onboard at their own pace. The merchant is live the moment they connect, with nothing else for you to do; Ringup fires `merchant.connected` (carrying `merchant_id`) so you can reflect it in your own UI if you like.
 
 <Note>You never handle card data or the merchant's processor credentials. For OAuth processors the client secret stays on Ringup's server; for credential-entry processors the keys go straight into a hosted, encrypted field, never through your dashboard.</Note>
 
