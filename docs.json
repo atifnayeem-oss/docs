@@ -19,17 +19,19 @@
             "pages": [
               "index",
               "quickstart",
-              "authentication"
+              "authentication",
+              "concepts/how-it-works",
+              "concepts/testing"
             ]
           },
           {
             "group": "Concepts",
             "pages": [
-              "concepts/how-it-works",
-              "concepts/call-transfer",
-              "concepts/payment-policy",
               "concepts/identity",
-              "concepts/testing",
+              "concepts/checkout-session",
+              "concepts/payment-policy",
+              "concepts/send-link",
+              "concepts/charge",
               "concepts/webhooks"
             ]
           },
@@ -94,6 +96,10 @@
     {
       "source": "/integrations/vapi",
       "destination": "/integrations/vapi/native"
+    },
+    {
+      "source": "/concepts/call-transfer",
+      "destination": "/concepts/checkout-session"
     }
   ]
 }

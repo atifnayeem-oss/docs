@@ -1,0 +1,39 @@
+---
+title: "Send Link"
+description: "For a first-time caller with no saved card, send_link texts a secure pay link; the caller taps it, pays, and is recognized on every call after."
+---
+
+When a caller has no saved card, or a recognized caller wants to use a different one, there is
+nothing to charge yet. `send_link` texts them a secure pay link so they can pay on their own
+phone, without ever reading a card number aloud on the call.
+
+```jsonc
+send_link({ "amount_cents": 1900 })
+// -> { "ok": true, "sent_to": "+14155550142", "link": "https://ringup.dev/pay" }
+```
+
+## What happens
+
+The caller taps the link and pays on a Ringup-hosted page. The card number is entered there, on a
+web page, so it never touches the call. Once the payment clears, the card is saved by phone
+number, so the same person is [recognized](/concepts/identity) on their next call, at any Ringup
+merchant, and can pay from a saved card with no link at all.
+
+Only send the link after the caller clearly agrees to the text.
+
+## During the call or after
+
+Payment can complete either way:
+
+- **During the call.** The caller pays while still on the phone. You can poll the payment state so
+  your agent knows the moment it clears and can close the call knowing the order is paid.
+- **After the call ends.** The caller hangs up and pays later from the same link. The call does not
+  have to wait.
+
+Either way, the caller gets an SMS confirmation, and your server learns the outcome from a
+`checkout.completed` [webhook](/concepts/webhooks) with `method: "link"`. A link payment is not a
+separate event: it is a `checkout.completed` like any other, so one webhook handler covers both a
+saved-card charge and a first-time link payment.
+
+Once the caller has paid once, prefer a direct [`charge`](/concepts/charge) on their saved card
+next time.

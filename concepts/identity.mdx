@@ -1,5 +1,5 @@
 ---
-title: "Caller and merchant identity"
+title: "Caller Identity"
 description: "Both identities are resolved server-side from call context. The model never types either one."
 ---
 
@@ -11,8 +11,8 @@ platform templates in at call time.
 
 The **Caller** is Ringup's record of a person and their saved cards, keyed by phone number and
 shared across every merchant (a wallet, not one merchant's contact list). The number rides the
-`X-Caller-Number` header, templated from the platform's native caller-ID variable (on Vapi,
-`{{customer.number}}`). Ringup looks the Caller up:
+`X-Caller-Number` header, templated from the platform's caller-ID variable. Ringup looks the
+Caller up:
 
 ```json
 {
@@ -38,14 +38,14 @@ personalize the whole call: greet them by name, and skip re-asking for anything 
 Calling it early also moves the lookup off the payment moment, where a pause in the conversation is
 more noticeable than during the greeting.
 
-On the **Vapi native** integration, Ringup's pre-built squad handles this for you. On every other
-integration (call transfer, the direct API, other platforms) you invoke `identify` yourself, and
-invoking it at the greeting is what unlocks the personalized, no-repeat-questions experience.
+Some integrations wire recognition for you, so it happens without any tool call in your agent. On
+the others you invoke `identify` yourself, and invoking it at the greeting is what unlocks the
+personalized, no-repeat-questions experience.
 
 ## The merchant: resolved from the dialed number
 
-The number the caller dialed rides the `X-Ringup-Merchant` header (on Vapi,
-`{{phoneNumber.number}}`). The dialed number is the near-universal per-merchant key on
+The number the caller dialed rides the `X-Ringup-Merchant` header, templated from the platform's
+dialed-number variable. The dialed number is the near-universal per-merchant key on
 multi-tenant voice platforms: one number per business, no per-agent configuration. Ringup
 maps it to the merchant server-side and applies that merchant's policy and processor.
 
@@ -60,6 +60,6 @@ The tools accept no identity arguments at all; there is nothing to spoof.
 
 <Warning>
 Dashboard and web test calls carry no real caller ID, so the platform's caller-ID template
-resolves to nothing. For those, pin a test caller explicitly (the Vapi CLI's
-`--demo-caller` flag). Real inbound phone calls resolve both identities natively.
+resolves to nothing. For those, pin a test caller explicitly. Real inbound phone calls resolve
+both identities natively.
 </Warning>

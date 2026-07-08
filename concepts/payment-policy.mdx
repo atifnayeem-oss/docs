@@ -31,7 +31,7 @@ guarantee, not an error path. It means the same agent configuration is safe to r
 every merchant on your platform, connected or not, from day one.
 
 <Note>
-In native mode (see the [Vapi](/integrations/vapi/native) guide) the payment step reads
-`payment_required` for you and branches silently, so your agent still never hard-codes payment
-logic. In call transfer mode you read it off the Checkout Session directly.
+Ringup's payment step (or your agent, depending on the integration) reads `payment_required` and
+branches on it, so your agent never hard-codes payment logic. In a call transfer you read it off
+the Checkout Session directly.
 </Note>

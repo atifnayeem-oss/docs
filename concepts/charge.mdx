@@ -1,0 +1,50 @@
+---
+title: "Charge"
+description: "Charge a recognized caller's saved card off-session, settling on the merchant's own processor. Idempotent, and only true when the result says succeeded."
+---
+
+`charge` runs a recognized caller's saved card. The caller is already known by phone number, so
+there is no Checkout Session to create and no link to text: you pass the amount, and Ringup charges
+the card off-session and settles the money on the merchant's own processor.
+
+```jsonc
+charge({
+  "amount_cents": 8500,
+  "description": "Front brake pads, 2022 Toyota Highlander"
+  // order_id is optional
+})
+// -> {
+//   "ok": true,
+//   "status": "succeeded",                 // "succeeded" | "failed" | "pending"
+//   "payment_id": "pay_x",                 // the Payment
+//   "order_id": "ord_x",
+//   "confirmation": "2PJJZY",              // short code to speak back to the caller
+//   "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 }
+// }
+```
+
+## Only after the caller agrees, and only `succeeded` is true
+
+Charge the card only after the caller verbally agrees to the amount. The result is ground truth:
+never tell the caller payment happened without a `succeeded` status and a `payment_id`. A `failed`
+status means nothing was charged, and `pending` means the money has not moved yet. Speak the
+`confirmation` code back only on `succeeded`.
+
+## Idempotent under retries
+
+The charge is idempotent, keyed on the call and amount, so if the platform retries the tool call,
+the caller is charged once and the retry returns the original Payment. This is what makes it safe
+on platforms that auto-retry a function that does not answer fast enough.
+
+## With or without an order
+
+- **With `order_id`,** the Payment attaches to that order, so your system reconciles the two
+  directly.
+- **Without it,** Ringup creates a minimal order to hang the Payment on, and echoes its id back so
+  you still have something to match against.
+
+Whether or not you pass one, your server gets the same `checkout.completed`
+[webhook](/concepts/webhooks) as its out-of-band record. If the caller has no saved card yet, use
+[`send_link`](/concepts/send-link) instead; if you want Ringup to run the whole payment step for
+you, create a [Checkout Session](/concepts/checkout-session). Whether payment is required at all is
+the merchant's [policy](/concepts/payment-policy).
