@@ -3,18 +3,7 @@ title: "Payment providers"
 description: "Ringup settles on the merchant's own payment processor. Each merchant connects their processor once; how they connect depends on the processor."
 ---
 
-Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You surface that connection to your merchants; how they connect depends on the processor.
-
-## Two connection styles
-
-<CardGroup cols={2}>
-  <Card title="Square (OAuth)" icon="square" href="/payment-providers/square">
-    One click. The merchant approves on the processor's own screen; Ringup exchanges the grant for their token on the server. You embed a Connect button.
-  </Card>
-  <Card title="Other processors" icon="key">
-    Provider-specific credential entry (copy and paste keys into a hosted, encrypted form). Instructions are published per processor as each adapter ships.
-  </Card>
-</CardGroup>
+Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You surface that connection to your merchants with a button; they do the connecting.
 
 ## How it fits your integration
 
