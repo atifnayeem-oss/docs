@@ -4,9 +4,13 @@
   "name": "Ringup",
   "description": "Identity and payments for voice agents",
   "colors": {
-    "primary": "#14181F",
-    "light": "#EEEBE4",
-    "dark": "#14181F"
+    "primary": "#2450C8",
+    "light": "#6E92EC",
+    "dark": "#1B3C9E"
+  },
+  "fonts": {
+    "heading": { "family": "Fraunces" },
+    "body": { "family": "Hanken Grotesk" }
   },
   "favicon": "/favicon.svg",
   "navigation": {
