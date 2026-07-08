@@ -1,36 +1,27 @@
 ---
 title: "Square"
-description: "Merchants on Square connect their account to Ringup in one click via OAuth. Embed one button on your dashboard; the merchant approves on Square."
+description: "When a merchant picks Square on the connect page, one click authorizes via OAuth and Ringup settles on their Square account."
 ---
 
-Square merchants connect via **OAuth**: the merchant clicks one button, approves on Square's own screen, and Ringup settles on their Square account from then on. You embed the button; you never touch card data or the merchant's password.
+Square is one of the processors on Ringup's hosted connect page (reached from the generic Connect button, see [Payment providers](/payment-providers/overview)). When a merchant picks **Square**, one click authorizes via **OAuth** and Ringup settles on their Square account from then on. You embed nothing Square-specific, and you never touch card data or the merchant's password.
 
-## Embed the Connect button
-
-Drop this one line wherever your merchants manage their account. It renders a styled "Connect your Square" button and starts the hosted flow.
-
-```html
-<script src="https://ringup.dev/connect/button.js"
-        data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
-```
-
-Optional attributes: `data-ringup-label` (button text), `data-ringup-return` (URL to send the merchant back to after connecting).
+## What happens
 
 <Steps>
-  <Step title="Add the snippet">
-    Place it on your merchant-facing dashboard, with your public key in `data-ringup-vendor`.
+  <Step title="The merchant opens your Connect button">
+    It lands on Ringup's hosted connect page, where Square is listed.
   </Step>
-  <Step title="The merchant clicks Connect">
-    They are taken to Square's authorization screen, approve, and land on a confirmation page.
+  <Step title="They pick Square and approve">
+    Square's own authorization screen opens; they approve and return to a confirmation page.
   </Step>
   <Step title="You get a webhook">
-    Ringup fires `merchant.connected` (carrying `merchant_id`) when the connection completes, so you can flip that merchant to live in your own UI.
+    Ringup fires `merchant.connected` (carrying `merchant_id`), so you can flip that merchant to live in your own UI.
   </Step>
 </Steps>
 
 ## What the merchant grants
 
-The button requests only what Ringup needs to recognize callers and settle on the merchant's account:
+Square requests only what Ringup needs to recognize callers and settle on the merchant's account:
 
 <ParamField path="MERCHANT_PROFILE_READ">Read the business profile (name, locations).</ParamField>
 <ParamField path="PAYMENTS_WRITE">Take payments on the merchant's account.</ParamField>
@@ -43,6 +34,6 @@ The button requests only what Ringup needs to recognize callers and settle on th
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="All payment providers" href="/payment-providers/overview">How other processors connect.</Card>
+  <Card title="All payment providers" href="/payment-providers/overview">The generic Connect button and the hosted page.</Card>
   <Card title="Webhooks" href="/concepts/webhooks">Handle `merchant.connected` and payment events.</Card>
 </CardGroup>

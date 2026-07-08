@@ -1,19 +1,39 @@
 ---
 title: "Payment providers"
-description: "Ringup settles on the merchant's own payment processor. Each merchant connects their processor once; how they connect depends on the processor."
+description: "Ringup settles on the merchant's own payment processor. You embed one generic button; the merchant picks and connects their processor on a Ringup-hosted page."
 ---
 
-Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You surface that connection to your merchants with a button; they do the connecting.
+Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You never need to know which processor a given merchant uses: you embed **one generic button**, and the merchant chooses their processor on a Ringup-hosted page.
+
+## Add the Connect button
+
+Drop this one line wherever your merchants manage their account. It renders a **"Connect Pay by Phone"** button that opens Ringup's hosted connect page, where the merchant picks their processor and authorizes it.
+
+```html
+<script src="https://ringup.dev/connect/button.js"
+        data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
+```
+
+Optional attributes: `data-ringup-label` (button text), `data-ringup-variant` (`filled` default, or `outline`), `data-ringup-return` (URL to send the merchant back to). Prefer your own UI? Point any element or link at `https://ringup.dev/connect?vendor=YOUR_PUBLIC_KEY`.
+
+## What the merchant sees
+
+The hosted page lists the processors Ringup supports and lets the merchant connect theirs:
+
+<CardGroup cols={2}>
+  <Card title="Square" icon="square">Live now. One-click OAuth (details on the Square page).</Card>
+  <Card title="Stripe, Clover, Toast" icon="clock">Rolling out. Each connects with its own flow as the adapter ships.</Card>
+</CardGroup>
 
 ## How it fits your integration
 
-Connecting a processor is the **merchant's** step, and it happens whenever the merchant is ready, asynchronously to your own launch. You give merchants the way to connect (a Connect button on your dashboard); they self-connect. Until a merchant connects, the payment layer stays inaudible on their calls (`create_checkout` returns `payment_required: "none"`), so you can ship Ringup across your whole fleet while merchants onboard at their own pace.
+Connecting is the **merchant's** step, and it happens whenever they are ready, asynchronously to your own launch. Until a merchant connects, the payment layer stays inaudible on their calls (`create_checkout` returns `payment_required: "none"`), so you can ship Ringup across your whole fleet while merchants onboard at their own pace. When a merchant finishes, Ringup fires `merchant.connected` (carrying `merchant_id`) so you can flip them live.
 
 <Note>You never handle card data or the merchant's processor credentials. For OAuth processors the client secret stays on Ringup's server; for credential-entry processors the keys go straight into a hosted, encrypted field, never through your dashboard.</Note>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Connect Square" href="/payment-providers/square">The one-click OAuth Connect button.</Card>
+  <Card title="Square" href="/payment-providers/square">The one-click OAuth option.</Card>
   <Card title="Webhooks" href="/concepts/webhooks">Handle `merchant.connected`.</Card>
 </CardGroup>
