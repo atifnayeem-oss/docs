@@ -1,0 +1,54 @@
+---
+title: "Authentication"
+description: "Ringup authenticates every API request with a secret API key. Get one from your dashboard and send it as a Bearer token."
+---
+
+Ringup authenticates every API request with a secret **API key**. You pass it in the
+`Authorization` header on each call:
+
+```bash
+Authorization: Bearer <YOUR_RINGUP_KEY>
+```
+
+## Get your key
+
+Create an API key in your Ringup dashboard, under **Developers, then API keys**. Keys come in two
+kinds, and the same code works with either, so you promote by swapping the key:
+
+- **Test keys** (`rk_test_...`) run against the sandbox: fake money, real flows, ready-made
+  merchants and callers. See [Testing](/concepts/testing).
+- **Live keys** (`rk_live_...`) run against your real merchants and settle on their own processor.
+
+## Pass it on every request
+
+Every Ringup call, `create_checkout`, `identify`, `charge`, and the rest, takes the key as a
+Bearer token:
+
+```bash
+curl -X POST https://api.ringup.dev/v1/checkouts \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{ "amount_cents": 2500 }'
+```
+
+In an agent integration you set the key once and it rides every call:
+
+- **Vapi (native handoff):** the CLI writes your key into the payment tools it provisions. You
+  paste it once at setup.
+- **Call transfer (every other platform):** the key lives in the `Authorization` header of the
+  `create_checkout` tool or HTTP call your agent makes, next to the other tool config.
+
+Either way the key sits on your server or in the platform's tool configuration, never in a value
+the model generates.
+
+<Warning>
+Your secret key can create charges. Keep it server-side. Never put it in client-side code, a
+prompt, a transcript, or a public repository, and never let the model see or type it. If a key
+leaks, roll it from the dashboard.
+</Warning>
+
+## Trying it without a key
+
+The public demo sandbox exposes a seeded caller and demo merchants that need no key, so you can run
+the [Quickstart](/quickstart) and hear a wired demo before you sign up. The moment you point at
+your own merchants and callers, you use your key.

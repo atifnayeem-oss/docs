@@ -22,6 +22,18 @@ https://ringup.dev/api/tools
 
 All five tools are `POST` endpoints with JSON bodies.
 
+## Authentication
+
+Every request authenticates with your Ringup API key as a Bearer token:
+
+```bash
+Authorization: Bearer <YOUR_RINGUP_KEY>
+```
+
+The public demo sandbox is open (no key) so you can try the endpoints and the
+[Quickstart](/quickstart) before signing up. For your own merchants and callers, use your key.
+See [Authentication](/authentication) for test versus live keys and how to keep the key safe.
+
 ## Identity rides headers, not arguments
 
 The caller and the merchant are resolved server-side from three headers your platform
