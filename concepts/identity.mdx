@@ -27,6 +27,21 @@ questions. An unknown caller is offered a texted pay link instead; once they pay
 Caller and are recognized on every call after that, at any Ringup merchant. Recognition is
 automatic: you never manage a Caller object, it just happens inside the Checkout Session.
 
+## Recognize at the start of the call
+
+`identify` needs only the caller's phone number, and that arrives the instant the call connects,
+before the caller has said a word. So call it at the **start** of the call, not just when payment
+begins. For a recognized caller it hands you their name and saved card up front, which you use to
+personalize the whole call: greet them by name, and skip re-asking for anything you already know
+(for example, never ask "what name should I put this under?" when `identify` already returned it).
+
+Calling it early also moves the lookup off the payment moment, where a pause in the conversation is
+more noticeable than during the greeting.
+
+On the **Vapi native** integration, Ringup's pre-built squad handles this for you. On every other
+integration (call transfer, the direct API, other platforms) you invoke `identify` yourself, and
+invoking it at the greeting is what unlocks the personalized, no-repeat-questions experience.
+
 ## The merchant: resolved from the dialed number
 
 The number the caller dialed rides the `X-Ringup-Merchant` header (on Vapi,
