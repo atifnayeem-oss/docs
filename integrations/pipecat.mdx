@@ -33,6 +33,15 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and API key. Test mode works out of the box on a shared sandbox. See
   [Testing](/concepts/testing).
 
+## Recognize the caller at the start
+
+Call `identify` at the greeting, not just at payment. It needs only the caller's phone number,
+which is available the instant the call connects. For a returning caller it returns their name
+and saved card, so your agent greets them by name and skips re-asking for anything recognition
+already provides (for example, never ask "what name for the order?" when `identify` returned it).
+This is separate from and happens earlier than creating the Checkout Session and transferring for
+payment. See [Recognize at the start of the call](/concepts/identity).
+
 ## Step 1: Create a Checkout Session when the order is confirmed
 
 Register a function on your LLM (`FunctionSchema`) that the model calls once the order is

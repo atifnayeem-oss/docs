@@ -54,6 +54,13 @@ language. The business is identified from the number the call comes in on; the p
 merchant setting served by Ringup per purchase; everything else is inherited from your
 agent.
 
+<Note>
+Ringup's pre-built squad calls `identify` at the greeting, so a returning caller is recognized
+and greeted by name with no re-asking (for example, the agent never asks "what name for the
+order?" when recognition already returned it). You do not wire this: it is built into the squad.
+See [Recognize at the start of the call](/concepts/identity).
+</Note>
+
 **After provision, nothing you own has changed.** Your assistant is byte-for-byte unmodified
 and the new squad carries no traffic. Everything Ringup created is new:
 

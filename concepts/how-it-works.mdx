@@ -32,6 +32,12 @@ nobody else does, and it is the product.
 resolved from trusted call metadata, never typed by the model or spoken by the caller. No
 logins, no account numbers, no passwords. See [Caller and merchant identity](/concepts/identity).
 
+**Recognition happens at the start of the call.** The caller's number arrives the instant the
+call connects, so Ringup identifies them upfront, before payment. For a returning caller that
+hands the agent their name and saved card at the greeting, so the agent personalizes the whole
+call: it greets them by name and skips re-asking for anything recognition already provides. See
+[Recognize at the start of the call](/concepts/identity).
+
 **First time by link, every time after by memory.** A caller Ringup does not recognize is texted
 a secure pay link and pays on their phone; the card is saved with their consent. A caller Ringup
 recognizes is offered their saved card by brand and last four. One path enrolls, the other
