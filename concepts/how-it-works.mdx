@@ -72,8 +72,12 @@ flowchart TD
     D -->|required or optional| F{Saved card on file?}
     F -->|yes| G[Caller confirms, saved card is charged]
     F -->|no| H[Ringup texts a pay link, caller pays on their phone]
-    G --> I[SMS receipt to caller, webhook to your server]
-    H --> I
+    G --> J{How the call ends}
+    H --> J
+    J -->|transfer back| K[Back to your agent, in its own voice]
+    J -->|or| L[Ringup speaks or texts the confirmation]
+    K --> M[Webhook to your server]
+    L --> M
 ```
 
 Everything above is the same on every platform. What differs is only how your agent reaches
