@@ -1,11 +1,30 @@
 ---
 title: "Testing"
-description: "A shared sandbox with ready-made merchants and callers. Test mode works before you configure anything."
+description: "A shared sandbox with ready-made merchants and callers. Test mode works before you configure anything, and one test card runs every payment."
 ---
 
 Ringup's test mode is a shared sandbox that is live for every account from the first
 command. There are no test keys to mint and no merchants to create before your first
-working call.
+working call. Every integration tests against this same sandbox.
+
+## The sandbox test card
+
+Every test payment runs on one card. When a sandbox call texts a pay link, or when you open a
+sandbox Checkout page, enter this card:
+
+| Field | Value |
+|---|---|
+| Card number | `4111 1111 1111 1111` |
+| Expiry | any future date (for example `12/34`) |
+| CVV | any 3 digits (for example `111`) |
+| ZIP / postal code | any (for example `94103`) |
+
+<Note>
+  To test a declined payment, use `4000 0000 0000 0002`. It always declines, so you can
+  exercise your failure path and the `checkout.failed` webhook.
+</Note>
+
+This card is sandbox-only. It never reaches a live payment processor and never moves real money.
 
 ## Fixtures
 
@@ -16,28 +35,32 @@ working call.
 | Unconnected merchant (payment never mentioned) | any unknown merchant id |
 | Test caller with a saved card | `+14155550142` (Visa ending 5858) |
 
-A successful test charge returns `succeeded` with a real confirmation code, which the
-wrap-up step speaks back to the caller.
+The test caller already has the sandbox card on file, so a call from that number skips the pay
+link and charges the saved card. A first-time (unrecognized) caller is texted a link and enters
+the sandbox card above.
 
-## Three tiers of testing
+## Run a test payment
+
+The general shape is the same on every platform:
 
 <Steps>
-  <Step title="Canned demos">
-    `npx ringup-vapi-init test` builds a complete demo squad in your org: sandbox merchant,
-    demo caller, try-saying script covering the required and optional branches. Zero contact
-    with anything you own; `test --clean` removes it.
+  <Step title="Reach the sandbox">
+    Point your agent or bridge at a sandbox merchant fixture and start a call, or create a
+    Checkout Session against the sandbox with your Ringup API key.
   </Step>
-  <Step title="Rehearsal on a private line">
-    `npx ringup-vapi-init stage` wires a disposable copy of your own agent to a free test
-    number. You hear your actual agent, your actual prompts, and the full payment flow on a
-    real phone call, before anything you own changes.
+  <Step title="Pay">
+    As a recognized test caller (`+14155550142`), confirm the saved card. As a first-time
+    caller, follow the texted link and enter the sandbox card above.
   </Step>
-  <Step title="Post-go-live verification">
-    `npx ringup-vapi-init check` reads the wiring from the platform API (squad structure,
-    tool shapes, live state, transcriber model names) and is the source of truth when a
-    dashboard renders squad wiring incompletely.
+  <Step title="Read the result">
+    A successful test charge returns `succeeded` with a real confirmation code, which the
+    wrap-up step speaks back to the caller. Your server receives a `checkout.completed` webhook.
   </Step>
 </Steps>
+
+Some platforms ship a CLI or demo caller that wires this up for you. See your platform's
+integration page for the platform-specific commands (for example
+[Vapi testing](/integrations/vapi/testing)).
 
 ## Reading test results
 
@@ -46,4 +69,4 @@ charge result with a payment id and confirmation code proves a payment happened.
 can narrate success it did not have; the API result cannot.
 
 **Text-chat smoke tests cannot prove voice.** Platform chat pipelines assemble handoffs
-differently from voice pipelines. Validate squads with a voice call.
+differently from voice pipelines. Validate with a voice call.

@@ -39,7 +39,8 @@
                 "group": "Vapi",
                 "pages": [
                   "integrations/vapi/native",
-                  "integrations/vapi/call-transfer"
+                  "integrations/vapi/call-transfer",
+                  "integrations/vapi/testing"
                 ]
               },
               "integrations/retell",
