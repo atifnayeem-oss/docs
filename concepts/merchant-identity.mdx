@@ -1,0 +1,33 @@
+---
+title: "Merchant Identity"
+description: "The merchant is resolved server-side from the number the caller dialed, and never typed by the model."
+---
+
+The **merchant** is which business the caller reached. Ringup resolves it from the number the
+caller dialed, server-side, and applies that merchant's payment policy and its own processor. Like
+the caller, it never passes through the language model. Who is calling is a separate identity, see
+[Caller Identity](/concepts/identity).
+
+## The dialed number is the merchant key
+
+The number the caller dialed rides the `X-Ringup-Merchant` header, templated from the platform's
+dialed-number variable. The dialed number is the near-universal per-merchant key on multi-tenant
+voice platforms: one number per business, no per-agent configuration. Ringup maps it to the
+merchant server-side and applies that merchant's [payment policy](/concepts/payment-policy) and its
+own processor.
+
+A platform that prefers explicit tenant ids can send its own merchant identifier in the same header
+instead; both forms resolve server-side.
+
+## Why the merchant comes from the call, not the model
+
+A model-generated `merchant_id` argument can be mistyped, hallucinated, or prompt-injected. A header
+set by the platform's template engine cannot. The tools take no merchant argument as the source of
+truth; there is nothing to spoof.
+
+<Note>
+This is what lets one agent serve a whole fleet of merchants: each business has its own number, and
+Ringup applies the right policy and processor per call with no per-agent configuration. A merchant
+who has not connected a processor simply resolves to a payment-free call. See
+[Payment Policy](/concepts/payment-policy).
+</Note>

@@ -28,6 +28,7 @@
             "group": "Concepts",
             "pages": [
               "concepts/identity",
+              "concepts/merchant-identity",
               "concepts/checkout-session",
               "concepts/payment-policy",
               "concepts/send-link",
