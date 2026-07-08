@@ -1,57 +1,68 @@
 ---
 title: "Quickstart"
-description: "Talk to a working payments demo in about a minute, then take your own agent live."
+description: "See recognition and a Checkout Session work in test mode in a minute, on any platform, then add Ringup to your agent."
 ---
 
-The fastest way to understand Ringup is to hear it. The CLI can build a fully wired demo in
-your own Vapi org, backed by Ringup's shared sandbox: nothing to sign up for, nothing to
-connect, nothing you own is touched.
+Ringup adds identity and payments to a voice agent: a returning caller is recognized by phone
+number and pays with a saved card, settling on the merchant's own processor, with no card number
+ever spoken. This quickstart shows the two moves everything is built on, in test mode, then points
+you to the integration for your platform.
+
+Test mode runs on a shared sandbox with ready-made merchants and callers, so there is nothing to
+sign up for and nothing to connect between you and a first working response. See
+[Testing](/concepts/testing) for the fixtures.
 
 <Steps>
-  <Step title="Talk to a demo">
+  <Step title="Recognize a caller">
+    Ringup recognizes a caller from their phone number, which arrives the instant the call
+    connects. Call `identify` for the sandbox demo caller:
+
     ```bash
-    npx ringup-vapi-init test
+    curl -X POST https://ringup.dev/api/tools/identify \
+      -H "X-Caller-Number: +14155550142"
     ```
 
-    Pick a vertical (food ordering, auto parts, appointment booking, insurance). You get a
-    demo squad with a sandbox merchant, a demo caller with a saved Visa, and a try-saying
-    script that walks the policy branches. Talk to it from the Vapi dashboard, then remove
-    it with `test --clean`.
+    ```json
+    { "known": true, "name": "Alex", "card": { "brand": "VISA", "last_4": "5858" } }
+    ```
+
+    That is the identity layer: at the start of the call your agent greets a returning caller by
+    name and can offer their saved card, with no card number spoken. See
+    [Caller and merchant identity](/concepts/identity).
   </Step>
-  <Step title="Provision around your own agent">
+  <Step title="Create a Checkout Session">
+    When the order is ready to pay, create a Checkout Session. Ringup resolves whether payment is
+    required from the merchant's own rule and returns it to you:
+
     ```bash
-    npx ringup-vapi-init
+    curl -X POST https://ringup.dev/api/tools/create_checkout \
+      -H "Content-Type: application/json" \
+      -H "X-Ringup-Merchant: tonys-pizza" \
+      -d '{ "amount_cents": 2500 }'
     ```
 
-    Two questions: your Vapi private key (hidden input, never stored) and which agent or
-    squad. Ringup builds the payment step, the wrap-up step, and a new squad around your
-    agent. Your assistant is byte-for-byte unmodified and no call behavior changes.
+    ```json
+    { "id": "cs_d00993cf0f3e", "payment_required": "optional" }
+    ```
+
+    The Checkout Session is the object every payment turns on: `payment_required` is `required`,
+    `optional`, or `none`, and the charge settles on the merchant's own processor. See
+    [How it works](/concepts/how-it-works).
   </Step>
-  <Step title="Rehearse on a private line">
-    ```bash
-    npx ringup-vapi-init stage
-    ```
+  <Step title="Add it to your agent">
+    Both moves live inside your voice agent. Pick the integration for your platform:
 
-    You get a free test number wired to a disposable copy of your agent with payments in.
-    Call it from a real phone and hear exactly what your customers are about to hear. Your
-    real number and real agent stay untouched.
-  </Step>
-  <Step title="Go live">
-    ```bash
-    npx ringup-vapi-init go-live
-    ```
-
-    One consented command: points your real number at the squad, then makes the two changes
-    to your agent (one tool, one prompt line), in that order. `rollback` reverses everything,
-    your number included, byte-for-byte.
+    - **Vapi**: a [native handoff](/integrations/vapi/native), wired by one CLI command, keeps the
+      caller in your agent's own voice throughout.
+    - **Every other platform** (Retell, ElevenLabs, Deepgram, LiveKit, OpenAI Realtime, Pipecat,
+      Twilio ConversationRelay): a [call transfer](/concepts/call-transfer), one integration you
+      reuse everywhere. Pick your platform in the Integrations section.
   </Step>
 </Steps>
 
-The full lifecycle, including `check` verification and manual wiring for platforms that
-manage their own squads, is in the [Vapi integration guide](/integrations/vapi/native).
-
 <Note>
-Test mode works out of the box on a shared sandbox with ready-made merchants and callers, so
-there is no account setup between you and a first working call. See
-[Testing](/concepts/testing) for the fixtures.
+On Vapi you can also hear a fully wired demo in about a minute. `npx ringup-vapi-init test` builds
+a demo squad in your own Vapi org, backed by the shared sandbox, with a demo caller and a saved
+card. The full CLI lifecycle (`test`, `stage`, `go-live`, `rollback`) is in the
+[Vapi guide](/integrations/vapi/native).
 </Note>
