@@ -3,6 +3,8 @@ title: "Deepgram Voice Agent"
 description: "Add card-on-file payments to a Deepgram Voice Agent by call transfer: create a Checkout Session in your bridge and Dial the caller to the Ringup SIP URI."
 ---
 
+import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
+
 Add card-on-file payments to a Deepgram Voice Agent by call transfer. This works like a hosted
 web checkout, over the phone: when the order is confirmed, your bridge creates a **Checkout
 Session** and transfers the live call to a Ringup payment line, the caller pays there, and the
@@ -130,6 +132,8 @@ Because your bridge owns the telephony, the transfer is standard `<Dial><Sip>` o
 Ringup's hosted transfer endpoint is rolling out; confirm access in your Ringup dashboard before
 relying on this in production. The recognition, charge, receipt, and webhook behavior is the
 same payment path Ringup runs everywhere.
+
+<ConnectBeforeGoLive />
 
 ## Next steps
 

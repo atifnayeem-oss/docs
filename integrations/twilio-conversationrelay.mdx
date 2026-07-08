@@ -3,6 +3,8 @@ title: "Twilio ConversationRelay"
 description: "Add card-on-file payments to a ConversationRelay app by call transfer: create a Checkout Session in your server and Dial the caller to the Ringup SIP URI."
 ---
 
+import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
+
 Add card-on-file payments to a Twilio ConversationRelay app by call transfer. This works like a
 hosted web checkout, over the phone: when the order is confirmed, your server creates a
 **Checkout Session** and transfers the live call to a Ringup payment line, the caller pays
@@ -131,6 +133,8 @@ ConversationRelay gives you full control of the TwiML, so the transfer and the h
 standard Twilio `<Dial><Sip>`. Ringup's hosted transfer endpoint is rolling out; confirm access
 in your Ringup dashboard before relying on this in production. The recognition, charge, receipt,
 and webhook behavior is the same payment path Ringup runs everywhere.
+
+<ConnectBeforeGoLive />
 
 ## Next steps
 

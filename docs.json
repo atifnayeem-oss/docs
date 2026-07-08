@@ -9,8 +9,12 @@
     "dark": "#1B3C9E"
   },
   "fonts": {
-    "heading": { "family": "Fraunces" },
-    "body": { "family": "Hanken Grotesk" }
+    "heading": {
+      "family": "Fraunces"
+    },
+    "body": {
+      "family": "Hanken Grotesk"
+    }
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -29,12 +33,6 @@
             ]
           },
           {
-            "group": "Go live",
-            "pages": [
-              "guides/connect-merchants"
-            ]
-          },
-          {
             "group": "Concepts",
             "pages": [
               "concepts/identity",
@@ -47,7 +45,7 @@
             ]
           },
           {
-            "group": "Integrations",
+            "group": "Voice integrations",
             "pages": [
               {
                 "group": "Vapi",
@@ -64,6 +62,13 @@
               "integrations/livekit",
               "integrations/openai-realtime",
               "integrations/pipecat"
+            ]
+          },
+          {
+            "group": "Payment providers",
+            "pages": [
+              "payment-providers/overview",
+              "payment-providers/square"
             ]
           }
         ]
@@ -136,6 +141,10 @@
     {
       "source": "/concepts/call-transfer",
       "destination": "/concepts/checkout-session"
+    },
+    {
+      "source": "/guides/connect-merchants",
+      "destination": "/payment-providers/square"
     }
   ]
 }

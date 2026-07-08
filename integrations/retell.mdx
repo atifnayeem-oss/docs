@@ -3,6 +3,8 @@ title: "Retell AI"
 description: "Add card-on-file payments to a Retell agent by call transfer: create a Checkout Session, transfer, and reconcile on the webhook."
 ---
 
+import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
+
 Add card-on-file payments to a Retell agent by call transfer. This works like a hosted web
 checkout, over the phone: when the order is confirmed, your agent creates a **Checkout Session**
 and transfers the live call to it, the caller pays on the Ringup line, and the call optionally
@@ -185,6 +187,8 @@ Session id arrives as expected; until that check runs for your account, treat th
 wiring as documented, not yet validated on your specific Retell and telephony setup. The
 recognition, charge, receipt, and webhook behavior is the same payment path Ringup runs
 everywhere.
+
+<ConnectBeforeGoLive />
 
 ## Next steps
 

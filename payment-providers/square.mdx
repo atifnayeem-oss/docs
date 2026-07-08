@@ -1,0 +1,48 @@
+---
+title: "Square"
+description: "Merchants on Square connect their account to Ringup in one click via OAuth. Embed one button on your dashboard; the merchant approves on Square."
+---
+
+Square merchants connect via **OAuth**: the merchant clicks one button, approves on Square's own screen, and Ringup settles on their Square account from then on. You embed the button; you never touch card data or the merchant's password.
+
+## Embed the Connect button
+
+Drop this one line wherever your merchants manage their account. It renders a styled "Connect your Square" button and starts the hosted flow.
+
+```html
+<script src="https://ringup.dev/connect/button.js"
+        data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
+```
+
+Optional attributes: `data-ringup-label` (button text), `data-ringup-return` (URL to send the merchant back to after connecting).
+
+<Steps>
+  <Step title="Add the snippet">
+    Place it on your merchant-facing dashboard, with your public key in `data-ringup-vendor`.
+  </Step>
+  <Step title="The merchant clicks Connect">
+    They are taken to Square's authorization screen, approve, and land on a confirmation page.
+  </Step>
+  <Step title="You get a webhook">
+    Ringup fires `merchant.connected` (carrying `merchant_id`) when the connection completes, so you can flip that merchant to live in your own UI.
+  </Step>
+</Steps>
+
+## What the merchant grants
+
+The button requests only what Ringup needs to recognize callers and settle on the merchant's account:
+
+<ParamField path="MERCHANT_PROFILE_READ">Read the business profile (name, locations).</ParamField>
+<ParamField path="PAYMENTS_WRITE">Take payments on the merchant's account.</ParamField>
+<ParamField path="PAYMENTS_WRITE_SHARED_ONFILE">Charge a caller's saved card across the merchants on your app (the recognition primitive).</ParamField>
+<ParamField path="ORDERS_WRITE">Attach payment to the order.</ParamField>
+<ParamField path="CUSTOMERS_READ, CUSTOMERS_WRITE">Recognize the caller and keep their card on file.</ParamField>
+
+<Note>Square redirects back to Ringup, which exchanges the code for the merchant's token on the server. The client secret never touches your dashboard or the button, and no card data ever passes through your systems.</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="All payment providers" href="/payment-providers/overview">How other processors connect.</Card>
+  <Card title="Webhooks" href="/concepts/webhooks">Handle `merchant.connected` and payment events.</Card>
+</CardGroup>

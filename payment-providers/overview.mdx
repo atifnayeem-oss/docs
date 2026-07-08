@@ -1,0 +1,30 @@
+---
+title: "Payment providers"
+description: "Ringup settles on the merchant's own payment processor. Each merchant connects their processor once; how they connect depends on the processor."
+---
+
+Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You surface that connection to your merchants; how they connect depends on the processor.
+
+## Two connection styles
+
+<CardGroup cols={2}>
+  <Card title="Square (OAuth)" icon="square" href="/payment-providers/square">
+    One click. The merchant approves on the processor's own screen; Ringup exchanges the grant for their token on the server. You embed a Connect button.
+  </Card>
+  <Card title="Other processors" icon="key">
+    Provider-specific credential entry (copy and paste keys into a hosted, encrypted form). Instructions are published per processor as each adapter ships.
+  </Card>
+</CardGroup>
+
+## How it fits your integration
+
+Connecting a processor is the **merchant's** step, and it happens whenever the merchant is ready, asynchronously to your own launch. You give merchants the way to connect (a Connect button on your dashboard); they self-connect. Until a merchant connects, the payment layer stays inaudible on their calls (`create_checkout` returns `payment_required: "none"`), so you can ship Ringup across your whole fleet while merchants onboard at their own pace.
+
+<Note>You never handle card data or the merchant's processor credentials. For OAuth processors the client secret stays on Ringup's server; for credential-entry processors the keys go straight into a hosted, encrypted field, never through your dashboard.</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connect Square" href="/payment-providers/square">The one-click OAuth Connect button.</Card>
+  <Card title="Webhooks" href="/concepts/webhooks">Handle `merchant.connected`.</Card>
+</CardGroup>

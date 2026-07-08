@@ -3,6 +3,8 @@ title: "ElevenLabs Agents"
 description: "Add card-on-file payments to an ElevenLabs agent by call transfer: create a Checkout Session, transfer with SIP REFER, and reconcile on the webhook."
 ---
 
+import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
+
 Add card-on-file payments to an ElevenLabs agent by call transfer. This works like a hosted web
 checkout, over the phone: when the order is confirmed, your agent creates a **Checkout Session**
 and transfers the live call to a Ringup payment line, the caller pays there, and the call
@@ -156,6 +158,8 @@ ElevenLabs' `transfer_to_number` with `sip_refer` and `customSipHeaders` is docu
 ElevenLabs. Ringup's hosted transfer endpoint is rolling out; confirm access in your Ringup
 dashboard before relying on this in production. The recognition, charge, receipt, and webhook
 behavior is the same payment path Ringup runs everywhere.
+
+<ConnectBeforeGoLive />
 
 ## Next steps
 

@@ -3,6 +3,8 @@ title: "LiveKit Agents"
 description: "Add card-on-file payments to a LiveKit agent by call transfer: create a Checkout Session and transfer the SIP participant to the Ringup SIP URI."
 ---
 
+import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
+
 Add card-on-file payments to a LiveKit agent by call transfer. This works like a hosted web
 checkout, over the phone: when the order is confirmed, your agent creates a **Checkout Session**
 and transfers the live call to a Ringup payment line, the caller pays there, and the call
@@ -131,6 +133,8 @@ LiveKit's `transfer_sip_participant` accepts REFER headers, so the header path i
 Ringup's hosted transfer endpoint is rolling out; confirm access in your Ringup dashboard before
 relying on this in production. The recognition, charge, receipt, and webhook behavior is the
 same payment path Ringup runs everywhere.
+
+<ConnectBeforeGoLive />
 
 ## Next steps
 
