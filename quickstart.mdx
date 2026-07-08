@@ -49,6 +49,13 @@ sign up for and nothing to connect between you and a first working response. See
     `optional`, or `none`, and the charge settles on the merchant's own processor. See
     [How it works](/concepts/how-it-works).
   </Step>
+  <Step title="Bring your own API key">
+    The calls above run against the shared sandbox with no key, so you can try them as-is. For your
+    own merchants and callers you authenticate with your Ringup API key: create one in your Ringup
+    dashboard and send it as `Authorization: Bearer <YOUR_RINGUP_KEY>` (a `rk_test_` key for the
+    sandbox, `rk_live_` for production). The same key flows into the integration below: the
+    call-transfer setup puts it in the checkout call's header, and the Vapi CLI carries it for you.
+  </Step>
   <Step title="Add it to your agent">
     Both moves live inside your voice agent. Pick the integration for your platform:
 
