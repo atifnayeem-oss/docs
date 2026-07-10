@@ -49,12 +49,13 @@ both end in the same place.
     Vapi API key. Ringup uses it to list your agents and provision the payment
     objects, and never stores it. One connection covers every merchant you run.
   </Step>
-  <Step title="Assign an agent to each merchant">
-    Open a merchant, click **Add payment**, and pick the agent that answers that merchant's
-    number. Ringup registers everything on the agent: the `identify` tool (called at the
-    greeting, so a returning caller is greeted by name) and the `transfer_to_payment` tool.
-    Paste the one prompt line the dashboard shows into the agent's prompt, and that
-    merchant's setup is done. Your next merchant is another pick from the same list.
+  <Step title="Pick the agents that take payments">
+    From your agent list, select the agent or agents that answer merchant calls. Ringup
+    registers everything on each one: the `identify` tool (called at the
+    greeting, so a returning caller is greeted by name) and the `transfer_to_payment` tool. Paste the one prompt line the dashboard
+    shows into each agent's prompt, and setup is done. There is no per-merchant step: on
+    every call, Ringup resolves the merchant from the number the caller dialed, and each
+    merchant goes live for payments the moment it completes its processor connection.
   </Step>
   <Step title="Rehearse before you flip live">
     The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an

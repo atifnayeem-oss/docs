@@ -38,9 +38,11 @@ your own Vapi account.
     Vapi API key (private key). Ringup uses it to list your agents and provision the payment
     objects, and never stores it. One connection covers every merchant you run.
   </Step>
-  <Step title="Assign an agent to each merchant">
-    Open a merchant, click **Add payment**, and pick the agent that answers that merchant's
-    number, or the squad plus which member confirms the order. Ringup assembles the squad around it: the payment step, the wrap-up
+  <Step title="Pick the agents that take payments">
+    From your agent list, select the agent that answers merchant calls, or the squad plus
+    which member confirms the order. There is no per-merchant step: on every call, Ringup
+    resolves the merchant from the number the caller dialed, and each merchant goes live for
+    payments the moment it completes its processor connection. Ringup assembles the squad around it: the payment step, the wrap-up
     step, the five `ringup_*` tools (create_checkout, identify, charge, payment_status,
     send_link), and the handoff tool. `identify` runs at the greeting, so a returning caller
     is recognized and greeted by name with no re-asking (see
