@@ -1,26 +1,30 @@
 ---
 title: "Call transfer"
-description: "Take payment on a Vapi call by creating a Checkout Session and transferring the call to it. Set up the tool, transfer, and reconcile on the webhook."
+description: "Take payment on a Vapi call with one tool: your agent confirms the order, Ringup transfers the call to its payment line, charges the saved card, and webhooks you the result."
 ---
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Vapi supports two ways to add Ringup payments. This page is **call transfer**: your agent
-creates a Checkout Session and transfers the live call to a Ringup payment line, like a hosted
-web checkout (see [Call transfer](/concepts/checkout-session)). Reach for it when you are
-standardizing on a single integration across several platforms. The other way,
-[native handoff](/integrations/vapi/native), keeps the caller in your agent's own voice and is
-the more seamless option on Vapi.
+Vapi supports two ways to add Ringup payments. This page is **call transfer**: at payment time
+the live call moves to a Ringup payment line, like a hosted web checkout over the phone (see
+[Checkout Session](/concepts/checkout-session)). Reach for it when you are standardizing on a
+single integration across several platforms. The other way, [native handoff](/integrations/vapi/native),
+keeps the caller in your agent's own voice and is the more seamless option on Vapi.
 
-This page is end to end: setup, the call, the return, and what happens after payment.
+On Vapi the whole integration is **one tool**. Your agent registers `transfer_to_payment`,
+points it at Ringup, and calls it with the order total. Ringup creates the Checkout Session and
+moves the call itself, through Vapi's live call control. You never assemble a destination,
+touch SIP, or handle the transfer.
+
+This page is end to end: setup, the call, the transfer, and what happens after payment.
 
 ## How the pieces map to Vapi
 
 | Ringup piece | On Vapi |
 |---|---|
-| `create_checkout` | An apiRequest tool on your agent that creates a Checkout Session and returns where to transfer |
-| The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
-| The transfer | Vapi's `transferCall` with a SIP `destination` and `sipHeaders` |
+| `identify` | An apiRequest tool your agent calls at the greeting |
+| Checkout Session + transfer | One async `transfer_to_payment` function tool pointed at Ringup |
+| The transfer itself | Ringup executes it through the call's live control channel |
 | The result | A `checkout.completed` webhook to your server |
 
 ## Prerequisites
@@ -30,109 +34,110 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and [API key](/authentication). Test mode works out of the box on
   a shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
 
-## Step 1: Add the Ringup checkout tool to your agent
+## Step 1: Recognize the caller at the start
 
-This is the one-time setup. Create an apiRequest tool in Vapi that calls Ringup's
-`create_checkout` endpoint with your Ringup API key, and attach it to your agent. Add it in the
-Vapi dashboard (Tools, then Create Tool, then apiRequest) or via the API:
+Register `identify` as an apiRequest tool and call it at the greeting, not at payment. It takes
+no inputs; the caller's number comes from the call. For a returning caller it returns their name
+and saved card, so your agent greets them by name and skips re-asking for anything recognition
+already provides. See [Recognize at the start of the call](/concepts/identity).
 
-```jsonc
-{
-  "type": "apiRequest",
-  "name": "create_checkout",
-  "method": "POST",
-  "url": "https://api.ringup.dev/v1/checkouts",
-  "headers": { "type": "object", "properties": {
-    "Authorization": { "type": "string", "value": "Bearer <YOUR_RINGUP_KEY>" }
-  }},
-  "body": { "type": "object", "properties": {
-    "amount_cents": { "type": "number" },
-    "order_id":     { "type": "string" }
-  }}
-}
-```
+## Step 2: Add the transfer tool
 
-Attach the tool to your agent (add its id to the assistant's `toolIds`), and add one line to
-its prompt:
-
-> When the caller has confirmed their order, call `create_checkout` with the order total.
-
-That is the whole setup. Your agent is otherwise unchanged.
-
-## Step 2: Recognize the caller at the start
-
-Register `identify` the same way you added the checkout tool in the previous step (it takes no
-inputs; the caller's number comes from the call), then call it at the greeting, not just at
-payment. It needs only the caller's phone number, which is available the instant the call
-connects. For a returning caller it returns their name and saved card, so your agent greets them
-by name and skips re-asking for anything recognition already provides (for example, never ask
-"what name for the order?" when `identify` returned it). This is separate from and happens
-earlier than creating the Checkout Session and transferring for payment. See
-[Recognize at the start of the call](/concepts/identity).
-
-## Step 3: Create a Checkout Session
-
-When the order is confirmed, your agent calls `create_checkout`. If `payment_required` comes
-back `none`, carry on. If `required` or `optional`, it returns a `transfer_to` SIP URI.
-
-```jsonc
-// like creating a hosted checkout session: amount, line items, order, and how the call ends
-create_checkout({
-  "amount_cents": 1900,
-  "line_items": [{ "name": "Large pepperoni", "quantity": 1, "amount_cents": 1900 }], // optional
-  "order_id": "sq_abc",                          // optional: settle against an existing order
-  "return_to": "sip:agent@your-vapi-number",     // optional: transfer the caller back after payment
-  "success_message": "You are all set, your order will be ready shortly."  // optional (if no return_to)
-})
-
-// response (the Checkout Session)
-{
-  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
-  "payment_required": "required",                    // "required" | "optional" | "none"
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
-}
-```
-
-`order_id` and `line_items` mirror a checkout. `return_to` transfers the caller back to your
-agent after payment (the twin of `transfer_to`), or pass `success_message` / `failure_message`
-to have Ringup read the result and end. The `id` and `transfer_to` are what Step 4 uses.
-
-## Step 4: Transfer, silently and with context
+This is the one-time payment setup. Create one **async function tool** whose server URL points
+at Ringup, and attach it to your agent (Vapi dashboard: Tools, then Create Tool, then Function;
+or via the API):
 
 ```jsonc
 {
-  "type": "transferCall",
-  "destination": {
-    "type": "sip",
-    "sipUri": "{{transfer_to}}",
-    "sipHeaders": { "X-Session-Id": "{{id}}", "X-Caller": "{{customer.number}}" },
-    "transferPlan": { "mode": "blind-transfer-add-summary-to-sip-header", "sipVerb": "refer" }
+  "type": "function",
+  "async": true,
+  "server": {
+    "url": "https://api.ringup.dev/v1/integrations/vapi/transfer",
+    "secret": "<YOUR_RINGUP_KEY>"          // sent to Ringup as x-vapi-secret
   },
-  "messages": [{ "type": "request-start", "content": "One moment, connecting you to secure payment." }]
+  "function": {
+    "name": "transfer_to_payment",
+    "description": "Transfer the caller to the secure payment line to charge their saved card for the confirmed order. Pass the order total in cents.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "amount_cents": { "type": "number", "description": "Order total in cents" }
+      },
+      "required": ["amount_cents"]
+    }
+  },
+  "messages": [
+    { "type": "request-start", "content": "One moment, putting your payment through now.", "blocking": true }
+  ]
 }
 ```
 
-Two Vapi specifics make this smooth for the caller:
+Then add one line to your agent's prompt:
 
-- **No destination `message`**, so the caller hears no robotic announcement. The
-  `request-start` line covers the brief connect gap so there is never dead air.
-- **`blind-transfer-add-summary-to-sip-header`** hands the payment line a short summary of the
-  call in a SIP header, so it opens already knowing the order rather than re-asking.
+> When the caller has confirmed their order, use transfer_to_payment with the order total in
+> cents, then say nothing more.
+
+That is the whole setup. The `request-start` line is the bridge the caller hears while the call
+moves, so there is never dead air; keep it to one short sentence.
 
 <Note>
-The payment line's voice and model are configurable in your Ringup dashboard, so you can match
-it to your agent. The caller is recognized from the number your agent already has, so
-recognition does not depend on the caller ID surviving the transfer.
+In test mode, point `server.url` at the shared sandbox instead:
+`https://ringup.dev/api/transfer-destination` (keyless). The tool works as written on your
+first call. See [Testing](/concepts/testing) for the demo caller and test card.
 </Note>
 
-## Step 5: After payment
+## Step 3: What happens when the tool fires
 
-Ringup charges and texts the caller a receipt. Then the call ends one of three ways: `return_to`
-transfers the caller back to your agent with the outcome in the SIP headers so your agent closes
-in its own voice; `success_message` / `failure_message` has Ringup read your line and end; or
-neither, and Ringup reads a short default and ends. Either way, your server reconciles from a
-`checkout.completed` webhook, which carries the Payment (`payment_id`, your `order_id`, the
-confirmation). See [Webhooks](/concepts/webhooks) for the event catalog and statuses.
+When your agent calls `transfer_to_payment`, Vapi sends the tool call to Ringup, and Ringup does
+the rest in one motion:
+
+<Steps>
+  <Step title="Ringup creates the Checkout Session">
+    The amount comes from the tool arguments; the caller and the merchant come from the call
+    itself (the caller's number and your agent's dialed number), never from model-typed values.
+  </Step>
+  <Step title="Ringup moves the call">
+    Ringup posts a transfer to the call's live control channel, and Vapi transfers the caller
+    to the Ringup payment line. Your agent's part of the call is over; the caller hears only
+    the bridge line.
+  </Step>
+  <Step title="The payment line takes it from there">
+    It recognizes the caller, confirms the total, charges the saved card on the merchant's own
+    payment processor, reads the confirmation code, and ends the call. A first-time caller with
+    no saved card is texted a secure pay link instead.
+  </Step>
+</Steps>
+
+<Accordion title="Why the session rides in the SIP URI (and what this protects you from)">
+The Checkout Session travels inside the transfer address itself, as a signed token in the SIP
+URI. On Vapi's transfer leg, custom SIP headers do not arrive at the destination and the
+caller ID is not usable for identification, so the URI is the one carrier that survives.
+Because the token also holds the caller's number captured at session creation, recognition on
+the payment line never depends on caller ID surviving the transfer. You never see or handle
+any of this; it is why the integration stays one tool.
+</Accordion>
+
+## Step 4: After payment
+
+Ringup charges, texts the caller a receipt, and ends the call with the confirmation code read
+aloud. Your server reconciles from a `checkout.completed` webhook, which carries the Payment
+(`payment_id`, your `order_id`, the confirmation). Match on the `order_id` you passed, store
+the `payment_id`, and mark your order paid. See [Webhooks](/concepts/webhooks) for the event
+catalog, signature verification, and idempotency.
+
+## Validation status
+
+<Check>
+This recipe is validated end to end on a live call: order taken, call transferred silently,
+saved card charged in the sandbox, confirmation read back, webhook-ready result. The
+recognition, charge, receipt, and webhook behavior is the same payment path Ringup runs
+everywhere.
+</Check>
+
+Two Vapi specifics the validation surfaced, handled for you: a transfer destination cannot be
+templated into a static transfer tool (Vapi rejects it), and custom SIP headers do not survive
+the transfer leg. Both are why the integration is a server-driven tool rather than
+configuration you assemble.
 
 <ConnectBeforeGoLive />
 
