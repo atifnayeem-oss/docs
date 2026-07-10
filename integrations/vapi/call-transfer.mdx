@@ -16,8 +16,6 @@ points it at Ringup, and calls it with the order total. Ringup creates the Check
 moves the call itself, through Vapi's live call control. You never assemble a destination,
 touch SIP, or handle the transfer.
 
-This page is end to end: setup, the call, the transfer, and what happens after payment.
-
 ## How the pieces map to Vapi
 
 | Ringup piece | On Vapi |
@@ -50,12 +48,16 @@ both end in the same place.
     objects, and never stores it. One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    From your agent list, select the agent or agents that answer merchant calls. Ringup
-    registers everything on each one: the `identify` tool (called at the
-    greeting, so a returning caller is greeted by name) and the `transfer_to_payment` tool. Paste the one prompt line the dashboard
-    shows into each agent's prompt, and setup is done. There is no per-merchant step: on
-    every call, Ringup resolves the merchant from the number the caller dialed, and each
-    merchant goes live for payments the moment it completes its processor connection.
+    Select the agent or agents that answer merchant calls. Ringup registers the `identify`
+    tool (called at the greeting, so a returning caller is greeted by name) and the
+    `transfer_to_payment` tool on each one; paste the one prompt line the dashboard shows.
+    There is no per-merchant step: the merchant resolves from the dialed number on every
+    call, and each merchant activates when it connects its processor.
+  </Step>
+  <Step title="Add your webhook endpoint">
+    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
+    Ringup sends a signed `checkout.completed` there for every payment, so your server can
+    mark orders paid. See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Rehearse before you flip live">
     The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
@@ -113,14 +115,12 @@ Then add one line to your agent's prompt:
 > When the caller has confirmed their order, use transfer_to_payment with the order total in
 > cents, then say nothing more.
 
-That is the whole setup. The `request-start` line is the bridge the caller hears while the call
-moves, so there is never dead air; keep it to one short sentence.
+The `request-start` line is the bridge the caller hears while the call moves, so there is never
+dead air; keep it to one short sentence.
 
-<Note>
-In test mode, point `server.url` at the shared sandbox instead:
-`https://ringup.dev/api/transfer-destination` (keyless). The tool works as written on your
-first call. See [Testing](/concepts/testing) for the demo caller and test card.
-</Note>
+Last, register your webhook endpoint in the Ringup dashboard, under **Settings, then
+Webhooks**, and copy the signing secret. Your server verifies the signature and handles the
+`checkout.completed` event. See [Webhooks](/concepts/webhooks).
 
 </Tab>
 </Tabs>
@@ -180,6 +180,16 @@ Everything after the code is yours, three ways, in order of precedence:
 `failure_message` (URL parameter) is spoken if the charge fails, before the payment line
 offers a texted pay link as the backup.
 
+## Test it
+
+Run one full payment in test mode before go-live. In the dashboard flow, the rehearsal number
+is already wired; by hand, point the tool's `server.url` at the keyless sandbox,
+`https://ringup.dev/api/transfer-destination`. Call your agent and order: the recognized test
+caller (`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a
+link and enters the sandbox card `4111 1111 1111 1111`. Expect the payment line to read a
+confirmation code and a test-mode `checkout.completed` at your endpoint. Fixtures in
+[Testing](/concepts/testing); Vapi specifics in [Vapi testing](/integrations/vapi/testing).
+
 ## After payment
 
 Ringup charges, texts the caller a receipt, and ends the call with the confirmation code read
@@ -191,10 +201,8 @@ catalog, signature verification, and idempotency.
 ## Validation status
 
 <Check>
-This recipe is validated end to end on a live call: order taken, call transferred silently,
-saved card charged in the sandbox, confirmation read back, webhook-ready result. The
-recognition, charge, receipt, and webhook behavior is the same payment path Ringup runs
-everywhere.
+This recipe is validated end to end on live calls: order taken, call transferred silently,
+saved card charged in the sandbox, confirmation read back.
 </Check>
 
 Two Vapi specifics the validation surfaced, handled for you: a transfer destination cannot be

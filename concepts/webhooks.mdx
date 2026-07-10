@@ -7,6 +7,12 @@ Ringup posts an event to your server when a Checkout Session is paid. This is ho
 learns, out of band, that an order was paid, without waiting on the call. It is the same across
 every platform, so you write one handler.
 
+## Register your endpoint
+
+Add your HTTPS endpoint in the Ringup dashboard, under **Settings, then Webhooks**, and copy the
+signing secret it shows at creation. Ringup then delivers every event below to it, signed. You can
+register more than one endpoint, and test mode delivers to its own.
+
 ## The envelope
 
 Every event has the same shape:
@@ -76,11 +82,6 @@ Three rules cover almost every webhook bug:
    the same event can arrive more than once. Treat a repeated `id` as a no-op.
 3. **Acknowledge fast.** Return `2xx` immediately and do your work asynchronously. Ringup
    retries with backoff and parks a persistently failing endpoint after several attempts.
-
-## Registering an endpoint
-
-Add your endpoint URL in the Ringup dashboard (or via the API). Ringup shows the signing secret
-once at creation. You can register more than one endpoint, and test mode delivers to its own.
 
 <Note>
 **Signature scheme.** `Ringup-Signature` is an HMAC-SHA256 over the timestamp and the raw request

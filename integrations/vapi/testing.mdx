@@ -3,29 +3,11 @@ title: "Testing"
 description: "Test a Vapi Ringup integration end to end: a private-line rehearsal and post-go-live verification, all against the shared sandbox."
 ---
 
-Vapi tests against Ringup's shared sandbox, the same one every integration uses. Read
-[Testing](/concepts/testing) first for what the sandbox is, the merchant and caller fixtures,
-and the test card. This page covers the Vapi specifics: the rehearsal line and how to verify
-the wiring.
-
-## The sandbox test card
-
-Every sandbox payment runs on one card. When a sandbox call texts a pay link, enter this card:
-
-| Field | Value |
-|---|---|
-| Card number | `4111 1111 1111 1111` |
-| Expiry | any future date (for example `12/34`) |
-| CVV | any 3 digits (for example `111`) |
-| ZIP / postal code | any (for example `94103`) |
-
-<Note>
-  To test a declined payment, use `4000 0000 0000 0002`. It always declines, so you can
-  exercise your failure path and the `checkout.failed` webhook.
-</Note>
-
-The recognized test caller `+14155550142` already has this card on file, so a call from that
-number charges the saved card without a link.
+Vapi tests against Ringup's shared sandbox, the same one every integration uses. The fixtures
+live in one place, [Testing](/concepts/testing): the sandbox card (`4111 1111 1111 1111`), the
+decline card, the test merchants, and the recognized test caller (`+14155550142`, saved Visa
+ending 5858). This page covers the Vapi specifics: the rehearsal line and how to verify the
+wiring.
 
 ## Rehearse on a private line
 
@@ -50,12 +32,10 @@ of truth.
 
 ## Reading test results
 
-**The charge response is ground truth, not the assistant's words.** Only a `succeeded`
-charge result with a payment id and confirmation code proves a payment happened. An agent
-can narrate success it did not have; the API result cannot.
-
-**Text-chat smoke tests cannot prove voice.** Vapi chat pipelines assemble handoffs
-differently from voice pipelines. Validate squads with a voice call.
+Only a `succeeded` charge result with a payment id and confirmation code proves a payment
+happened; an agent can narrate success it did not have. And validate squads with a **voice
+call**: Vapi chat pipelines assemble handoffs differently, so a text-chat smoke test proves
+nothing about voice.
 
 ## Next steps
 

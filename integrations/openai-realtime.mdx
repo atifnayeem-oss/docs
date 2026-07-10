@@ -5,18 +5,14 @@ description: "Add card-on-file payments to an OpenAI Realtime agent by call tran
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Add card-on-file payments to an OpenAI Realtime agent by call transfer. This works like a hosted
-web checkout, over the phone: when the order is confirmed, your bridge creates a **Checkout
-Session** and transfers the live call to a Ringup payment line, the caller pays there, and the
-call optionally returns to your agent. Ringup recognizes the caller, charges their saved card,
-settles it against the order, and texts a receipt. Your server reconciles from a webhook. If the
-model is new to you, read [Call transfer](/concepts/checkout-session) first.
+Add card-on-file payments to an OpenAI Realtime agent by call transfer: when the order is
+confirmed, your bridge creates a **Checkout Session** and transfers the live call to it, like
+redirecting to a hosted web checkout. Ringup recognizes the caller, charges their saved card,
+texts a receipt, and optionally returns the call to your agent; your server reconciles from a
+webhook. If the model is new to you, read [Call transfer](/concepts/checkout-session) first.
 
-With the Realtime API you bring the transport (WebRTC, a WebSocket, or the SIP connector) and the
-telephony under it, so your bridge owns the call leg. The transfer happens on that bridge, and
-setup is code there.
-
-This page is end to end: setup, the call, the return, and what happens after payment.
+With the Realtime API you bring the transport (WebRTC, a WebSocket, or the SIP connector) and
+the telephony under it, so your bridge owns the call leg and the transfer is code there.
 
 ## How the pieces map to OpenAI Realtime
 
@@ -38,21 +34,17 @@ This page is end to end: setup, the call, the return, and what happens after pay
 ## Set up
 
 <Note>
-The wiring on this page is code in your agent, so there is no dashboard variant of it. The
-Ringup dashboard still runs the account side end to end: connect each merchant, rehearse in
-test mode with the test card, and click **Go live** when the rehearsal call reads a
-confirmation code back.
+The wiring on this page is code in your agent, so there is no dashboard variant of it. Your
+Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashboard.
 </Note>
 
 <Steps>
 <Step title="Recognize the caller at the start">
 
-Call `identify` from your bridge at the greeting (a plain HTTP call, like the checkout call), not
-just at payment. It needs only the caller's phone number, which is available the instant the call
-connects. For a returning caller it returns their name and saved card, so your agent greets them
-by name and skips re-asking for anything recognition already provides (for example, never ask
-"what name for the order?" when `identify` returned it). This is separate from and happens earlier
-than creating the Checkout Session and transferring for payment. See
+Call `identify` from your bridge at the greeting, not at payment (a plain HTTP call, like the
+checkout call below). The caller's number is available the instant the call connects; for a
+returning caller `identify` returns their name and saved card, so your agent greets them by
+name and never re-asks for anything recognition already provides. See
 [Recognize at the start of the call](/concepts/identity).
 
 </Step>
@@ -104,53 +96,55 @@ SIP URI, carrying the Checkout Session `id`:
 ```
 
 If your call arrives over the SIP connector, a SIP REFER to the same URI works too. Because your
-bridge controls the telephony, the header path is reliable: the URI parameter reaches the Ringup
-line, which matches it to the Checkout Session.
+bridge controls the telephony, the URI parameter reliably reaches the Ringup line, which matches
+it to the Checkout Session.
+
+</Step>
+<Step title="Register your webhook endpoint">
+
+Webhook configuration lives in the Ringup dashboard: under **Settings, then Webhooks**, add
+your HTTPS endpoint and copy the signing secret. Your code verifies the signature and handles
+the `checkout.completed` event. See [Webhooks](/concepts/webhooks).
 
 </Step>
 </Steps>
 
+## Test it
 
-## The return, and the result (the webhook)
+Run one full payment in test mode before go-live. Point your `POST` at the keyless sandbox,
+`https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with your `rk_test_` key),
+call your agent, and order: the recognized test caller (`+14155550142`) pays on the saved Visa
+ending 5858; a first-time caller is texted a link and enters the sandbox card
+`4111 1111 1111 1111`. Expect the payment line to read a confirmation code and a test-mode
+`checkout.completed` at your endpoint. Fixtures in [Testing](/concepts/testing).
 
-Ringup answers the transferred call, recognizes the caller, charges the saved card, and texts a
-receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the call
-ends one of three ways, from what you passed on `create_checkout`:
+## The return, and the result
 
-- **`return_to` set**: Ringup transfers the caller back to your bridge with the outcome in SIP
-  headers (`X-Payment-Status`, `X-Confirmation`), so your agent resumes and closes the call.
-- **`success_message` / `failure_message` set (no `return_to`)**: Ringup reads your line and ends.
-- **Neither**: Ringup reads a short default and ends. The receipt is the proof.
+Ringup answers the transferred call, recognizes the caller, and charges the saved card on the
+merchant's own processor (a first-time caller is texted a secure pay link instead). The call
+then ends per your `create_checkout` fields: **`return_to`** transfers the caller back with the
+outcome in SIP headers (`X-Payment-Status`, `X-Confirmation`); **`success_message`** has Ringup
+read your line and end; **neither** gets a short default. A `return_to` that cannot connect
+falls back to speaking the message, so a failed return never strands the caller.
 
-A `return_to` that cannot connect falls back to reading your `success_message` (or the default),
-so a failed return never strands the caller. Either way, your server reconciles from a webhook:
-
-```jsonc
-{
-  "id": "evt_9f2",
-  "type": "checkout.completed",         // or "checkout.failed"
-  "data": {
-    "checkout_id": "cs_x9f2",
-    "payment_id": "pay_abc",
-    "amount_cents": 2500,
-    "order_id": "sq_abc",               // echoed back
-    "confirmation": "2PJJZY",
-    "caller": "+14155551234",
-    "card": { "brand": "VISA", "last_4": "5858" }
-  }
-}
-```
-
-Match on the `order_id` you passed, store the `payment_id`, and flip your order to paid. See
-[Webhooks](/concepts/webhooks) for the full catalog, statuses, signature verification, and
-idempotency.
+Either way the caller gets an SMS receipt and your server gets the signed `checkout.completed`
+event: match on your `order_id`, store the `payment_id`, and flip the order to paid. See
+[Webhooks](/concepts/webhooks) for the payload, signature verification, and idempotency.
 
 ## Validation status
 
-Because your bridge owns the telephony, the transfer is standard `<Dial><Sip>` (or SIP REFER) on
-your provider. Ringup's hosted transfer endpoint is rolling out; confirm access in your Ringup
-dashboard before relying on this in production. The recognition, charge, receipt, and webhook
-behavior is the same payment path Ringup runs everywhere.
+<Check>
+Validated live to the payment-line handoff: a call into an OpenAI Realtime SIP session was
+referred with `/refer`, and the Ringup Checkout Session token reached the payment line intact,
+which recognized the caller. The recognition, charge, receipt, and webhook that follow are the
+same payment path Ringup runs everywhere.
+</Check>
+
+One requirement the validation pinned down: the caller must arrive over a carrier leg that
+honors an inbound SIP REFER (an Elastic SIP Trunk does; a plain programmable-voice API leg does
+not). Point your OpenAI SIP origination at a trunk-grade number. Ringup's hosted transfer
+endpoint is rolling out; confirm access in your Ringup dashboard before relying on this in
+production.
 
 <ConnectBeforeGoLive />
 

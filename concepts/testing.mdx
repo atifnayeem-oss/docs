@@ -58,8 +58,9 @@ The general shape is the same on every platform:
   </Step>
 </Steps>
 
-On some platforms the Ringup dashboard wires this up for you, binding a rehearsal number to a
-test copy of your agent. See your platform's integration page.
+Every integration page has a **Test it** section with the platform's specifics (which field
+points at the sandbox, and what to expect on the call). On some platforms the Ringup dashboard
+wires this up for you, binding a rehearsal number to a test copy of your agent.
 
 ## Reading test results
 
@@ -88,3 +89,14 @@ differently from voice pipelines. Validate with a voice call.
     moves real money, and a live key rejects it. Use a real card only under a `rk_live_` key.
   </Accordion>
 </AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Pick your integration" icon="wrench" href="/concepts/how-it-works">
+    Each platform page ends its setup with a Test it section using these fixtures.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Watch the test-mode checkout.completed arrive at your endpoint.
+  </Card>
+</CardGroup>

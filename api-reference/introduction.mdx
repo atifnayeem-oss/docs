@@ -19,7 +19,7 @@ the [Changelog](/changelog) for what has shipped.
 ## Base URL
 
 ```text
-https://ringup.dev/api/tools
+https://api.ringup.dev/v1
 ```
 
 All five tools are `POST` endpoints with JSON bodies.
@@ -61,8 +61,25 @@ Charges are deduplicated server-side against the call id and amount. A platform 
 model retry, or a duplicated tool call returns the original payment result instead of
 charging twice. This is a server guarantee, not a client convention.
 
+## Webhooks
+
+Payment outcomes also arrive out of band as signed events (`checkout.completed` and the rest of
+the catalog). Add your endpoint in the dashboard under **Settings, then Webhooks**, and copy the
+signing secret. See [Webhooks](/concepts/webhooks).
+
 ## Test mode
 
-The shared sandbox answers these endpoints for every account with ready-made fixtures
-(merchants with different policies, a caller with a saved Visa). See
+The shared sandbox answers the same five tools, keyless, at `https://ringup.dev/api/tools`, with
+ready-made fixtures (merchants with different policies, a caller with a saved Visa). See
 [Testing](/concepts/testing).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Errors" icon="triangle-exclamation" href="/api-reference/errors">
+    Transport errors versus payment outcomes, and the full catalog.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    The event envelope, signatures, and idempotent handling.
+  </Card>
+</CardGroup>

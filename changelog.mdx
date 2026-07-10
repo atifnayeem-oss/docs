@@ -7,6 +7,20 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="July 2026" description="Transfer validation and setup guides">
+## Live-validated transfers, webhook setup, and Test it on every guide
+
+- Call transfer is **validated end to end on live calls** on Vapi, Retell, and ElevenLabs;
+  each guide's Validation status says exactly what ran.
+- The ElevenLabs guide now reflects the platform's transfer model: a SIP-trunk number and a
+  standing payment address pinned in the agent's transfer rule, with the order registered
+  mid-call by `create_checkout`.
+- **Webhook setup is a first-class setup step** on every integration guide, dashboard and API
+  paths alike: add your endpoint under Settings, then Webhooks, and copy the signing secret.
+- Every integration guide ends its setup with a **Test it** section: one full sandbox payment
+  before go-live, on shared fixtures. See [Testing](/concepts/testing).
+</Update>
+
 <Update label="July 2026" description="Interactive docs">
 ## Interactive API reference, errors, and language tabs
 

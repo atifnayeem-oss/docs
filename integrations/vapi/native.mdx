@@ -10,10 +10,9 @@ in your agent's own voice from greeting to receipt and is the recommended path o
 other is [call transfer](/integrations/vapi/call-transfer), for standardizing one integration
 across several platforms.
 
-Give your existing Vapi agent the ability to take payment mid-call. Returning callers are
-recognized by phone number and pay with their saved card in one sentence. You write no payment
-prompt and configure no models, transcribers, or languages: the payment step inherits
-everything from your agent.
+Returning callers are recognized by phone number and pay with their saved card in one sentence.
+You write no payment prompt: the payment step inherits your agent's voice, model, and
+transcriber.
 
 ## Prerequisites
 
@@ -39,24 +38,22 @@ your own Vapi account.
     objects, and never stores it. One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    From your agent list, select the agent that answers merchant calls, or the squad plus
-    which member confirms the order. There is no per-merchant step: on every call, Ringup
-    resolves the merchant from the number the caller dialed, and each merchant goes live for
-    payments the moment it completes its processor connection. Ringup assembles the squad around it: the payment step, the wrap-up
-    step, the five `ringup_*` tools (create_checkout, identify, charge, payment_status,
-    send_link), and the handoff tool. `identify` runs at the greeting, so a returning caller
-    is recognized and greeted by name with no re-asking (see
-    [Recognize at the start of the call](/concepts/identity)). Ringup then shows the one
-    prompt line to add: hand off once the order and name are confirmed. Your assistant is
-    unmodified and the new squad carries no traffic yet.
+    Select the agent that answers merchant calls (or the squad plus the member that confirms
+    the order). Ringup assembles the payment step, the wrap-up step, the `ringup_*` tools, and
+    the handoff tool around it, then shows the one prompt line to paste. There is no
+    per-merchant step: the merchant resolves from the dialed number on every call, and each
+    merchant activates when it connects its processor.
+  </Step>
+  <Step title="Add your webhook endpoint">
+    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
+    Ringup sends a signed `checkout.completed` there for every payment, so your server can
+    mark orders paid. See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Rehearse on a private line">
     The dashboard binds a test twin of your agent, with the two go-live changes baked in, to
-    a rehearsal number only you know about. Call it from a real phone: place an order,
-    confirm it, give a name, and pay with the test card. You hear exactly what your customers
-    are about to hear: the silent handoff, the recognition, the policy branch, the charge,
-    the wrap-up with a confirmation code. Call it as many times as you like. See
-    [Vapi testing](/integrations/vapi/testing).
+    a rehearsal number only you know about. Call it from a real phone, order, and pay with the
+    test card: you hear the silent handoff, the recognition, the charge, and the wrap-up with
+    a confirmation code. See [Vapi testing](/integrations/vapi/testing).
   </Step>
   <Step title="Go live">
     When the rehearsal call reads a confirmation code back, click **Go live**. Ringup points
@@ -76,13 +73,11 @@ registers, assemble the squad, rehearse, and flip your number when ready.
 
 <Steps>
   <Step title="Create the five ringup_* tools">
-    Register the payment toolset as static tools against Ringup's API: `create_checkout`
-    (returns the Checkout Session and its `payment_required`), `identify`, `charge`,
-    `payment_status`, and `send_link`. They resolve server-side per call: the caller's
-    number and the dialed number arrive on trusted headers set by the platform, so the model
-    never types a phone number or merchant id. Call `identify` at the greeting, not at
-    payment, so a returning caller is recognized and greeted by name with no re-asking. See
-    [Recognize at the start of the call](/concepts/identity).
+    Register `create_checkout`, `identify`, `charge`, `payment_status`, and `send_link` as
+    static tools against Ringup's API. Caller and merchant resolve server-side from trusted
+    headers, never from model-typed arguments. Call `identify` at the greeting, not at
+    payment, so a returning caller is greeted by name
+    ([Recognize at the start of the call](/concepts/identity)).
   </Step>
   <Step title="Create the payment step">
     An assistant that silently checks whether payment is needed for THIS purchase, then
@@ -107,14 +102,18 @@ registers, assemble the squad, rehearse, and flip your number when ready.
     inline tools reach chat only); the saved assistant is the only wiring that works on
     voice. You attach it at go-live, not yet.
   </Step>
+  <Step title="Add your webhook endpoint">
+    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and
+    copy the signing secret. Your server verifies the signature and handles the
+    `checkout.completed` event. See [Webhooks](/concepts/webhooks).
+  </Step>
   <Step title="Rehearse on a private line">
     Rehearse before anything you own changes. Make a byte-copy twin of your order-confirming
     assistant with the two go-live changes baked in (the handoff tool appended to its
     toolIds, the one prompt line appended). Build a rehearsal squad, twin then payment step
-    then wrap-up step, and point a spare test number at it. Call it from a real phone: the
-    call starts at the order-confirmation step, so jump straight in. You hear the silent
-    handoff, the recognition, the policy branch, the charge, and the wrap-up with a
-    confirmation code.
+    then wrap-up step, and point a spare test number at it. Call it from a real phone: you
+    hear the silent handoff, the recognition, the policy branch, the charge, and the wrap-up
+    with a confirmation code.
   </Step>
   <Step title="Go live">
     Record where each number points, then make two moves in this order:
@@ -164,12 +163,17 @@ your agent takes the order -> "One moment." (always the same silent handoff)
 ```
 
 Your agent never branches on payment logic, and a merchant changing their payment rule (or
-onboarding later) changes call behavior immediately with no agent edits.
+connecting later) changes call behavior immediately with no agent edits.
 
-There is no processor to connect and no merchant setup in this flow: each merchant connects
-their own payment processor to Ringup once, on their own schedule, and charges settle there
-at their rates. A merchant who has not connected yet simply gets their normal, payment-free
-call flow (that is the `none` state above).
+## Test it
+
+Run one full payment in test mode before go-live. Call the rehearsal number from a real phone,
+order, and confirm: the recognized test caller (`+14155550142`) pays on the saved Visa ending
+5858 in one sentence; from any other phone you are texted a pay link and enter the sandbox card
+`4111 1111 1111 1111`. Expect the wrap-up step to read a confirmation code back and a test-mode
+`checkout.completed` at your endpoint. Fixtures and the decline card are in
+[Testing](/concepts/testing); Vapi specifics (the rehearsal twin, verifying wiring through the
+Vapi API) are in [Vapi testing](/integrations/vapi/testing).
 
 ## FAQ
 
@@ -192,11 +196,6 @@ call flow (that is the `none` state above).
     Connect their payment processor to Ringup once. Until they do, their calls behave
     exactly as they do today; the moment they connect, payment starts happening on their
     calls with no agent changes.
-  </Accordion>
-  <Accordion title="Why does the squad canvas say no handoff tools are configured?">
-    Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names. The
-    wiring is real; the Vapi API is the source of truth, so read the squad and assistant
-    back to verify.
   </Accordion>
 </AccordionGroup>
 
