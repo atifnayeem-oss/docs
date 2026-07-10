@@ -55,13 +55,7 @@
                   "integrations/vapi/testing"
                 ]
               },
-              {
-                "group": "Retell",
-                "pages": [
-                  "integrations/retell",
-                  "integrations/retell/call-transfer"
-                ]
-              },
+              "integrations/retell",
               "integrations/elevenlabs",
               "integrations/deepgram",
               "integrations/twilio-conversationrelay",
@@ -151,6 +145,10 @@
     {
       "source": "/guides/connect-merchants",
       "destination": "/payment-providers/square"
+    },
+    {
+      "source": "/integrations/retell/call-transfer",
+      "destination": "/integrations/retell"
     }
   ]
 }

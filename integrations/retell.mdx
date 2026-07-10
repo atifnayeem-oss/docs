@@ -79,13 +79,28 @@ hand; both end in the same place.
       "name": "create_checkout",
       "description": "Create a Ringup Checkout Session for the order and return where to transfer the call.",
       "url": "https://api.ringup.dev/v1/checkouts",
-      "headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
+      "method": "POST",
+      "args_at_root": true,
+      "headers": {
+        "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+        "X-Caller-Number": "{{user_number}}"        // filled by Retell, never by the model
+      },
       "parameters": {
-        "amount_cents": { "type": "number", "description": "Order total in cents" },
-        "order_id":     { "type": "string", "description": "Your processor order id, if you have one" }
-      }
+        "amount_cents":    { "type": "number", "description": "Order total in cents" },
+        "success_message": { "type": "string", "description": "One short warm closing line for this order, written from the conversation" },
+        "order_id":        { "type": "string", "description": "Your processor order id, if you have one" }
+      },
+      "response_variables": { "ringup_transfer_uri": "transfer_to" },  // fills the transfer destination
+      "speak_during_execution": true,
+      "execution_message_type": "static_text",
+      "execution_message_description": "One moment, putting your payment through now."
     }
     ```
+
+    `response_variables` stores the `transfer_to` the session returns in a dynamic variable,
+    so the transfer destination is filled server-side, never typed by the model. The
+    `execution_message_description` line is the bridge the caller hears while the session is
+    created and the call moves, so there is never dead air; keep it to one short sentence.
 
     Then add one line to your agent's prompt so it knows when to call it:
 
@@ -116,24 +131,25 @@ hand; both end in the same place.
 
     The session travels inside the transfer address itself, as a signed token in the SIP
     URI; custom SIP headers do not survive Retell's transfer leg, so the URI is the one
-    carrier that matters. The [call transfer guide](/integrations/retell/call-transfer)
-    covers this wiring end to end, including the `response_variables` line that fills the
-    destination variable and the number types that can transfer.
+    carrier that matters. Because the token also holds the caller's number captured at
+    session creation, recognition on the payment line never depends on caller ID surviving
+    the transfer either.
   </Step>
 </Steps>
 
 That is the whole setup. Nothing else is provisioned in Retell, and your agent is otherwise
-unchanged. For the complete, validated walkthrough of the transfer path, follow the
-[call transfer guide](/integrations/retell/call-transfer).
+unchanged.
 
 </Tab>
 </Tabs>
 
 <Warning>
 Transfer to the SIP URI the Checkout Session returns, not to a PSTN number, and from a number
-Retell can transfer (a Retell number or an elastic SIP trunk import with call transfer
-enabled). The [call transfer guide](/integrations/retell/call-transfer) lists the number
-types and their gotchas.
+Retell can move a call from: numbers purchased through Retell and numbers imported over an
+elastic SIP trunk both work. For an imported number, enable call transfer (SIP REFER) on the
+trunk at your telephony provider, or the transfer is refused. A call that reaches the agent
+by dial-to-SIP-URI (a registered call) cannot use Retell's transfer at all; put agents that
+take payments on a real number.
 </Warning>
 
 ## What happens on the call
@@ -227,8 +243,8 @@ verification, and idempotency.
 The transfer path on this page is validated end to end on live calls: Checkout Session
 created mid-call, call cold-transferred over SIP REFER, the session token arrived intact in
 the transfer address, the caller was recognized, and the saved test card (ending 5858) was
-charged in the sandbox. The [call transfer guide](/integrations/retell/call-transfer) carries
-the full validated recipe.
+charged in the sandbox. The recognition, charge, receipt, and webhook behavior is the same
+payment path Ringup runs everywhere.
 </Check>
 
 The return-to-agent path (`return_to`) is documented, not yet validated on Retell; treat it
