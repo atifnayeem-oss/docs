@@ -45,16 +45,18 @@ hand; both end in the same place.
 <Tab title="Using the dashboard">
 
 <Steps>
-  <Step title="Connect your Retell agent">
-    In the Ringup dashboard, open your merchant, then **Add payment**. Paste your Retell API
-    key. Ringup uses the key once, to list your agents and register the objects below, and
-    never stores it.
+  <Step title="Connect Retell, once for your account">
+    In the Ringup dashboard, open **Integrations**, then **Connect Retell**. Paste your
+    Retell API key. Ringup uses it to list your agents and provision the payment
+    objects, and never stores it. One connection covers every merchant you run.
   </Step>
-  <Step title="Pick the agent">
-    Choose the agent that answers this merchant's number from the dropdown. Ringup registers
-    the `identify` function (called at the greeting, so a returning caller is recognized and
-    greeted by name), the `create_checkout` function, and the `transfer_to_payment` tool on
-    it, wired exactly as the API tab shows, and gives you the one prompt line to add.
+  <Step title="Assign an agent to each merchant">
+    Open a merchant, click **Add payment**, and pick the agent that answers that merchant's
+    number. Ringup registers everything on the agent: the `identify` function (called at the
+    greeting, so a returning caller is greeted by name), the `create_checkout` function, and
+    the `transfer_to_payment` tool. Paste the one prompt line the dashboard shows into the
+    agent's prompt, and that merchant's setup is done. Your next merchant is another pick
+    from the same list.
   </Step>
   <Step title="Rehearse before you flip live">
     The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an

@@ -34,33 +34,12 @@ This page is end to end: setup, the call, the return, and what happens after pay
 
 ## Set up
 
-<Tabs>
-<Tab title="Using the dashboard">
-
-On LiveKit the wiring is code in your agent, so the dashboard path covers the account side:
-connecting the merchant, rehearsing in test mode, and going live. The calls themselves are
-written in your agent either way; they are the ones in the **Using the API** tab.
-
-<Steps>
-  <Step title="Add the payment">
-    In the Ringup dashboard, open your merchant, then **Add payment**, and pick LiveKit.
-  </Step>
-  <Step title="Wire your agent">
-    Add the identify call, the Checkout Session, and the transfer from the **Using the API**
-    tab. The wiring lives in your agent code, so it is identical on both paths.
-  </Step>
-  <Step title="Rehearse before you flip live">
-    With the merchant in test mode, call your agent, place an order, and pay with the test
-    card. The whole flow runs against the sandbox; no real card, no real charge. See
-    [Testing](/concepts/testing).
-  </Step>
-  <Step title="Go live">
-    When the rehearsal call reads a confirmation code back, click **Go live**.
-  </Step>
-</Steps>
-
-</Tab>
-<Tab title="Using the API">
+<Note>
+The wiring on this page is code in your agent, so there is no dashboard variant of it. The
+Ringup dashboard still runs the account side end to end: connect each merchant, rehearse in
+test mode with the test card, and click **Go live** when the rehearsal call reads a
+confirmation code back.
+</Note>
 
 <Steps>
 <Step title="Recognize the caller at the start">
@@ -129,8 +108,6 @@ a backstop, so correlation holds even if a middlebox strips the header.
 </Step>
 </Steps>
 
-</Tab>
-</Tabs>
 
 ## The return, and the result (the webhook)
 

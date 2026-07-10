@@ -33,14 +33,14 @@ your own Vapi account.
 <Tab title="Using the dashboard">
 
 <Steps>
-  <Step title="Connect your Vapi agent">
-    In the Ringup dashboard, open your merchant, then **Add payment**. Paste your Vapi API
-    key (private key). Ringup uses the key once, to list your agents and register the tools,
-    and never stores it.
+  <Step title="Connect Vapi, once for your account">
+    In the Ringup dashboard, open **Integrations**, then **Connect Vapi**. Paste your
+    Vapi API key (private key). Ringup uses it to list your agents and provision the payment
+    objects, and never stores it. One connection covers every merchant you run.
   </Step>
-  <Step title="Pick the agent">
-    Choose the agent that answers this merchant's number, or the squad plus which member
-    confirms the order. Ringup assembles the squad around it: the payment step, the wrap-up
+  <Step title="Assign an agent to each merchant">
+    Open a merchant, click **Add payment**, and pick the agent that answers that merchant's
+    number, or the squad plus which member confirms the order. Ringup assembles the squad around it: the payment step, the wrap-up
     step, the five `ringup_*` tools (create_checkout, identify, charge, payment_status,
     send_link), and the handoff tool. `identify` runs at the greeting, so a returning caller
     is recognized and greeted by name with no re-asking (see
