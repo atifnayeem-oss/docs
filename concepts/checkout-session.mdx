@@ -3,10 +3,15 @@ title: "Checkout Session"
 description: "The central object: created when an order is ready to pay, it carries Ringup's payment policy and, in transfer mode, where to send the call."
 ---
 
-The **Checkout Session** is the object at the center of a Ringup payment. You create one the
-moment an order is ready to pay, and it carries everything the payment step needs: the amount,
-Ringup's [policy decision](/concepts/payment-policy) for this order, and, when payment runs by
-transfer, the destination to send the live call.
+The **Checkout Session** is the object at the center of the **hosted** payment mode, where Ringup
+takes the payment on its own line. You create one the moment an order is ready to pay, and it
+carries everything the payment step needs: the amount, Ringup's
+[policy decision](/concepts/payment-policy) for this order, and, when payment runs by transfer, the
+destination to send the live call.
+
+If instead you keep the caller in your own agent (the [in-agent API path](/concepts/charge)), you do
+not create a Checkout Session: you call [`identify`](/concepts/identity) at the greeting and
+[`charge`](/concepts/charge) the saved card directly, and nothing transfers.
 
 <CodeGroup>
 ```bash curl

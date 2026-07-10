@@ -5,8 +5,8 @@ description: "See recognition and a Checkout Session work in test mode in a minu
 
 Ringup adds identity and payments to a voice agent: a returning caller is recognized by phone
 number and pays with a saved card, settling on the merchant's own processor, with no card number
-ever spoken. This quickstart shows the two moves everything is built on, in test mode, then points
-you to the integration for your platform.
+ever spoken. This quickstart shows the two moves everything is built on, recognize a caller and
+charge their saved card, in test mode, then points you to the integration for your platform.
 
 Test mode runs on a shared sandbox with ready-made merchants and callers, so there is nothing to
 sign up for and nothing to connect between you and a first working response. See
@@ -49,48 +49,55 @@ sign up for and nothing to connect between you and a first working response. See
     name and can offer their saved card, with no card number spoken. See
     [Caller Identity](/concepts/identity).
   </Step>
-  <Step title="Create a Checkout Session">
-    When the order is ready to pay, create a Checkout Session. Ringup resolves whether payment is
-    required from the merchant's own rule and returns it to you:
+  <Step title="Charge the saved card">
+    A recognized caller with a saved card pays in one call: `charge` runs their card off-session and
+    settles on the merchant's own processor. No card number is ever spoken, and nothing transfers.
 
     <CodeGroup>
     ```bash curl
-    curl -X POST https://ringup.dev/api/tools/create_checkout \
+    curl -X POST https://ringup.dev/api/tools/charge \
       -H "Content-Type: application/json" \
+      -H "X-Caller-Number: +14155550142" \
       -H "X-Ringup-Merchant: tonys-pizza" \
       -d '{ "amount_cents": 2500 }'
     ```
 
     ```javascript Node
-    const res = await fetch("https://ringup.dev/api/tools/create_checkout", {
+    const res = await fetch("https://ringup.dev/api/tools/charge", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Caller-Number": "+14155550142",
         "X-Ringup-Merchant": "tonys-pizza",
       },
       body: JSON.stringify({ amount_cents: 2500 }),
     });
-    const checkout = await res.json();
+    const payment = await res.json();
     ```
 
     ```python Python
     import requests
 
-    checkout = requests.post(
-        "https://ringup.dev/api/tools/create_checkout",
-        headers={"X-Ringup-Merchant": "tonys-pizza"},
+    payment = requests.post(
+        "https://ringup.dev/api/tools/charge",
+        headers={
+            "X-Caller-Number": "+14155550142",
+            "X-Ringup-Merchant": "tonys-pizza",
+        },
         json={"amount_cents": 2500},
     ).json()
     ```
     </CodeGroup>
 
     ```json Response
-    { "id": "cs_d00993cf0f3e", "payment_required": "optional" }
+    { "status": "succeeded", "confirmation": "2PJJZY", "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 2500 } }
     ```
 
-    The Checkout Session is the object every payment turns on: `payment_required` is `required`,
-    `optional`, or `none`, and the charge settles on the merchant's own processor. See
-    [How it works](/concepts/how-it-works).
+    That is the whole in-agent payment path: `identify` at the start, `charge` when the order is
+    confirmed. Only `succeeded` moved money; read the `confirmation` back only then. Ringup applies
+    the merchant's [payment policy](/concepts/payment-policy) server-side, so your agent never
+    hard-codes when to charge. For a first-time caller with no saved card, [`send_link`](/concepts/send-link)
+    texts a pay link instead. See [Charge](/concepts/charge).
   </Step>
   <Step title="Bring your own API key">
     The calls above run against the open demo sandbox with no key, so you can try them as-is. For
@@ -100,19 +107,22 @@ sign up for and nothing to connect between you and a first working response. See
     integration.
   </Step>
   <Step title="Add it to your agent">
-    Both moves live inside your voice agent. Pick the integration for your platform:
+    Both moves live inside your voice agent, and you integrate one of two ways. Every platform guide
+    documents both as tabs:
 
-    - **Vapi**: a [native handoff](/integrations/vapi/native), wired from the Ringup dashboard,
-      keeps the caller in your agent's own voice throughout.
-    - **Every other platform** (Retell, ElevenLabs, Deepgram, LiveKit, OpenAI Realtime, Pipecat,
-      Twilio ConversationRelay): a [call transfer](/concepts/checkout-session), one integration you
-      reuse everywhere. Pick your platform in the Integrations section.
+    - **In your agent (API).** Keep the caller in your own agent and add the tools you just called
+      (`identify`, then `charge` or [`send_link`](/concepts/send-link)). Nothing transfers, and no
+      card data touches your agent. The flexible path.
+    - **Hosted, from the dashboard.** Ringup takes the payment on a transfer or handoff, so you write
+      no payment logic. Connect your platform once, pick the agents that take payments, rehearse on a
+      test number, then go live. The easiest path.
+
+    Pick your platform in the Integrations section: Vapi, Retell, ElevenLabs, Deepgram, LiveKit,
+    OpenAI Realtime, Pipecat, and Twilio ConversationRelay.
   </Step>
 </Steps>
 
 <Note>
-Every integration wires the same way from the Ringup dashboard: connect your platform once, pick
-the agents that take payments, rehearse on a test number with the sandbox card, then go live.
-There is no per-merchant setup; merchants resolve from the dialed number on every call. Each
-integration page also documents the same setup by hand, through the API.
+There is no per-merchant setup in either mode; merchants resolve from the dialed number on every
+call, and each merchant activates for payments the moment it connects its own processor.
 </Note>

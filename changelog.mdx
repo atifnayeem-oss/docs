@@ -7,6 +7,21 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="July 2026" description="Two integration modes">
+## Hosted and in-agent API, on every platform
+
+- Every integration is now documented two ways as tabs: **hosted** (Ringup takes the payment on a
+  transfer or handoff, set up from the dashboard, you write no payment logic) and **in your agent**
+  (you keep the caller in your own agent and add Ringup's tools). See
+  [How it works](/concepts/how-it-works).
+- The in-agent API path is tools-first and platform-native: `identify` at the greeting, then
+  [`charge`](/concepts/charge) a recognized caller's saved card, or
+  [`send_link`](/concepts/send-link) a first-time caller. Nothing transfers, and no card data
+  touches your agent.
+- [`charge`](/concepts/charge) is now the recommended path on OpenAI Realtime, whose hosted
+  transfer depends on carrier-leg SIP REFER support.
+</Update>
+
 <Update label="July 2026" description="Transfer validation and setup guides">
 ## Live-validated transfers, webhook setup, and Test it on every guide
 

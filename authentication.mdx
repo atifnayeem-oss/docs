@@ -56,10 +56,10 @@ res = requests.post(
 
 In an agent integration you set the key once and it rides every call:
 
-- **Vapi (native handoff):** Ringup writes your key into the payment tools it provisions at
-  setup, so it rides every call without you handling it.
-- **Call transfer (every other platform):** the key lives in the `Authorization` header of the
-  `create_checkout` tool or HTTP call your agent makes, next to the other tool config.
+- **Hosted, from the dashboard:** when Ringup provisions the payment tools for you, it writes your
+  key into them at setup, so it rides every call without you handling it.
+- **In your agent (API):** the key lives in the `Authorization` header of the Ringup tools or HTTP
+  calls your agent makes, next to the other tool config.
 
 Either way the key sits on your server or in the platform's tool configuration, never in a value
 the model generates.

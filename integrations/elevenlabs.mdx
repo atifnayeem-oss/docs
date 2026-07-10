@@ -1,34 +1,41 @@
 ---
 title: "ElevenLabs Agents"
-description: "Add card-on-file payments to an ElevenLabs agent by call transfer: register the order with a Checkout Session, transfer with SIP REFER, and reconcile on the webhook."
+description: "Add card-on-file payments to an ElevenLabs agent two ways: hosted (Ringup takes payment on a transfer, set up in the dashboard) or in your own agent via webhook tools."
 ---
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Add card-on-file payments to an ElevenLabs agent by call transfer: when the order is confirmed,
-your agent registers a **Checkout Session** and transfers the live call to a standing Ringup
-payment address, like redirecting to a hosted web checkout. ElevenLabs pins the transfer
-destination in agent config at call start (it ignores model-typed destinations and mid-call
-edits), so the address is set once at setup and `create_checkout` registers each order mid-call;
-Ringup matches the transferred call to that order by the caller's number. If the model is new to
-you, read [Call transfer](/concepts/checkout-session) first.
+Add card-on-file payments to an ElevenLabs agent two ways. **Hosted** transfers the call to Ringup
+at payment time, so Ringup runs the whole payment and you write no payment logic. **In your agent**
+keeps the caller in your agent the whole call: you add three webhook tools that recognize the caller
+and charge their saved card, and nothing transfers. A recognized caller never reads a card aloud, so
+no card data touches your agent either way.
 
 ## Prerequisites
 
-- An ElevenLabs agent on a **SIP-trunk number** (see the warning below).
+- An ElevenLabs agent you already run, with a phone number.
 - Your ElevenLabs API key, and a Ringup [API key](/authentication).
 
 ## Set up
 
+<Tabs>
+<Tab title="Using the dashboard (hosted)">
+
+Ringup takes payment on a transfer. Best when you want the payment moment handled for you.
+
 <Warning>
-**Preview.** The transfer transport is live: an agent on a SIP-trunk number can refer the call via
-SIP REFER to the payment line. The piece that makes this work for real per-order amounts, matching
-the transferred call to the order you registered by the caller's number, is still in build.
-Confirm availability in your Ringup dashboard before relying on this in production.
+The hosted transfer needs the agent's number attached over a **SIP trunk**. ElevenLabs allows a
+SIP-URI transfer destination only with `sip_refer`, and rejects that combination on a native-Twilio
+number, so an agent on a native-Twilio number cannot reach the payment line by transfer. If your
+number cannot transfer, use the **In your agent** tab, which never transfers.
 </Warning>
 
-<Tabs>
-<Tab title="Using the dashboard">
+<Warning>
+**Preview.** The transfer transport is live: an agent on a SIP-trunk number can refer the call to
+the payment line. The piece that matches the transferred call to the order you registered by the
+caller's number is still in build. Confirm availability in your Ringup dashboard before relying on
+the hosted path in production. The **In your agent** tab is not affected and works today.
+</Warning>
 
 <Steps>
   <Step title="Connect ElevenLabs, once for your account">
@@ -37,10 +44,10 @@ Confirm availability in your Ringup dashboard before relying on this in producti
     never stores it. One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    Select the agents that answer merchant calls. Ringup registers the `identify` and
-    `create_checkout` tools on each and pins your payment address in the agent's transfer rule;
-    paste the one prompt line the dashboard shows. No per-merchant step: the merchant resolves from
-    the dialed number, and activates when it connects its processor.
+    Select the agents that answer merchant calls. Ringup registers `identify` (called at the
+    greeting) and `create_checkout` on each and pins your payment address in the agent's transfer
+    rule; paste the one prompt line the dashboard shows. No per-merchant step: the merchant resolves
+    from the dialed number, and activates when it connects its processor.
   </Step>
   <Step title="Add your webhook endpoint">
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret. Ringup
@@ -54,85 +61,112 @@ Confirm availability in your Ringup dashboard before relying on this in producti
 </Steps>
 
 </Tab>
-<Tab title="Using the API">
+<Tab title="In your agent (API)">
+
+Keep the caller in your agent and add three ElevenLabs **webhook tools** pointed at Ringup, authed
+with your Ringup key. The caller's number rides `{{system__caller_id}}`, so the model never types
+identity, and nothing transfers.
 
 <Steps>
   <Step title="Recognize the caller at the greeting">
-    Register `identify` as a webhook tool (it takes no arguments; the caller's number comes from
-    the call) and call it at the greeting, not at payment. For a returning caller it returns their
-    name and saved card, so your agent greets them by name. See
-    [Recognize at the start of the call](/concepts/identity).
-  </Step>
-  <Step title="Add the Ringup checkout tool">
-    On your agent, add a **webhook tool** that calls Ringup's `create_checkout` with your Ringup
-    API key (Agent, then Tools, then Add tool, then Webhook), and add one prompt line: *when the
-    caller has confirmed their order, call `create_checkout` with the order total, then transfer to
-    payment unless it returns `payment_required: "none"`.*
+    Add a webhook tool `identify` and call it at the greeting, not at payment. It takes no arguments;
+    for a returning caller it returns their name and saved card, so your agent greets them by name
+    and knows a saved card is on file. See [Recognize at the start of the call](/concepts/identity).
 
     ```jsonc
     {
       "type": "webhook",
-      "name": "create_checkout",
-      "description": "Register the confirmed order for payment and learn whether payment is required.",
-      "url": "https://api.ringup.dev/v1/checkouts",
-      "method": "POST",
-      "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
-      "body_parameters": {
-        "amount_cents": { "type": "number", "description": "Order total in cents" },
-        "order_id":     { "type": "string", "description": "Your processor order id, if you have one" }
+      "name": "identify",
+      "description": "Recognize the caller at the greeting. Returns their name and whether a saved card is on file.",
+      "api_schema": {
+        "url": "https://api.ringup.dev/v1/identify",
+        "method": "POST",
+        "request_headers": {
+          "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+          "X-Caller-Number": "{{system__caller_id}}"
+        }
       }
     }
     ```
   </Step>
-  <Step title="Pin the transfer rule">
-    Add the `transfer_to_number` system tool with your standing Ringup payment address (from your
-    dashboard) as a SIP-URI destination and `transfer_type: sip_refer`:
+  <Step title="Charge the saved card at payment">
+    Add a webhook tool `charge`. When the order is confirmed and `identify` returned a saved card,
+    your agent calls it with the order total; Ringup charges the saved card off-session on the
+    merchant's own processor and returns the confirmation to read back. It respects the merchant's
+    payment policy server-side, so on an unconnected merchant it is a silent no-op.
 
     ```jsonc
-    // conversation_config.agent.prompt.built_in_tools.transfer_to_number
     {
-      "type": "system",
-      "name": "transfer_to_number",
-      "description": "",
-      "params": {
-        "system_tool_type": "transfer_to_number",
-        "transfers": [{
-          "transfer_destination": { "type": "sip_uri", "sip_uri": "<YOUR_RINGUP_PAYMENT_ADDRESS>" },
-          "transfer_type": "sip_refer",
-          "condition": "When the caller has confirmed the order and create_checkout says payment is required or offered."
-        }]
+      "type": "webhook",
+      "name": "charge",
+      "description": "Charge the recognized caller's saved card for the confirmed order. Returns the confirmation code to read back.",
+      "api_schema": {
+        "url": "https://api.ringup.dev/v1/charge",
+        "method": "POST",
+        "request_headers": {
+          "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+          "X-Caller-Number": "{{system__caller_id}}"
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "amount_cents": { "type": "number", "description": "Order total in cents" },
+            "order_id":     { "type": "string", "description": "Your order id, if you have one" }
+          },
+          "required": ["amount_cents"]
+        }
+      }
+    }
+    ```
+  </Step>
+  <Step title="Text a link for a first-time caller">
+    Add a webhook tool `send_link` for a caller with no saved card (or a declined charge). Ringup
+    texts a secure pay link and, when they pay, pushes the confirmation back into the live call (or
+    sends it by SMS if the call has ended).
+
+    ```jsonc
+    {
+      "type": "webhook",
+      "name": "send_link",
+      "description": "Text the caller a secure pay link for the order. Use when there is no saved card on file.",
+      "api_schema": {
+        "url": "https://api.ringup.dev/v1/send_link",
+        "method": "POST",
+        "request_headers": {
+          "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+          "X-Caller-Number": "{{system__caller_id}}"
+        },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "amount_cents": { "type": "number", "description": "Order total in cents" }
+          },
+          "required": ["amount_cents"]
+        }
       }
     }
     ```
 
-    The destination is resolved from this rule when the call starts, which is why it is standing
-    config, not a per-order value.
+    Then add one line to your prompt: *when the caller has confirmed the order, if identify returned
+    a saved card call `charge` with the order total and read back the confirmation code; otherwise
+    call `send_link` and tell them to check their text to pay.*
   </Step>
   <Step title="Add your webhook endpoint">
-    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy
-    the signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+    signing secret. Your server verifies the signature and handles `checkout.completed`. See
     [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Test it, then go live">
-    Point the `create_checkout` tool's `url` at the keyless sandbox,
-    `https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with your `rk_test_` key).
-    Call your agent and order: the test caller (`+14155550142`) pays on the saved Visa ending 5858;
-    a first-time caller is texted a link and enters `4111 1111 1111 1111`. Expect a confirmation
-    code read back and a test-mode `checkout.completed`. Swap the URL back to the live endpoint to
-    go live.
+    Point the tools' `url` at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the prod
+    URLs with your `rk_test_` key). Call your agent and order: the test caller (`+14155550142`) is
+    recognized and pays on the saved Visa ending 5858; a first-time caller is texted a link and
+    enters `4111 1111 1111 1111`. Expect the confirmation read back and a test-mode
+    `checkout.completed`. Swap to the live URLs to go live.
   </Step>
 </Steps>
 
 </Tab>
 </Tabs>
-
-<Warning>
-The agent's number must be attached over a **SIP trunk**. ElevenLabs allows a SIP-URI transfer
-destination only with `sip_refer`, and rejects that combination on a native-Twilio number at
-configuration time, so an agent on a native-Twilio number cannot reach the payment line by any
-mode. Custom SIP headers also do not survive the transfer, which is why correlation runs on the
-registered session and the caller's number, never on headers.
-</Warning>
 
 <ConnectBeforeGoLive />
 

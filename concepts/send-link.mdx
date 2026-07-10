@@ -5,7 +5,10 @@ description: "For a first-time caller with no saved card, send_link texts a secu
 
 When a caller has no saved card, or a recognized caller wants to use a different one, there is
 nothing to charge yet. `send_link` texts them a secure pay link so they can pay on their own
-phone, without ever reading a card number aloud on the call.
+phone, without ever reading a card number aloud on the call. It is the first-time path in both
+integration modes: whether Ringup runs the hosted payment or your own agent calls the tools,
+a first-time caller is enrolled the same way, and is [recognized](/concepts/identity) on every
+call after.
 
 <CodeGroup>
 ```bash curl

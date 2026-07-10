@@ -13,9 +13,9 @@ When you create a Checkout Session, `payment_required` comes back as one of:
 
 | Value | Meaning | What happens |
 |---|---|---|
-| `required` | Payment must complete before the call ends | The session returns a `transfer_to`; take payment |
-| `optional` | Offer once, never block; unpaid is a valid outcome | The session returns a `transfer_to`; offer, but do not require |
-| `none` | No payment for this business or purchase | No `transfer_to`; carry on and end the call normally |
+| `required` | Payment must complete before the call ends | Take payment: charge the saved card, or in hosted mode transfer to the payment line |
+| `optional` | Offer once, never block; unpaid is a valid outcome | Offer payment, but do not require it |
+| `none` | No payment for this business or purchase | Carry on and end the call normally |
 
 ## It is per purchase, not per merchant
 
@@ -31,9 +31,10 @@ guarantee, not an error path. It means the same agent configuration is safe to r
 every merchant on your platform, connected or not, from day one.
 
 <Note>
-Ringup's payment step (or your agent, depending on the integration) reads `payment_required` and
-branches on it, so your agent never hard-codes payment logic. In a call transfer you read it off
-the Checkout Session directly.
+Whoever runs the payment reads `payment_required` and branches on it, so your agent never hard-codes
+payment logic. In hosted mode Ringup's payment step reads it off the Checkout Session; in the
+in-agent API path your agent reads it and decides whether to [`charge`](/concepts/charge). Either
+way the merchant's rule, not your code, decides.
 </Note>
 
 ## Next steps

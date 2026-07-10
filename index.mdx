@@ -27,16 +27,28 @@ call after that.
 
 ## Where to start
 
-Two paths, depending on whether you want to hear it first or start building.
+Start by seeing it work, then pick how you integrate: let Ringup run the payment for you, or add
+Ringup's tools to your own agent.
 
 <CardGroup cols={2}>
   <Card title="See it work" icon="play" href="/quickstart">
-    **About a minute.** Recognize a caller and create a Checkout Session on the live
-    sandbox, with no signup, then hear a fully wired demo call.
+    **About a minute.** Recognize a caller and charge a saved card on the live sandbox, with no
+    signup, then hear a fully wired demo call.
   </Card>
   <Card title="Add it to your agent" icon="wrench" href="/concepts/how-it-works">
-    **About thirty minutes.** The architecture, the two ways to integrate, and the guide
-    for your platform. The same payment path everywhere.
+    **About thirty minutes.** The two ways to integrate, and the guide for your platform. The same
+    payment path everywhere.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="Hosted, from the dashboard" icon="wand-magic-sparkles" href="/concepts/how-it-works">
+    Ringup takes the payment on a transfer or handoff. Set up in the dashboard, write no payment
+    logic. The easiest path.
+  </Card>
+  <Card title="In your agent, with the API" icon="code" href="/concepts/charge">
+    Keep the caller in your own agent and add Ringup's tools: recognize the caller, charge the saved
+    card, no transfer. The flexible path.
   </Card>
 </CardGroup>
 

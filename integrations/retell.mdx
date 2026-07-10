@@ -1,24 +1,27 @@
 ---
 title: "Retell AI"
-description: "Add card-on-file payments to a Retell agent by call transfer: create a Checkout Session, transfer, and reconcile on the webhook."
+description: "Add card-on-file payments to a Retell agent two ways: hosted (Ringup takes payment on a transfer, set up in the dashboard) or in your own agent via the API."
 ---
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Add card-on-file payments to a Retell agent by call transfer: when the order is confirmed, your
-agent creates a **Checkout Session** and transfers the live call to it, like redirecting to a
-hosted web checkout. If the model is new to you, read
-[Call transfer](/concepts/checkout-session) first.
+Add card-on-file payments to a Retell agent two ways. **Hosted** hands the call to Ringup at
+payment time, so Ringup runs the whole payment and you write no payment logic. **In your agent**
+keeps the caller in your agent the whole call: you call Ringup's tools to recognize the caller
+and charge their saved card, and nothing transfers. A recognized caller never reads a card
+aloud, so no card data touches your agent either way.
 
 ## Prerequisites
 
-- A Retell agent you already run, with a phone number (see the warning below).
+- A Retell agent you already run, with a phone number.
 - Your Retell API key, and a Ringup [API key](/authentication).
 
 ## Set up
 
 <Tabs>
-<Tab title="Using the dashboard">
+<Tab title="Using the dashboard (hosted)">
+
+Ringup takes payment on a transfer. Best when you want the payment moment handled for you.
 
 <Steps>
   <Step title="Connect Retell, once for your account">
@@ -43,87 +46,102 @@ hosted web checkout. If the model is new to you, read
   </Step>
 </Steps>
 
+<Warning>
+The hosted transfer needs a number Retell can move a call from: numbers bought through Retell and
+numbers imported over an elastic SIP trunk both work (for a trunk number, enable call transfer /
+SIP REFER at your provider). If your number cannot transfer, use the **In your agent** tab, which
+never transfers.
+</Warning>
+
 </Tab>
-<Tab title="Using the API">
+<Tab title="In your agent (API)">
+
+Keep the caller in your agent and add three Retell custom functions pointed at Ringup, authed
+with your Ringup key. The caller's number rides the `X-Caller-Number` header Retell fills, so the
+model never types identity.
 
 <Steps>
   <Step title="Recognize the caller at the greeting">
-    Register `identify` as a custom function (it takes no arguments; the caller's number comes
-    from the call) and call it at the greeting, not at payment. For a returning caller it returns
-    their name and saved card, so your agent greets them by name. See
-    [Recognize at the start of the call](/concepts/identity).
-  </Step>
-  <Step title="Add the Ringup checkout function">
-    Register a custom function on your agent that creates a Ringup Checkout Session, authenticated
-    with your Ringup API key, and add one prompt line: *when the caller has confirmed their order,
-    call `create_checkout` with the order total.*
+    Register `identify` and call it at the greeting, not at payment. It takes no arguments; for a
+    returning caller it returns their name and saved card, so your agent greets them by name and
+    knows a saved card is on file. See [Recognize at the start of the call](/concepts/identity).
 
     ```jsonc
     {
       "type": "custom",
-      "name": "create_checkout",
-      "description": "Create a Ringup Checkout Session for the order and return where to transfer the call.",
-      "url": "https://api.ringup.dev/v1/checkouts",
+      "name": "identify",
+      "description": "Recognize the caller at the greeting. Returns their name and whether a saved card is on file.",
+      "url": "https://api.ringup.dev/v1/identify",
       "method": "POST",
       "args_at_root": true,
-      "headers": {
-        "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-        "X-Caller-Number": "{{user_number}}"        // filled by Retell, never by the model
-      },
-      "parameters": {
-        "amount_cents":    { "type": "number", "description": "Order total in cents" },
-        "success_message": { "type": "string", "description": "Optional warm closing line Ringup reads before ending the call" },
-        "order_id":        { "type": "string", "description": "Your processor order id, if you have one" }
-      },
-      "response_variables": { "ringup_transfer_uri": "transfer_to" },  // fills the transfer destination server-side
-      "speak_during_execution": true,
-      "execution_message_type": "static_text",
-      "execution_message_description": "One moment, putting your payment through now."
+      "headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>", "X-Caller-Number": "{{user_number}}" },
+      "parameters": {}
     }
     ```
   </Step>
-  <Step title="Wire the transfer">
-    Add a `transfer_call` tool whose destination is filled from the `ringup_transfer_uri` dynamic
-    variable, never a value the model types, and cold-transfer over SIP REFER:
+  <Step title="Charge the saved card at payment">
+    Register `charge`. When the order is confirmed and `identify` returned a saved card, your agent
+    calls it with the order total; Ringup charges the saved card off-session on the merchant's own
+    processor and returns the confirmation to read back. It respects the merchant's payment policy
+    server-side, so on an unconnected merchant it is a silent no-op.
 
     ```jsonc
     {
-      "type": "transfer_call",
-      "name": "transfer_to_payment",
-      "transfer_destination": { "type": "predefined", "number": "{{ringup_transfer_uri}}" },
-      "transfer_option": { "type": "cold_transfer", "cold_transfer_mode": "sip_refer" }
+      "type": "custom",
+      "name": "charge",
+      "description": "Charge the recognized caller's saved card for the confirmed order. Returns the confirmation code to read back.",
+      "url": "https://api.ringup.dev/v1/charge",
+      "method": "POST",
+      "args_at_root": true,
+      "headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>", "X-Caller-Number": "{{user_number}}" },
+      "parameters": {
+        "amount_cents": { "type": "number", "description": "Order total in cents" },
+        "order_id":     { "type": "string", "description": "Your order id, if you have one" }
+      },
+      "speak_during_execution": true,
+      "execution_message_type": "static_text",
+      "execution_message_description": "One moment while I put that through."
+    }
+    ```
+  </Step>
+  <Step title="Text a link for a first-time caller">
+    Register `send_link` for a caller with no saved card (or a declined charge). Ringup texts a
+    secure pay link and, when they pay, pushes the confirmation back into the live call (or sends
+    it by SMS if the call has ended).
+
+    ```jsonc
+    {
+      "type": "custom",
+      "name": "send_link",
+      "description": "Text the caller a secure pay link for the order. Use when there is no saved card on file.",
+      "url": "https://api.ringup.dev/v1/send_link",
+      "method": "POST",
+      "args_at_root": true,
+      "headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>", "X-Caller-Number": "{{user_number}}" },
+      "parameters": { "amount_cents": { "type": "number", "description": "Order total in cents" } }
     }
     ```
 
-    The session travels inside the transfer address itself, as a signed token in the SIP URI;
-    custom SIP headers do not survive Retell's transfer leg.
+    Then add one line to your prompt: *when the caller has confirmed the order, if identify
+    returned a saved card call `charge` with the order total and read back the confirmation code;
+    otherwise call `send_link` and tell them to check their text to pay.*
   </Step>
   <Step title="Add your webhook endpoint">
-    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy
-    the signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+    signing secret. Your server verifies the signature and handles `checkout.completed`. See
     [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Test it, then go live">
-    Point the `create_checkout` function's `url` at the keyless sandbox,
-    `https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with your `rk_test_` key).
-    Call your agent and order: the test caller (`+14155550142`) pays on the saved Visa ending 5858;
-    a first-time caller is texted a link and enters `4111 1111 1111 1111`. Expect a confirmation
-    code read back and a test-mode `checkout.completed`. Swap the URL back to the live endpoint to
-    go live.
+    Point the functions' `url` at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the
+    prod URLs with your `rk_test_` key). Call your agent and order: the test caller
+    (`+14155550142`) is recognized and pays on the saved Visa ending 5858; a first-time caller is
+    texted a link and enters `4111 1111 1111 1111`. Expect the confirmation read back and a
+    test-mode `checkout.completed`. Swap to the live URLs to go live.
   </Step>
 </Steps>
 
 </Tab>
 </Tabs>
-
-<Warning>
-Transfer to the SIP URI the Checkout Session returns, not to a PSTN number, and from a number
-Retell can move a call from: numbers purchased through Retell and numbers imported over an elastic
-SIP trunk both work. For an imported number, enable call transfer (SIP REFER) on the trunk at your
-telephony provider, or the transfer is refused. A call that reaches the agent by dial-to-SIP-URI (a
-registered call) cannot use Retell's transfer at all; put agents that take payments on a real
-number.
-</Warning>
 
 <ConnectBeforeGoLive />
 

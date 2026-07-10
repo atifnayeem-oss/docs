@@ -85,11 +85,20 @@ Ringup.
 
 ## Two ways to integrate
 
-- **Native handoff.** Payment happens inside your agent, in its own voice, with no transfer.
-  The most seamless option where the platform supports it. See your platform's integration guide.
-- **Call transfer.** Your agent transfers the call to a Ringup payment line, like redirecting to
-  a hosted checkout, and optionally gets the caller back afterward. Works on any platform. See
-  [Call transfer](/concepts/checkout-session).
+You add Ringup one of two ways, the same split a web merchant chooses between a hosted checkout and
+an API-driven one. Both use the same tools, the same identity, and the same off-session charge.
+
+- **Hosted.** Ringup takes the payment on its own line. Your agent hands the call off at the payment
+  moment and Ringup runs the whole payment conversation: confirm the amount, charge, handle a
+  decline, text a first-time link, read the confirmation. You write no payment logic and set it up
+  from the dashboard. The handoff is either a transfer to a Ringup payment line (works on any
+  platform, see [Checkout Session](/concepts/checkout-session)) or, where the platform supports it,
+  an in-call handoff in your agent's own voice with no transfer.
+- **In your agent (API).** Your agent stays on the call the whole time and calls Ringup's tools to
+  add payment: [`identify`](/concepts/identity) at the greeting, then [`charge`](/concepts/charge)
+  for a recognized caller with a saved card, or [`send_link`](/concepts/send-link) for a first-time
+  caller. Nothing transfers, and because a recognized caller never enters a card, no card data ever
+  touches your agent. The lighter, more flexible path.
 
 Same payment underneath, same principles. Only the front door changes.
 

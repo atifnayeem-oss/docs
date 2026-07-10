@@ -1,14 +1,15 @@
 ---
 title: "LiveKit Agents"
-description: "Add card-on-file payments to a LiveKit agent by call transfer: create a Checkout Session and transfer the SIP participant to the Ringup SIP URI."
+description: "Add card-on-file payments to a LiveKit agent two ways: hosted (transfer the SIP participant to a Ringup payment line) or in your own agent (call Ringup's tools from your code, no transfer)."
 ---
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Add card-on-file payments to a LiveKit agent by call transfer: when the order is confirmed, your
-agent creates a **Checkout Session** and transfers the SIP participant to it, like redirecting to
-a hosted web checkout. With LiveKit you own the agent in code, so the whole integration is a
-function call. If the model is new to you, read [Call transfer](/concepts/checkout-session) first.
+Add card-on-file payments to a LiveKit agent two ways. **Hosted** transfers the SIP participant to a
+Ringup payment line at payment time, so Ringup runs the whole payment. **In your agent** keeps the
+caller in your agent and calls Ringup's tools from your own code (recognize the caller, charge the
+saved card), with no transfer at all. A recognized caller never reads a card aloud, so no card data
+touches your agent either way.
 
 ## Prerequisites
 
@@ -17,9 +18,15 @@ function call. If the model is new to you, read [Call transfer](/concepts/checko
 
 ## Set up
 
+<Tabs>
+<Tab title="Using the dashboard (hosted)">
+
+Your agent creates a Checkout Session and transfers the SIP participant to it, like redirecting to a
+hosted web checkout. Ringup takes payment on its own line and returns the caller if you ask it to.
+
 <Note>
-The wiring on this page is code in your agent, so there is no dashboard variant of it. Your Ringup
-account side (API keys, the webhook endpoint, go-live) lives in the dashboard.
+The transfer is code in your agent, so there is no dashboard variant of the wiring itself. Your
+Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashboard.
 </Note>
 
 <Steps>
@@ -93,6 +100,120 @@ enters `4111 1111 1111 1111`. Expect the payment line to read a confirmation cod
 
 </Step>
 </Steps>
+
+</Tab>
+<Tab title="In your agent (API)">
+
+Keep the caller in your agent and call Ringup's tools straight from your agent code with plain HTTP.
+Recognize the caller at the greeting, then charge their saved card when the order is confirmed. No
+transfer, no payment line.
+
+<Steps>
+<Step title="Recognize the caller at the greeting">
+
+Call `identify` at the greeting, not at payment. Pass the caller's number, which LiveKit gives you
+the instant the SIP participant joins; for a returning caller it returns their name and saved card,
+so your agent greets them by name and knows a saved card is on file. See
+[Recognize at the start of the call](/concepts/identity).
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.ringup.dev/v1/identify \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "X-Caller-Number: +14155550142"
+```
+
+```javascript Node
+const caller = await fetch("https://api.ringup.dev/v1/identify", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+    "X-Caller-Number": callerNumber,
+  },
+}).then((r) => r.json());
+```
+</CodeGroup>
+
+</Step>
+<Step title="Charge the saved card at payment">
+
+When the order is confirmed and `identify` returned a saved card, `POST` to `charge` with the order
+total. Ringup charges the saved card off-session on the merchant's own processor and returns the
+confirmation to read back. It respects the merchant's payment policy server-side, so on an
+unconnected merchant it is a silent no-op.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.ringup.dev/v1/charge \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "X-Caller-Number: +14155550142" \
+  -H "Content-Type: application/json" \
+  -d '{ "amount_cents": 2500, "order_id": "sq_abc" }'
+```
+
+```javascript Node
+const payment = await fetch("https://api.ringup.dev/v1/charge", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+    "X-Caller-Number": callerNumber,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ amount_cents: 2500, order_id: "sq_abc" }),
+}).then((r) => r.json());
+// read payment.confirmation back only when payment.status === "succeeded"
+```
+</CodeGroup>
+
+</Step>
+<Step title="Text a link for a first-time caller">
+
+If `identify` returned no saved card (or the charge declined), `POST` to `send_link`. Ringup texts a
+secure pay link and, when they pay, delivers the confirmation. See [Send Link](/concepts/send-link).
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.ringup.dev/v1/send_link \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "X-Caller-Number: +14155550142" \
+  -H "Content-Type: application/json" \
+  -d '{ "amount_cents": 2500 }'
+```
+
+```javascript Node
+await fetch("https://api.ringup.dev/v1/send_link", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+    "X-Caller-Number": callerNumber,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ amount_cents: 2500 }),
+});
+```
+</CodeGroup>
+
+</Step>
+<Step title="Register your webhook endpoint">
+
+In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+signing secret. Your code verifies the signature and handles `checkout.completed`. See
+[Webhooks](/concepts/webhooks).
+
+</Step>
+<Step title="Test it, then go live">
+
+Point your calls at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the prod URLs with
+your `rk_test_` key). Call your agent and order: the test caller (`+14155550142`) is recognized and
+pays on the saved Visa ending 5858; a first-time caller is texted a link and enters
+`4111 1111 1111 1111`. Expect the confirmation read back and a test-mode `checkout.completed`. Swap
+to the live URLs to go live.
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
 
 <ConnectBeforeGoLive />
 

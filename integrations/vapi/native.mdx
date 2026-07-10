@@ -1,14 +1,16 @@
 ---
 title: "Native handoff"
-description: "Add payments to a Vapi agent the seamless way: the payment step runs inside your squad, in your agent's own voice. Provision, rehearse, go live, roll back."
+description: "Add payments to a Vapi agent two ways: hosted (the payment step runs inside your squad, in your agent's own voice) or in your own agent via tools. Provision, rehearse, go live, roll back."
 ---
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-**Native handoff** keeps the caller in your agent's own voice from greeting to receipt: the
-payment step runs inside your squad, so you write no payment prompt. The other option,
-[call transfer](/integrations/vapi/call-transfer), standardizes one integration across several
-platforms.
+Add card-on-file payments to a Vapi agent two ways. **Hosted** runs the payment step inside your
+squad in your agent's own voice, so you write no payment prompt; set it up from the dashboard. **In
+your agent** keeps the caller in your agent the whole call: you add three tools that recognize the
+caller and charge their saved card, and nothing hands off. A recognized caller never reads a card
+aloud, so no card data touches your agent either way. To standardize one integration across several
+platforms instead, use [call transfer](/integrations/vapi/call-transfer).
 
 ## Prerequisites
 
@@ -18,7 +20,10 @@ platforms.
 ## Set up
 
 <Tabs>
-<Tab title="Using the dashboard">
+<Tab title="Using the dashboard (hosted)">
+
+Ringup runs the payment step inside your squad, in your agent's own voice. Best when you want the
+payment moment handled for you.
 
 <Steps>
   <Step title="Connect Vapi, once for your account">
@@ -46,60 +51,6 @@ platforms.
   </Step>
 </Steps>
 
-</Tab>
-<Tab title="Using the API">
-
-Own every object in your own Vapi account: create the same pieces the dashboard registers,
-assemble the squad, rehearse, and flip your number when ready.
-
-<Steps>
-  <Step title="Create the five ringup_* tools">
-    Register `create_checkout`, `identify`, `charge`, `payment_status`, and `send_link` as
-    static tools against Ringup's API. Caller and merchant resolve server-side from trusted
-    headers, never from model-typed arguments. Call `identify` at the greeting, not at payment,
-    so a returning caller is greeted by name
-    ([Recognize at the start of the call](/concepts/identity)).
-  </Step>
-  <Step title="Create the payment step">
-    An assistant that silently checks whether payment is needed for this purchase, then takes it,
-    offers it, or says nothing. It inherits your agent's voice, model, and transcriber, and
-    carries the five tools from the previous step.
-  </Step>
-  <Step title="Create the wrap-up step">
-    Your own agent in wrap-up mode: its prompt verbatim with only the task replaced. It announces
-    success, reads back the confirmation number, thanks the caller, and ends the call.
-  </Step>
-  <Step title="Assemble the squad">
-    Create a new squad whose `members` array references your agent live (a reference, not a copy),
-    then the payment step, then the wrap-up step. The payment step exits to wrap-up on its own,
-    and the wrap-up ends the call; never hand back to your greeter. Your original agent and squad
-    keep running untouched, and the new squad carries no traffic until a number points at it.
-  </Step>
-  <Step title="Create the handoff tool">
-    A saved handoff tool (`handoff_to_Payment`) on the member that confirms the order. Attach it
-    at go-live, not yet.
-  </Step>
-  <Step title="Add your webhook endpoint">
-    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy
-    the signing secret. Your server verifies the signature and handles `checkout.completed`. See
-    [Webhooks](/concepts/webhooks).
-  </Step>
-  <Step title="Test it, then go live">
-    Point the tools at the keyless sandbox, `https://ringup.dev/api/tools`, build a rehearsal
-    squad (twin, payment step, wrap-up step), and point a spare number at it. Call and order: the
-    test caller (`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted
-    a link and enters `4111 1111 1111 1111`. Expect a confirmation code read back and a test-mode
-    `checkout.completed`. To go live, point your phone number at the squad first, then make
-    exactly two changes to your assistant: append the handoff tool to its `model.toolIds`, and
-    append one prompt line (hand off once the order and name are confirmed). Keep your existing
-    toolIds; a PATCH replaces the whole `model` object. **Roll back** by reversing exactly those
-    two moves and pointing each number back where it was.
-  </Step>
-</Steps>
-
-</Tab>
-</Tabs>
-
 <Warning>
 Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names; the squad canvas
 may show "No handoff tools configured" for working wiring. Read the squad and assistant back from
@@ -107,6 +58,115 @@ the Vapi API to verify: it is the source of truth. Also, member `assistantOverri
 deliver tools on voice calls (toolIds are ignored, inline tools reach chat only), so the saved
 assistant is the only wiring that works on voice.
 </Warning>
+
+</Tab>
+<Tab title="In your agent (API)">
+
+Keep the caller in your agent and add three Vapi `apiRequest` tools pointed at Ringup, authed with
+your Ringup key. On Vapi the caller's number resolves server-side from the tool call, so you pass no
+identity header and the model never types identity.
+
+<Steps>
+  <Step title="Recognize the caller at the greeting">
+    Register `identify` as an apiRequest tool and call it at the greeting, not at payment. It takes
+    no inputs; for a returning caller it returns their name and saved card, so your agent greets them
+    by name and knows a saved card is on file. See
+    [Recognize at the start of the call](/concepts/identity).
+
+    ```jsonc
+    {
+      "type": "apiRequest",
+      "name": "identify",
+      "function": {
+        "name": "identify",
+        "description": "Recognize the caller at the greeting. Returns their name and whether a saved card is on file."
+      },
+      "url": "https://api.ringup.dev/v1/identify",
+      "method": "POST",
+      "headers": { "type": "object", "properties": {
+        "Authorization": { "type": "string", "value": "Bearer <YOUR_RINGUP_KEY>" }
+      } }
+    }
+    ```
+  </Step>
+  <Step title="Charge the saved card at payment">
+    Register `charge`. When the order is confirmed and `identify` returned a saved card, your agent
+    calls it with the order total; Ringup charges the saved card off-session on the merchant's own
+    processor and returns the confirmation to read back. It respects the merchant's payment policy
+    server-side, so on an unconnected merchant it is a silent no-op.
+
+    ```jsonc
+    {
+      "type": "apiRequest",
+      "name": "charge",
+      "function": {
+        "name": "charge",
+        "description": "Charge the recognized caller's saved card for the confirmed order. Returns the confirmation code to read back.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "amount_cents": { "type": "number", "description": "Order total in cents" },
+            "order_id":     { "type": "string", "description": "Your order id, if you have one" }
+          },
+          "required": ["amount_cents"]
+        }
+      },
+      "url": "https://api.ringup.dev/v1/charge",
+      "method": "POST",
+      "headers": { "type": "object", "properties": {
+        "Authorization": { "type": "string", "value": "Bearer <YOUR_RINGUP_KEY>" }
+      } }
+    }
+    ```
+  </Step>
+  <Step title="Text a link for a first-time caller">
+    Register `send_link` for a caller with no saved card (or a declined charge). Ringup texts a
+    secure pay link and, when they pay, pushes the confirmation back into the live call (or sends it
+    by SMS if the call has ended).
+
+    ```jsonc
+    {
+      "type": "apiRequest",
+      "name": "send_link",
+      "function": {
+        "name": "send_link",
+        "description": "Text the caller a secure pay link for the order. Use when there is no saved card on file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "amount_cents": { "type": "number", "description": "Order total in cents" }
+          },
+          "required": ["amount_cents"]
+        }
+      },
+      "url": "https://api.ringup.dev/v1/send_link",
+      "method": "POST",
+      "headers": { "type": "object", "properties": {
+        "Authorization": { "type": "string", "value": "Bearer <YOUR_RINGUP_KEY>" }
+      } }
+    }
+    ```
+
+    Then add one line to your prompt: *when the caller has confirmed the order, if identify returned
+    a saved card call `charge` with the order total and read back the confirmation code; otherwise
+    call `send_link` and tell them to check their text to pay.*
+  </Step>
+  <Step title="Add your webhook endpoint">
+    In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+    signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    [Webhooks](/concepts/webhooks).
+  </Step>
+  <Step title="Test it, then go live">
+    Point the tools' `url` at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the prod
+    URLs with your `rk_test_` key). Call your agent and order: the test caller (`+14155550142`) is
+    recognized and pays on the saved Visa ending 5858; a first-time caller is texted a link and
+    enters `4111 1111 1111 1111`. Expect the confirmation read back and a test-mode
+    `checkout.completed`. Swap to the live URLs to go live.
+  </Step>
+</Steps>
+
+</Tab>
+</Tabs>
 
 <ConnectBeforeGoLive />
 

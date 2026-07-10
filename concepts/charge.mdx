@@ -3,10 +3,12 @@ title: "Charge"
 description: "Charge a recognized caller's saved card off-session, settling on the merchant's own processor. Idempotent, and only true when the result says succeeded."
 ---
 
-`charge` runs a recognized caller's saved card. The caller is already known by phone number, so
-there is no Checkout Session to create and no link to text: you pass the amount, and Ringup charges
-the card <Tooltip tip="A charge run against a card the caller saved earlier, with their consent, while they are not actively entering card details.">off-session</Tooltip>
-and settles the money on the merchant's own processor.
+`charge` is the heart of the in-agent API path: a recognized caller with a saved card pays in one
+call, and nothing transfers. The caller is already known by phone number, so there is no Checkout
+Session to create and no link to text: you pass the amount, and Ringup charges the card
+<Tooltip tip="A charge run against a card the caller saved earlier, with their consent, while they are not actively entering card details.">off-session</Tooltip>
+and settles the money on the merchant's own processor. Because the caller never reads a card aloud,
+no card data touches your agent.
 
 <CodeGroup>
 ```bash curl
