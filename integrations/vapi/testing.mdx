@@ -1,12 +1,12 @@
 ---
 title: "Testing"
-description: "Test a Vapi Ringup integration end to end: canned demos, a private-line rehearsal, and post-go-live verification, all against the shared sandbox."
+description: "Test a Vapi Ringup integration end to end: a private-line rehearsal and post-go-live verification, all against the shared sandbox."
 ---
 
 Vapi tests against Ringup's shared sandbox, the same one every integration uses. Read
 [Testing](/concepts/testing) first for what the sandbox is, the merchant and caller fixtures,
-and the test card. This page covers the Vapi-specific tooling: the `ringup-vapi-init` commands
-that wire demos and rehearsals for you.
+and the test card. This page covers the Vapi specifics: the rehearsal line and how to verify
+the wiring.
 
 ## The sandbox test card
 
@@ -27,25 +27,26 @@ Every sandbox payment runs on one card. When a sandbox call texts a pay link, en
 The recognized test caller `+14155550142` already has this card on file, so a call from that
 number charges the saved card without a link.
 
-## Three tiers of testing
+## Rehearse on a private line
 
-<Steps>
-  <Step title="Canned demos">
-    `npx ringup-vapi-init test` builds a complete demo squad in your org: sandbox merchant,
-    demo caller, try-saying script covering the required and optional branches. Zero contact
-    with anything you own; `test --clean` removes it.
-  </Step>
-  <Step title="Rehearsal on a private line">
-    `npx ringup-vapi-init stage` wires a disposable copy of your own agent to a free test
-    number. You hear your actual agent, your actual prompts, and the full payment flow on a
-    real phone call, before anything you own changes.
-  </Step>
-  <Step title="Post-go-live verification">
-    `npx ringup-vapi-init check` reads the wiring from the Vapi API (squad structure,
-    tool shapes, live state, transcriber model names) and is the source of truth when the
-    dashboard renders squad wiring incompletely.
-  </Step>
-</Steps>
+When you add payment from the Ringup dashboard (see
+[Native handoff](/integrations/vapi/native)), Ringup binds a test twin of your agent, with the
+go-live changes baked in, to a rehearsal number only you know about. Call it from a real
+phone: you hear your actual agent, your actual prompts, and the full payment flow, before
+anything you own changes. Wiring by hand instead? Build the same rig yourself; the Using the
+API tab of the [native handoff guide](/integrations/vapi/native) walks it.
+
+## Verify the wiring after go-live
+
+Read the wiring back from the Vapi API: the squad structure, the payment and wrap-up
+configuration, the handoff tool shape, and every transcriber model name (Vapi accepts typos
+silently and they only fail at runtime).
+
+<Note>
+Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names; the squad
+canvas may show "No handoff tools configured" for working wiring. The Vapi API is the source
+of truth.
+</Note>
 
 ## Reading test results
 
@@ -55,3 +56,14 @@ can narrate success it did not have; the API result cannot.
 
 **Text-chat smoke tests cannot prove voice.** Vapi chat pipelines assemble handoffs
 differently from voice pipelines. Validate squads with a voice call.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Native handoff" icon="arrows-turn-right" href="/integrations/vapi/native">
+    Set up, rehearse, go live, and roll back the payment step inside your squad.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>

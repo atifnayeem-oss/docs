@@ -102,8 +102,8 @@ sign up for and nothing to connect between you and a first working response. See
   <Step title="Add it to your agent">
     Both moves live inside your voice agent. Pick the integration for your platform:
 
-    - **Vapi**: a [native handoff](/integrations/vapi/native), wired by one CLI command, keeps the
-      caller in your agent's own voice throughout.
+    - **Vapi**: a [native handoff](/integrations/vapi/native), wired from the Ringup dashboard,
+      keeps the caller in your agent's own voice throughout.
     - **Every other platform** (Retell, ElevenLabs, Deepgram, LiveKit, OpenAI Realtime, Pipecat,
       Twilio ConversationRelay): a [call transfer](/concepts/checkout-session), one integration you
       reuse everywhere. Pick your platform in the Integrations section.
@@ -111,8 +111,7 @@ sign up for and nothing to connect between you and a first working response. See
 </Steps>
 
 <Note>
-On Vapi you can also hear a fully wired demo in about a minute. `npx ringup-vapi-init test` builds
-a demo squad in your own Vapi org, backed by the shared sandbox, with a demo caller and a saved
-card. The full CLI lifecycle (`test`, `stage`, `go-live`, `rollback`) is in the
-[Vapi guide](/integrations/vapi/native).
+Every integration wires the same way from the Ringup dashboard: open the merchant, click
+**Add payment**, connect your platform, rehearse on a test number with the sandbox card, then
+go live. Each integration page also documents the same setup by hand, through the API.
 </Note>

@@ -56,8 +56,8 @@ res = requests.post(
 
 In an agent integration you set the key once and it rides every call:
 
-- **Vapi (native handoff):** the CLI writes your key into the payment tools it provisions. You
-  paste it once at setup.
+- **Vapi (native handoff):** Ringup writes your key into the payment tools it provisions at
+  setup, so it rides every call without you handling it.
 - **Call transfer (every other platform):** the key lives in the `Authorization` header of the
   `create_checkout` tool or HTTP call your agent makes, next to the other tool config.
 

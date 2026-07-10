@@ -30,54 +30,111 @@ This page is end to end: first-time setup, the call, the return, and what happen
 - A Ringup account and [API key](/authentication). Test mode works out of the box on
   a shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
 
-## Step 1: Add the Ringup checkout function to your agent
+## Set up
 
-This is the one-time setup. Register a custom function on your Retell agent that creates a
-Ringup Checkout Session, authenticated with your Ringup API key. Add it in the Retell dashboard
-(Agent, then Functions, then Add custom function) or through the Retell API:
+This is the one-time setup. The fastest path is the Ringup dashboard, which registers the
+functions for you. If you prefer to own every object in your Retell account, wire them by
+hand; both end in the same place.
 
-```jsonc
-{
-  "type": "custom",
-  "name": "create_checkout",
-  "description": "Create a Ringup Checkout Session for the order and return where to transfer the call.",
-  "url": "https://api.ringup.dev/v1/checkouts",
-  "headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
-  "parameters": {
-    "amount_cents": { "type": "number", "description": "Order total in cents" },
-    "order_id":     { "type": "string", "description": "Your processor order id, if you have one" }
-  }
-}
-```
+<Tabs>
+<Tab title="Using the dashboard">
 
-Then add one line to your agent's prompt so it knows when to call it:
+<Steps>
+  <Step title="Connect your Retell agent">
+    In the Ringup dashboard, open your merchant, then **Add payment**. Paste your Retell API
+    key. Ringup uses the key once, to list your agents and register the functions, and never
+    stores it.
+  </Step>
+  <Step title="Pick the agent">
+    Choose the agent that answers this merchant's number. Ringup registers the `identify`
+    function (called at the greeting, so a returning caller is recognized and greeted by
+    name) and the `create_checkout` function on it, wired exactly as the API tab shows, and
+    gives you the one prompt line to add. Wire the `transfer_call` step as shown in the API
+    tab: it lives in your agent's flow, so it is the same on both paths.
+  </Step>
+  <Step title="Rehearse before you flip live">
+    The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
+    order, and pay with the test card. The whole flow runs in test mode against the sandbox;
+    no real card, no real charge. See [Testing](/concepts/testing).
+  </Step>
+  <Step title="Go live">
+    When the rehearsal call reads a confirmation code back, click **Go live**. The same
+    functions now run on your production agent with your live key.
+  </Step>
+</Steps>
 
-> When the caller has confirmed their order, call `create_checkout` with the order total.
+</Tab>
+<Tab title="Using the API">
+
+<Steps>
+  <Step title="Add the Ringup checkout function to your agent">
+    Register a custom function on your Retell agent that creates a Ringup Checkout Session,
+    authenticated with your Ringup API key. Add it in the Retell dashboard (Agent, then
+    Functions, then Add custom function) or through the Retell API:
+
+    ```jsonc
+    {
+      "type": "custom",
+      "name": "create_checkout",
+      "description": "Create a Ringup Checkout Session for the order and return where to transfer the call.",
+      "url": "https://api.ringup.dev/v1/checkouts",
+      "headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
+      "parameters": {
+        "amount_cents": { "type": "number", "description": "Order total in cents" },
+        "order_id":     { "type": "string", "description": "Your processor order id, if you have one" }
+      }
+    }
+    ```
+
+    Then add one line to your agent's prompt so it knows when to call it:
+
+    > When the caller has confirmed their order, call `create_checkout` with the order total.
+  </Step>
+  <Step title="Register identify and call it at the greeting">
+    Register `identify` the same way you added the checkout function (it takes no inputs;
+    the caller's number comes from the call), then call it at the greeting, not just at
+    payment. It needs only the caller's phone number, which is available the instant the
+    call connects. For a returning caller it returns their name and saved card, so your
+    agent greets them by name and skips re-asking for anything recognition already provides
+    (for example, never ask "what name for the order?" when `identify` returned it). This is
+    separate from and happens earlier than creating the Checkout Session and transferring
+    for payment. See [Recognize at the start of the call](/concepts/identity).
+  </Step>
+  <Step title="Wire the transfer">
+    Add a `transfer_call` step (or Transfer Call node) that transfers to the `transfer_to`
+    the Checkout Session returns, and attach the Checkout Session `id` as a custom SIP
+    header so Ringup can match the call to the session. Inject both through Retell dynamic
+    variables, never as values the model types:
+
+    ```jsonc
+    {
+      "type": "transfer_call",
+      "transfer_destination": "{{transfer_to}}",          // from the Checkout Session response
+      "custom_sip_headers": { "X-Session-Id": "{{id}}" }  // the Checkout Session id
+    }
+    ```
+
+    Ringup matches the call by the `X-Session-Id` header, with the id also embedded in the
+    SIP URI as a backstop, so correlation holds even if a middlebox strips the header.
+  </Step>
+</Steps>
 
 That is the whole setup. Nothing else is provisioned in Retell, and your agent is otherwise
 unchanged.
 
-<Note>
-A CLI to register this for you is on the way. Until then, the function above is the only setup
-step, and it is a copy and paste.
-</Note>
+</Tab>
+</Tabs>
 
-## Step 2: Recognize the caller at the start
+<Warning>
+Transfer to the SIP URI, not to a PSTN number. Custom SIP headers survive to a SIP endpoint but
+may be stripped on the way to a PSTN number, which would drop the header match.
+</Warning>
 
-Register `identify` the same way you added the checkout function in the previous step (it takes
-no inputs; the caller's number comes from the call), then call it at the greeting, not just at
-payment. It needs only the caller's phone number, which is available the instant the call
-connects. For a returning caller it returns their name and saved card, so your agent greets them
-by name and skips re-asking for anything recognition already provides (for example, never ask
-"what name for the order?" when `identify` returned it). This is separate from and happens
-earlier than creating the Checkout Session and transferring for payment. See
-[Recognize at the start of the call](/concepts/identity).
+## What happens on the call
 
-## Step 3: Create a Checkout Session when the order is confirmed
-
-Your agent calls the function from Step 1. It takes the same inputs a hosted checkout session
-takes (amount, line items, order), plus how you want the call to end, and returns where to send
-the call:
+When the caller confirms the order, your agent calls `create_checkout`. It takes the same
+inputs a hosted checkout session takes (amount, line items, order), plus how you want the call
+to end, and returns where to send the call:
 
 ```jsonc
 create_checkout({
@@ -99,34 +156,13 @@ create_checkout({
 
 - `payment_required: "none"`: the merchant does not take payment for this order. There is no
   `transfer_to`; carry on and end the call normally.
-- `required` or `optional`: transfer the call to `transfer_to`.
+- `required` or `optional`: the transfer you wired in setup fires, carrying `id` and
+  `transfer_to` through the dynamic variables.
 
-The `id` and `transfer_to` are what Step 4 uses. `order_id` and `line_items` mirror a checkout
-session. `return_to`, `success_message`, and `failure_message` control how the call ends (Step 6).
+`order_id` and `line_items` mirror a checkout session. `return_to`, `success_message`, and
+`failure_message` control how the call ends (see the return, below).
 
-## Step 4: Transfer to the returned target
-
-Transfer to the `transfer_to` from Step 3, and attach the Checkout Session `id` as a custom SIP
-header so Ringup can match the call to the session. Inject both through Retell dynamic
-variables, never as values the model types:
-
-```jsonc
-{
-  "type": "transfer_call",
-  "transfer_destination": "{{transfer_to}}",          // from Step 3
-  "custom_sip_headers": { "X-Session-Id": "{{id}}" }  // the Checkout Session id, from Step 3
-}
-```
-
-Ringup matches the call by the `X-Session-Id` header, with the id also embedded in the SIP URI
-as a backstop, so correlation holds even if a middlebox strips the header.
-
-<Warning>
-Transfer to the SIP URI, not to a PSTN number. Custom SIP headers survive to a SIP endpoint but
-may be stripped on the way to a PSTN number, which would drop the header match.
-</Warning>
-
-## Step 5: Keep the caller comfortable during the handoff
+## Keep the caller comfortable during the handoff
 
 A cold transfer drops your agent as the payment line connects. Two easy, configurable moves
 remove the rough edge:
@@ -139,12 +175,12 @@ remove the rough edge:
 The payment line's voice and model are set in your Ringup dashboard, so you can match them to
 your agent.
 
-## Step 6: The return, and the result (the webhook)
+## The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the caller, charges the saved card on the
 merchant's own payment processor, and texts the caller a receipt. A first-time caller with no
 saved card is texted a secure pay link instead. Then the call ends one of three ways, depending
-on what you passed in Step 3:
+on what you passed on `create_checkout`:
 
 - **`return_to` set**: Ringup transfers the caller back to your agent and attaches the outcome as
   SIP headers (`X-Payment-Status: completed`, `X-Confirmation`), so your agent resumes already

@@ -33,7 +33,40 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and [API key](/authentication). Test mode works out of the box on a shared sandbox. See
   [Testing](/concepts/testing).
 
-## Step 1: Recognize the caller at the start
+## Set up
+
+<Tabs>
+<Tab title="Using the dashboard">
+
+On ConversationRelay the wiring is code in your server, so the dashboard path covers the
+account side: connecting the merchant, rehearsing in test mode, and going live. The calls
+themselves are written in your server either way; they are the ones in the **Using the API**
+tab.
+
+<Steps>
+  <Step title="Add the payment">
+    In the Ringup dashboard, open your merchant, then **Add payment**, and pick Twilio
+    ConversationRelay.
+  </Step>
+  <Step title="Wire your server">
+    Add the identify call, the Checkout Session, and the transfer from the **Using the API**
+    tab. The wiring lives in your server code, so it is identical on both paths.
+  </Step>
+  <Step title="Rehearse before you flip live">
+    With the merchant in test mode, call your agent, place an order, and pay with the test
+    card. The whole flow runs against the sandbox; no real card, no real charge. See
+    [Testing](/concepts/testing).
+  </Step>
+  <Step title="Go live">
+    When the rehearsal call reads a confirmation code back, click **Go live**.
+  </Step>
+</Steps>
+
+</Tab>
+<Tab title="Using the API">
+
+<Steps>
+<Step title="Recognize the caller at the start">
 
 Call `identify` from your server at the greeting (a plain HTTP call, like the checkout call), not
 just at payment. It needs only the caller's phone number, which is available the instant the call
@@ -43,7 +76,8 @@ by name and skips re-asking for anything recognition already provides (for examp
 than creating the Checkout Session and transferring for payment. See
 [Recognize at the start of the call](/concepts/identity).
 
-## Step 2: Create a Checkout Session in your server
+</Step>
+<Step title="Create a Checkout Session in your server">
 
 When your loop determines the order is confirmed, `POST` to Ringup's `create_checkout` endpoint
 with your Ringup API key. This is the setup and the call in one: there is no platform tool to
@@ -75,7 +109,8 @@ Response (the Checkout Session):
 
 If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
 
-## Step 3: Transfer with a Dial to the SIP URI
+</Step>
+<Step title="Transfer with a Dial to the SIP URI">
 
 Send an `end` message to close the ConversationRelay session, and have your action URL return
 TwiML that dials the caller to the Ringup SIP URI, carrying the Checkout Session `id` as a URI
@@ -93,11 +128,17 @@ parameter (or SIP header). Speak one line first so the caller is not on silence:
 Because you control the TwiML, the header path is fully reliable here: Twilio passes the URI
 parameter through to the Ringup line, which matches it to the Checkout Session.
 
-## Step 4: The return, and the result (the webhook)
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+## The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the caller, charges the saved card, and texts a
 receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the
-call ends one of three ways, from what you passed in Step 2:
+call ends one of three ways, from what you passed on `create_checkout`:
 
 - **`return_to` set**: Ringup `<Dial>`s the caller back to your app with the outcome in SIP
   headers (`X-Payment-Status`, `X-Confirmation`), so your app resumes and closes the call.

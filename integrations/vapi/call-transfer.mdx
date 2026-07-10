@@ -34,32 +34,26 @@ This page is end to end: setup, the call, the transfer, and what happens after p
 - A Ringup account and [API key](/authentication). Test mode works out of the box on
   a shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
 
-## Step 1: Recognize the caller at the start
+## Set up
 
-Register `identify` as an apiRequest tool and call it at the greeting, not at payment. It takes
-no inputs; the caller's number comes from the call. For a returning caller it returns their name
-and saved card, so your agent greets them by name and skips re-asking for anything recognition
-already provides. See [Recognize at the start of the call](/concepts/identity).
-
-## Step 2: Add the transfer tool
-
-This is the one-time payment setup. The fastest path is the Ringup dashboard, which registers
-the tool for you. If you prefer to own every object in your Vapi account, create the tool by
-hand; both end in the same place.
+This is the one-time setup. The fastest path is the Ringup dashboard, which registers both
+tools for you. If you prefer to own every object in your Vapi account, create them by hand;
+both end in the same place.
 
 <Tabs>
-<Tab title="From the dashboard">
+<Tab title="Using the dashboard">
 
 <Steps>
   <Step title="Connect your Vapi agent">
     In the Ringup dashboard, open your merchant, then **Add payment**. Paste your Vapi API
-    key. Ringup uses the key once, to list your agents and register the tool, and never
+    key. Ringup uses the key once, to list your agents and register the tools, and never
     stores it.
   </Step>
   <Step title="Pick the agent">
-    Choose the agent that answers this merchant's number from the dropdown. Ringup creates
-    the `transfer_to_payment` tool on it, wired exactly as the manual tab shows, and gives
-    you the one prompt line to add.
+    Choose the agent that answers this merchant's number from the dropdown. Ringup registers
+    the `identify` tool (called at the greeting, so a returning caller is recognized and
+    greeted by name) and the `transfer_to_payment` tool on it, wired exactly as the API tab
+    shows, and gives you the one prompt line to add.
   </Step>
   <Step title="Rehearse before you flip live">
     The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
@@ -67,16 +61,23 @@ hand; both end in the same place.
     no real card, no real charge. See [Testing](/concepts/testing).
   </Step>
   <Step title="Go live">
-    When the rehearsal call reads a confirmation code back, click **Go live**. The same tool
-    now runs on your production agent with your live key.
+    When the rehearsal call reads a confirmation code back, click **Go live**. The same
+    tools now run on your production agent with your live key.
   </Step>
 </Steps>
 
 </Tab>
-<Tab title="By hand (API)">
+<Tab title="Using the API">
 
-Create one **async function tool** whose server URL points at Ringup, and attach it to your
-agent (Vapi dashboard: Tools, then Create Tool, then Function; or via the API):
+First, recognize the caller at the start: register `identify` as an apiRequest tool and call
+it at the greeting, not at payment. It takes no inputs; the caller's number comes from the
+call. For a returning caller it returns their name and saved card, so your agent greets them
+by name and skips re-asking for anything recognition already provides. See
+[Recognize at the start of the call](/concepts/identity).
+
+Then add the transfer tool: create one **async function tool** whose server URL points at
+Ringup, and attach it to your agent (Vapi dashboard: Tools, then Create Tool, then Function;
+or via the API):
 
 ```jsonc
 {
@@ -130,7 +131,7 @@ caller to SIP mid-call, so agents on imported numbers should use
 The dashboard checks this for you when you connect and tells you which path fits each agent.
 </Warning>
 
-## Step 3: What happens when the tool fires
+## What happens when the tool fires
 
 When your agent calls `transfer_to_payment`, Vapi sends the tool call to Ringup, and Ringup does
 the rest in one motion:
@@ -161,7 +162,7 @@ the payment line never depends on caller ID surviving the transfer. You never se
 any of this; it is why the integration stays one tool.
 </Accordion>
 
-## Step 4: End the call in the merchant's words
+## End the call in the merchant's words
 
 The payment line always reads the confirmation code itself, so the code can never be garbled.
 Everything after the code is yours, three ways, in order of precedence:
@@ -177,7 +178,7 @@ Everything after the code is yours, three ways, in order of precedence:
 `failure_message` (URL parameter) is spoken if the charge fails, before the payment line
 offers a texted pay link as the backup.
 
-## Step 5: After payment
+## After payment
 
 Ringup charges, texts the caller a receipt, and ends the call with the confirmation code read
 aloud. Your server reconciles from a `checkout.completed` webhook, which carries the Payment

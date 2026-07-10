@@ -31,48 +31,111 @@ This page is end to end: first-time setup, the call, the return, and what happen
 - A Ringup account and [API key](/authentication). Test mode works out of the box on a
   shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
 
-## Step 1: Add the Ringup checkout tool to your agent
+## Set up
 
-This is the one-time setup. On your ElevenLabs agent, add a **server tool** that calls Ringup's
-`create_checkout` endpoint with your Ringup API key (Agent, then Tools, then Add tool, then
-Webhook), and confirm the built-in `transfer_to_number` system tool is enabled.
+This is the one-time setup. The fastest path is the Ringup dashboard, which registers the
+tools for you. If you prefer to own every object in your ElevenLabs account, wire them by
+hand; both end in the same place.
 
-```jsonc
-{
-  "type": "webhook",
-  "name": "create_checkout",
-  "description": "Create a Ringup Checkout Session for the order and return where to transfer the call.",
-  "url": "https://api.ringup.dev/v1/checkouts",
-  "method": "POST",
-  "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
-  "body_parameters": {
-    "amount_cents": { "type": "number", "description": "Order total in cents" },
-    "order_id":     { "type": "string", "description": "Your processor order id, if you have one" }
-  }
-}
-```
+<Tabs>
+<Tab title="Using the dashboard">
 
-Then add one line to your agent's prompt:
+<Steps>
+  <Step title="Connect your ElevenLabs agent">
+    In the Ringup dashboard, open your merchant, then **Add payment**. Paste your ElevenLabs
+    API key. Ringup uses the key once, to list your agents and register the tools, and never
+    stores it.
+  </Step>
+  <Step title="Pick the agent">
+    Choose the agent that answers this merchant's number. Ringup registers the `identify`
+    tool (called at the greeting, so a returning caller is recognized and greeted by name)
+    and the `create_checkout` server tool on it, wired exactly as the API tab shows, and
+    gives you the one prompt line to add. Wire the `transfer_to_number` call as shown in the
+    API tab: it lives in your agent's flow, so it is the same on both paths.
+  </Step>
+  <Step title="Rehearse before you flip live">
+    The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
+    order, and pay with the test card. The whole flow runs in test mode against the sandbox;
+    no real card, no real charge. See [Testing](/concepts/testing).
+  </Step>
+  <Step title="Go live">
+    When the rehearsal call reads a confirmation code back, click **Go live**. The same
+    tools now run on your production agent with your live key.
+  </Step>
+</Steps>
 
-> When the caller has confirmed their order, call `create_checkout` with the order total, then
-> transfer to the returned target.
+</Tab>
+<Tab title="Using the API">
 
-## Step 2: Recognize the caller at the start
+<Steps>
+  <Step title="Add the Ringup checkout tool to your agent">
+    On your ElevenLabs agent, add a **server tool** that calls Ringup's `create_checkout`
+    endpoint with your Ringup API key (Agent, then Tools, then Add tool, then Webhook), and
+    confirm the built-in `transfer_to_number` system tool is enabled.
 
-Register `identify` the same way you added the checkout tool in the previous step (it takes no
-inputs; the caller's number comes from the call), then call it at the greeting, not just at
-payment. It needs only the caller's phone number, which is available the instant the call
-connects. For a returning caller it returns their name and saved card, so your agent greets them
-by name and skips re-asking for anything recognition already provides (for example, never ask
-"what name for the order?" when `identify` returned it). This is separate from and happens
-earlier than creating the Checkout Session and transferring for payment. See
-[Recognize at the start of the call](/concepts/identity).
+    ```jsonc
+    {
+      "type": "webhook",
+      "name": "create_checkout",
+      "description": "Create a Ringup Checkout Session for the order and return where to transfer the call.",
+      "url": "https://api.ringup.dev/v1/checkouts",
+      "method": "POST",
+      "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
+      "body_parameters": {
+        "amount_cents": { "type": "number", "description": "Order total in cents" },
+        "order_id":     { "type": "string", "description": "Your processor order id, if you have one" }
+      }
+    }
+    ```
 
-## Step 3: Create a Checkout Session when the order is confirmed
+    Then add one line to your agent's prompt:
 
-Your agent calls the tool from Step 1. It takes the same inputs a hosted checkout session takes
-(amount, line items, order), plus how you want the call to end, and returns where to send the
-call:
+    > When the caller has confirmed their order, call `create_checkout` with the order total,
+    > then transfer to the returned target.
+  </Step>
+  <Step title="Register identify and call it at the greeting">
+    Register `identify` the same way you added the checkout tool (it takes no inputs; the
+    caller's number comes from the call), then call it at the greeting, not just at payment.
+    It needs only the caller's phone number, which is available the instant the call
+    connects. For a returning caller it returns their name and saved card, so your agent
+    greets them by name and skips re-asking for anything recognition already provides (for
+    example, never ask "what name for the order?" when `identify` returned it). This is
+    separate from and happens earlier than creating the Checkout Session and transferring
+    for payment. See [Recognize at the start of the call](/concepts/identity).
+  </Step>
+  <Step title="Wire the transfer with SIP REFER">
+    Have the agent call the `transfer_to_number` system tool with a SIP-URI destination and
+    the Checkout Session `id` as a custom SIP header. The `client_message` is spoken to the
+    caller as the handoff line, so write it naturally rather than as a terse "please hold":
+
+    ```jsonc
+    transfer_to_number({
+      "transferType": "sip_refer",
+      "transferDestination": { "type": "sip_uri", "sipUri": "{{transfer_to}}" },
+      "customSipHeaders": { "X-Session-Id": "{{id}}" },
+      "client_message": "One moment, connecting you to secure payment."
+    })
+    ```
+
+    Ringup matches the call by the `X-Session-Id` header, with the id also embedded in the
+    SIP URI as a backstop, so correlation holds even if a middlebox strips the header.
+  </Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+<Warning>
+Use a SIP trunk number and `transferType: sip_refer`. Custom SIP headers survive to a SIP
+endpoint but are stripped on a native-Twilio ElevenLabs number, which would drop the header
+match.
+</Warning>
+
+## What happens on the call
+
+When the caller confirms the order, your agent calls `create_checkout`. It takes the same
+inputs a hosted checkout session takes (amount, line items, order), plus how you want the call
+to end, and returns where to send the call:
 
 ```jsonc
 create_checkout({
@@ -91,38 +154,14 @@ create_checkout({
 }
 ```
 
-If `payment_required` is `none`, do not transfer: carry on and end the call normally. Otherwise
-transfer to `transfer_to`.
+If `payment_required` is `none`, the agent does not transfer: it carries on and ends the call
+normally. Otherwise the transfer you wired in setup fires, carrying `id` and `transfer_to`.
 
-## Step 4: Transfer with SIP REFER
-
-Call the `transfer_to_number` system tool with a SIP-URI destination and the Checkout Session
-`id` as a custom SIP header. The `client_message` is spoken to the caller as the handoff line,
-so write it naturally rather than as a terse "please hold":
-
-```jsonc
-transfer_to_number({
-  "transferType": "sip_refer",
-  "transferDestination": { "type": "sip_uri", "sipUri": "{{transfer_to}}" },
-  "customSipHeaders": { "X-Session-Id": "{{id}}" },
-  "client_message": "One moment, connecting you to secure payment."
-})
-```
-
-Ringup matches the call by the `X-Session-Id` header, with the id also embedded in the SIP URI
-as a backstop, so correlation holds even if a middlebox strips the header.
-
-<Warning>
-Use a SIP trunk number and `transferType: sip_refer`. Custom SIP headers survive to a SIP
-endpoint but are stripped on a native-Twilio ElevenLabs number, which would drop the header
-match.
-</Warning>
-
-## Step 5: The return, and the result (the webhook)
+## The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the caller, charges the saved card, and texts a
 receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the
-call ends one of three ways, from what you passed in Step 3:
+call ends one of three ways, from what you passed on `create_checkout`:
 
 - **`return_to` set**: Ringup transfers the caller back to your agent with the outcome in SIP
   headers (`X-Payment-Status`, `X-Confirmation`), so your agent resumes and closes in its voice.

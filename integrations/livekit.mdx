@@ -32,7 +32,38 @@ This page is end to end: setup, the call, the return, and what happens after pay
 - A Ringup account and [API key](/authentication). Test mode works out of the box on a shared sandbox. See
   [Testing](/concepts/testing).
 
-## Step 1: Recognize the caller at the start
+## Set up
+
+<Tabs>
+<Tab title="Using the dashboard">
+
+On LiveKit the wiring is code in your agent, so the dashboard path covers the account side:
+connecting the merchant, rehearsing in test mode, and going live. The calls themselves are
+written in your agent either way; they are the ones in the **Using the API** tab.
+
+<Steps>
+  <Step title="Add the payment">
+    In the Ringup dashboard, open your merchant, then **Add payment**, and pick LiveKit.
+  </Step>
+  <Step title="Wire your agent">
+    Add the identify call, the Checkout Session, and the transfer from the **Using the API**
+    tab. The wiring lives in your agent code, so it is identical on both paths.
+  </Step>
+  <Step title="Rehearse before you flip live">
+    With the merchant in test mode, call your agent, place an order, and pay with the test
+    card. The whole flow runs against the sandbox; no real card, no real charge. See
+    [Testing](/concepts/testing).
+  </Step>
+  <Step title="Go live">
+    When the rehearsal call reads a confirmation code back, click **Go live**.
+  </Step>
+</Steps>
+
+</Tab>
+<Tab title="Using the API">
+
+<Steps>
+<Step title="Recognize the caller at the start">
 
 Call `identify` from your agent code at the greeting (a plain HTTP call, like the checkout call),
 not just at payment. It needs only the caller's phone number, which is available the instant the
@@ -42,7 +73,8 @@ ask "what name for the order?" when `identify` returned it). This is separate fr
 earlier than creating the Checkout Session and transferring for payment. See
 [Recognize at the start of the call](/concepts/identity).
 
-## Step 2: Create a Checkout Session in your agent
+</Step>
+<Step title="Create a Checkout Session in your agent">
 
 When your agent determines the order is confirmed, `POST` to Ringup's `create_checkout` endpoint
 with your Ringup API key. There is no platform tool to register; this is a plain HTTP call from
@@ -74,7 +106,8 @@ Response (the Checkout Session):
 
 If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
 
-## Step 3: Transfer the SIP participant
+</Step>
+<Step title="Transfer the SIP participant">
 
 Speak one bridge line, then transfer the caller's SIP participant to `transfer_to`, attaching the
 Checkout Session `id` as a REFER header:
@@ -93,11 +126,17 @@ await livekit_api.sip.transfer_sip_participant(
 Ringup matches the call by the `X-Session-Id` header, with the id also embedded in the SIP URI as
 a backstop, so correlation holds even if a middlebox strips the header.
 
-## Step 4: The return, and the result (the webhook)
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+## The return, and the result (the webhook)
 
 Ringup answers the transferred call, recognizes the caller, charges the saved card, and texts a
 receipt. A first-time caller with no saved card is texted a secure pay link instead. Then the
-call ends one of three ways, from what you passed in Step 2:
+call ends one of three ways, from what you passed on `create_checkout`:
 
 - **`return_to` set**: Ringup transfers the caller back to your agent with the outcome in SIP
   headers (`X-Payment-Status`, `X-Confirmation`), so your agent resumes and closes the call.
