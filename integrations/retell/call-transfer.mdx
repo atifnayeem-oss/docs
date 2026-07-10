@@ -153,7 +153,7 @@ call that reaches the agent by **dial-to-SIP-URI** (a registered call) cannot us
 transfer at all; put agents that take payments on a real number.
 </Warning>
 
-## Step 3: What happens when the tools fire
+## What happens when the tools fire
 
 When your agent calls `create_checkout` and then `transfer_to_payment`, the handoff happens in
 one motion:
@@ -188,7 +188,7 @@ transfer either. You never see or handle any of this; it is why the integration 
 copy-paste objects.
 </Accordion>
 
-## Step 4: End the call in the merchant's words
+## End the call in the merchant's words
 
 The payment line always reads the confirmation code itself, so the code can never be garbled.
 Everything after the code is yours, three ways, in order of precedence:
@@ -205,7 +205,7 @@ Everything after the code is yours, three ways, in order of precedence:
 `failure_message` is spoken if the charge fails, before the payment line offers a texted pay
 link as the backup.
 
-## Step 5: After payment
+## After payment
 
 Ringup charges, texts the caller a receipt, and ends the call with the confirmation code read
 aloud. Your server reconciles from a `checkout.completed` webhook, which carries the Payment
@@ -228,7 +228,7 @@ Three Retell specifics the validation surfaced, handled for you: custom SIP head
 survive the transfer leg (which is why the session rides the URI), the transfer destination
 accepts a dynamic variable so the address is filled server-side rather than model-typed, and a
 dial-to-SIP-URI (registered) call cannot transfer at all, which is why payments belong on a
-real number. The closing-line options in Step 4 follow the standard `create_checkout`
+real number. The closing-line options above follow the standard `create_checkout`
 contract; the live validation used the default closing.
 
 <ConnectBeforeGoLive />

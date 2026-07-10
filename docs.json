@@ -55,7 +55,13 @@
                   "integrations/vapi/testing"
                 ]
               },
-              "integrations/retell",
+              {
+                "group": "Retell",
+                "pages": [
+                  "integrations/retell",
+                  "integrations/retell/call-transfer"
+                ]
+              },
               "integrations/elevenlabs",
               "integrations/deepgram",
               "integrations/twilio-conversationrelay",

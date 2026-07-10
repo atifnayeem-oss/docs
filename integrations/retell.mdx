@@ -101,33 +101,38 @@ hand; both end in the same place.
     for payment. See [Recognize at the start of the call](/concepts/identity).
   </Step>
   <Step title="Wire the transfer">
-    Add a `transfer_call` step (or Transfer Call node) that transfers to the `transfer_to`
-    the Checkout Session returns, and attach the Checkout Session `id` as a custom SIP
-    header so Ringup can match the call to the session. Inject both through Retell dynamic
-    variables, never as values the model types:
+    Add a `transfer_call` tool whose destination is the `transfer_to` the Checkout Session
+    returns, filled through a Retell dynamic variable, never as a value the model types:
 
     ```jsonc
     {
       "type": "transfer_call",
-      "transfer_destination": "{{transfer_to}}",          // from the Checkout Session response
-      "custom_sip_headers": { "X-Session-Id": "{{id}}" }  // the Checkout Session id
+      "name": "transfer_to_payment",
+      "transfer_destination": { "type": "predefined", "number": "{{ringup_transfer_uri}}" },
+      "transfer_option": { "type": "cold_transfer", "cold_transfer_mode": "sip_refer" }
     }
     ```
 
-    Ringup matches the call by the `X-Session-Id` header, with the id also embedded in the
-    SIP URI as a backstop, so correlation holds even if a middlebox strips the header.
+    The session travels inside the transfer address itself, as a signed token in the SIP
+    URI; custom SIP headers do not survive Retell's transfer leg, so the URI is the one
+    carrier that matters. The [call transfer guide](/integrations/retell/call-transfer)
+    covers this wiring end to end, including the `response_variables` line that fills the
+    destination variable and the number types that can transfer.
   </Step>
 </Steps>
 
 That is the whole setup. Nothing else is provisioned in Retell, and your agent is otherwise
-unchanged.
+unchanged. For the complete, validated walkthrough of the transfer path, follow the
+[call transfer guide](/integrations/retell/call-transfer).
 
 </Tab>
 </Tabs>
 
 <Warning>
-Transfer to the SIP URI, not to a PSTN number. Custom SIP headers survive to a SIP endpoint but
-may be stripped on the way to a PSTN number, which would drop the header match.
+Transfer to the SIP URI the Checkout Session returns, not to a PSTN number, and from a number
+Retell can transfer (a Retell number or an elastic SIP trunk import with call transfer
+enabled). The [call transfer guide](/integrations/retell/call-transfer) lists the number
+types and their gotchas.
 </Warning>
 
 ## What happens on the call
