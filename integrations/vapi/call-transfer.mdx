@@ -43,9 +43,40 @@ already provides. See [Recognize at the start of the call](/concepts/identity).
 
 ## Step 2: Add the transfer tool
 
-This is the one-time payment setup. Create one **async function tool** whose server URL points
-at Ringup, and attach it to your agent (Vapi dashboard: Tools, then Create Tool, then Function;
-or via the API):
+This is the one-time payment setup. The fastest path is the Ringup dashboard, which registers
+the tool for you. If you prefer to own every object in your Vapi account, create the tool by
+hand; both end in the same place.
+
+<Tabs>
+<Tab title="From the dashboard">
+
+<Steps>
+  <Step title="Connect your Vapi agent">
+    In the Ringup dashboard, open your merchant, then **Add payment**. Paste your Vapi API
+    key. Ringup uses the key once, to list your agents and register the tool, and never
+    stores it.
+  </Step>
+  <Step title="Pick the agent">
+    Choose the agent that answers this merchant's number from the dropdown. Ringup creates
+    the `transfer_to_payment` tool on it, wired exactly as the manual tab shows, and gives
+    you the one prompt line to add.
+  </Step>
+  <Step title="Rehearse before you flip live">
+    The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
+    order, and pay with the test card. The whole flow runs in test mode against the sandbox;
+    no real card, no real charge. See [Testing](/concepts/testing).
+  </Step>
+  <Step title="Go live">
+    When the rehearsal call reads a confirmation code back, click **Go live**. The same tool
+    now runs on your production agent with your live key.
+  </Step>
+</Steps>
+
+</Tab>
+<Tab title="By hand (API)">
+
+Create one **async function tool** whose server URL points at Ringup, and attach it to your
+agent (Vapi dashboard: Tools, then Create Tool, then Function; or via the API):
 
 ```jsonc
 {
@@ -87,6 +118,17 @@ In test mode, point `server.url` at the shared sandbox instead:
 `https://ringup.dev/api/transfer-destination` (keyless). The tool works as written on your
 first call. See [Testing](/concepts/testing) for the demo caller and test card.
 </Note>
+
+</Tab>
+</Tabs>
+
+<Warning>
+Transfer needs a number that can hand a call to SIP. Vapi-native numbers and SIP-trunk
+(BYOC) numbers both can. A number **imported from a telephony provider** cannot move its
+caller to SIP mid-call, so agents on imported numbers should use
+[native handoff](/integrations/vapi/native) instead, or move the number onto a SIP trunk.
+The dashboard checks this for you when you connect and tells you which path fits each agent.
+</Warning>
 
 ## Step 3: What happens when the tool fires
 
