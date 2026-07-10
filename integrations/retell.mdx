@@ -20,7 +20,7 @@ This page is end to end: first-time setup, the call, the return, and what happen
 |---|---|
 | `create_checkout` | A custom function on your agent that creates a Checkout Session and returns where to transfer |
 | The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
-| The transfer | Retell's `transfer_call` tool (or Transfer Call node) with `custom_sip_headers` |
+| The transfer | Retell's `transfer_call` tool, destination filled from the function's response |
 | The result | A `checkout.completed` webhook to your server |
 
 ## Prerequisites
@@ -222,14 +222,17 @@ verification, and idempotency.
 
 ## Validation status
 
-Retell's `transfer_call` and its `custom_sip_headers` support are documented by Retell. Ringup
-confirms each new platform by capturing the first real transfer and checking the Checkout
-Session id arrives as expected; until that check runs for your account, treat the transfer
-wiring as documented, not yet validated on your specific Retell and telephony setup. The
-recognition, charge, receipt, and webhook behavior is the same payment path Ringup runs
-everywhere.
+<Check>
+The transfer path on this page is validated end to end on live calls: Checkout Session
+created mid-call, call cold-transferred over SIP REFER, the session token arrived intact in
+the transfer address, the caller was recognized, and the saved test card (ending 5858) was
+charged in the sandbox. The [call transfer guide](/integrations/retell/call-transfer) carries
+the full validated recipe.
+</Check>
 
-<ConnectBeforeGoLive />
+The return-to-agent path (`return_to`) is documented, not yet validated on Retell; treat it
+as designed behavior until Ringup confirms it for your account.
+
 
 ## Next steps
 
