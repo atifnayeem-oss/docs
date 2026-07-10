@@ -5,199 +5,108 @@ description: "Add payments to a Vapi agent the seamless way: the payment step ru
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Vapi supports two ways to add Ringup payments. **Native handoff** (this page) keeps the caller
-in your agent's own voice from greeting to receipt and is the recommended path on Vapi. The
-other is [call transfer](/integrations/vapi/call-transfer), for standardizing one integration
-across several platforms.
-
-Returning callers are recognized by phone number and pay with their saved card in one sentence.
-You write no payment prompt: the payment step inherits your agent's voice, model, and
-transcriber.
+**Native handoff** keeps the caller in your agent's own voice from greeting to receipt: the
+payment step runs inside your squad, so you write no payment prompt. The other option,
+[call transfer](/integrations/vapi/call-transfer), standardizes one integration across several
+platforms.
 
 ## Prerequisites
 
-- A Vapi agent (or squad) you already run
-- Your Vapi API key (private key)
-- A Ringup account. Test mode works out of the box on a shared sandbox, so there is nothing
-  to connect. See [Testing](/concepts/testing).
+- A Vapi agent (or squad) you already run.
+- Your Vapi API key (private key), and a Ringup [API key](/authentication).
 
 ## Set up
-
-Both paths build the same thing, and both leave everything you own untouched until the final
-go-live step: your assistant stays byte-for-byte unmodified, and rollback restores it exactly.
-The dashboard registers every object for you; the API path is the same wiring, done by hand in
-your own Vapi account.
 
 <Tabs>
 <Tab title="Using the dashboard">
 
 <Steps>
   <Step title="Connect Vapi, once for your account">
-    In the Ringup dashboard, open **Integrations**, then **Connect Vapi**. Paste your
-    Vapi API key (private key). Ringup uses it to list your agents and provision the payment
-    objects, and never stores it. One connection covers every merchant you run.
+    In the Ringup dashboard, open **Integrations**, then **Connect Vapi**, and paste your Vapi
+    API key (private key). Ringup uses it to list your agents and provision the payment objects,
+    and never stores it. One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    Select the agent that answers merchant calls (or the squad plus the member that confirms
-    the order). Ringup assembles the payment step, the wrap-up step, the `ringup_*` tools, and
-    the handoff tool around it, then shows the one prompt line to paste. There is no
-    per-merchant step: the merchant resolves from the dialed number on every call, and each
-    merchant activates when it connects its processor.
+    Select the agent that answers merchant calls (or the squad plus the member that confirms the
+    order). Ringup assembles the payment step, the wrap-up step, the `ringup_*` tools, and the
+    handoff tool around it, then shows the one prompt line to paste. No per-merchant step: the
+    merchant resolves from the dialed number, and activates when it connects its processor.
   </Step>
   <Step title="Add your webhook endpoint">
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
-    Ringup sends a signed `checkout.completed` there for every payment, so your server can
-    mark orders paid. See [Webhooks](/concepts/webhooks).
+    Ringup posts a signed `checkout.completed` there for every payment. See
+    [Webhooks](/concepts/webhooks).
   </Step>
-  <Step title="Rehearse on a private line">
-    The dashboard binds a test twin of your agent, with the two go-live changes baked in, to
-    a rehearsal number only you know about. Call it from a real phone, order, and pay with the
-    test card: you hear the silent handoff, the recognition, the charge, and the wrap-up with
-    a confirmation code. See [Vapi testing](/integrations/vapi/testing).
-  </Step>
-  <Step title="Go live">
-    When the rehearsal call reads a confirmation code back, click **Go live**. Ringup points
-    your phone number at the squad first, then makes exactly two changes to your assistant:
-    it appends the handoff tool to its toolIds and appends the one prompt line. Running
-    several numbers or locations? Move one number first as a canary. **Roll back** any time:
-    it removes exactly those two changes and points each number back where it was, restoring
-    your assistant byte-for-byte.
+  <Step title="Rehearse on the rehearsal number, then go live">
+    The dashboard binds a test twin of your agent, with the go-live changes baked in, to a
+    rehearsal number. Call it, order, and pay with the test card (Visa ending 5858): no real
+    charge. When it reads a confirmation code back, click **Go live**. Ringup points your number
+    at the squad, then makes exactly two changes to your assistant (appends the handoff tool and
+    the one prompt line). **Roll back** any time restores it byte-for-byte.
   </Step>
 </Steps>
 
 </Tab>
 <Tab title="Using the API">
 
-Own every object in your own Vapi account. You create the same pieces the dashboard
-registers, assemble the squad, rehearse, and flip your number when ready.
+Own every object in your own Vapi account: create the same pieces the dashboard registers,
+assemble the squad, rehearse, and flip your number when ready.
 
 <Steps>
   <Step title="Create the five ringup_* tools">
     Register `create_checkout`, `identify`, `charge`, `payment_status`, and `send_link` as
     static tools against Ringup's API. Caller and merchant resolve server-side from trusted
-    headers, never from model-typed arguments. Call `identify` at the greeting, not at
-    payment, so a returning caller is greeted by name
+    headers, never from model-typed arguments. Call `identify` at the greeting, not at payment,
+    so a returning caller is greeted by name
     ([Recognize at the start of the call](/concepts/identity)).
   </Step>
   <Step title="Create the payment step">
-    An assistant that silently checks whether payment is needed for THIS purchase, then
-    takes it, offers it, or says nothing at all. It inherits your agent's voice, model, and
-    transcriber, and carries the five tools from the previous step.
+    An assistant that silently checks whether payment is needed for this purchase, then takes it,
+    offers it, or says nothing. It inherits your agent's voice, model, and transcriber, and
+    carries the five tools from the previous step.
   </Step>
   <Step title="Create the wrap-up step">
-    Your own agent in wrap-up mode: its prompt verbatim with only the task replaced. It
-    announces success, reads back the payment confirmation number, thanks the caller, and
-    ends the call.
+    Your own agent in wrap-up mode: its prompt verbatim with only the task replaced. It announces
+    success, reads back the confirmation number, thanks the caller, and ends the call.
   </Step>
   <Step title="Assemble the squad">
-    Create a new squad whose `members` array references your agent live (a plain reference,
-    not a copy), then the payment step, then the wrap-up step. Never hand back to your
-    greeter after payment: the payment step exits to wrap-up on its own, and the wrap-up
-    ends the call. Your original agent and squad keep running untouched; the new squad
-    carries no traffic until a number points at it.
+    Create a new squad whose `members` array references your agent live (a reference, not a copy),
+    then the payment step, then the wrap-up step. The payment step exits to wrap-up on its own,
+    and the wrap-up ends the call; never hand back to your greeter. Your original agent and squad
+    keep running untouched, and the new squad carries no traffic until a number points at it.
   </Step>
   <Step title="Create the handoff tool">
-    A saved handoff tool (`handoff_to_Payment`) on the member that confirms the order. Note:
-    member `assistantOverrides` cannot deliver tools on voice calls (toolIds are ignored;
-    inline tools reach chat only); the saved assistant is the only wiring that works on
-    voice. You attach it at go-live, not yet.
+    A saved handoff tool (`handoff_to_Payment`) on the member that confirms the order. Attach it
+    at go-live, not yet.
   </Step>
   <Step title="Add your webhook endpoint">
-    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and
-    copy the signing secret. Your server verifies the signature and handles the
-    `checkout.completed` event. See [Webhooks](/concepts/webhooks).
+    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy
+    the signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    [Webhooks](/concepts/webhooks).
   </Step>
-  <Step title="Rehearse on a private line">
-    Rehearse before anything you own changes. Make a byte-copy twin of your order-confirming
-    assistant with the two go-live changes baked in (the handoff tool appended to its
-    toolIds, the one prompt line appended). Build a rehearsal squad, twin then payment step
-    then wrap-up step, and point a spare test number at it. Call it from a real phone: you
-    hear the silent handoff, the recognition, the policy branch, the charge, and the wrap-up
-    with a confirmation code.
-  </Step>
-  <Step title="Go live">
-    Record where each number points, then make two moves in this order:
-
-    1. **Point your phone number at the squad.** Number first on purpose: a caller landing
-       in the seconds mid-switch simply gets your current payment-free flow. (The reverse
-       order strands callers with an agent reaching for a payment step that is not there
-       yet.)
-    2. **Make exactly two changes to your assistant**: append the handoff tool to its
-       `model.toolIds`, and append one line to its prompt (hand off once the order and name
-       are confirmed). Keep your existing toolIds: a PATCH replaces the whole `model`
-       object.
-
-    Running several numbers or locations? Move one number first as a canary. Keep the
-    rehearsal rig if you want a permanent test line.
-  </Step>
-  <Step title="Roll back (any time)">
-    Reverse exactly the go-live moves: remove the handoff tool from `model.toolIds`, remove
-    the prompt line, and point each number back at its recorded pre-go-live destination.
-    Your assistant is restored byte-for-byte.
+  <Step title="Test it, then go live">
+    Point the tools at the keyless sandbox, `https://ringup.dev/api/tools`, build a rehearsal
+    squad (twin, payment step, wrap-up step), and point a spare number at it. Call and order: the
+    test caller (`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted
+    a link and enters `4111 1111 1111 1111`. Expect a confirmation code read back and a test-mode
+    `checkout.completed`. To go live, point your phone number at the squad first, then make
+    exactly two changes to your assistant: append the handoff tool to its `model.toolIds`, and
+    append one prompt line (hand off once the order and name are confirmed). Keep your existing
+    toolIds; a PATCH replaces the whole `model` object. **Roll back** by reversing exactly those
+    two moves and pointing each number back where it was.
   </Step>
 </Steps>
 
 </Tab>
 </Tabs>
 
-<Note>
-Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names; the squad
-canvas may show "No handoff tools configured" for working wiring. Read the squad and assistant
-back from the Vapi API to verify: it is the source of truth. See
-[Vapi testing](/integrations/vapi/testing) for what to check.
-</Note>
-
-You are never asked for a business name, a payment policy, a model, a transcriber, or a
-language. The business is identified from the number the call comes in on; the policy is a
-merchant setting served by Ringup per purchase; everything else is inherited from your agent.
-
-## The call flow, on every call, for every merchant
-
-```text
-your agent takes the order -> "One moment." (always the same silent handoff)
-  -> payment step creates a Checkout Session; Ringup returns payment_required for THIS purchase:
-       required  -> "Let's knock out payment now..." (must complete before the call ends)
-       optional  -> one offer, never blocks ("Want to take care of payment now?")
-       none      -> says nothing at all
-  -> wrap-up (your agent): announces success, reads the confirmation number, closes politely
-```
-
-Your agent never branches on payment logic, and a merchant changing their payment rule (or
-connecting later) changes call behavior immediately with no agent edits.
-
-## Test it
-
-Run one full payment in test mode before go-live. Call the rehearsal number from a real phone,
-order, and confirm: the recognized test caller (`+14155550142`) pays on the saved Visa ending
-5858 in one sentence; from any other phone you are texted a pay link and enter the sandbox card
-`4111 1111 1111 1111`. Expect the wrap-up step to read a confirmation code back and a test-mode
-`checkout.completed` at your endpoint. Fixtures and the decline card are in
-[Testing](/concepts/testing); Vapi specifics (the rehearsal twin, verifying wiring through the
-Vapi API) are in [Vapi testing](/integrations/vapi/testing).
-
-## FAQ
-
-<AccordionGroup>
-  <Accordion title="Do I write a payment prompt?">
-    No. The payment step ships pre-validated and inherits your agent's voice and model. You
-    change nothing about how it works.
-  </Accordion>
-  <Accordion title="How does Ringup know the caller and the business?">
-    Server-side: the caller number and the dialed number arrive on trusted headers set by
-    the platform, never typed by the model, so neither can be spoofed or hallucinated. See
-    [Caller Identity](/concepts/identity) and [Merchant Identity](/concepts/merchant-identity).
-  </Accordion>
-  <Accordion title="What if Ringup is unreachable mid-call?">
-    The handoff fails neutrally ("Give me one second.") and your agent continues. The
-    scripted line never asserts an outcome, so a caller is never told payment happened (or
-    was not needed) when Ringup could not be reached.
-  </Accordion>
-  <Accordion title="What does a merchant have to do?">
-    Connect their payment processor to Ringup once. Until they do, their calls behave
-    exactly as they do today; the moment they connect, payment starts happening on their
-    calls with no agent changes.
-  </Accordion>
-</AccordionGroup>
+<Warning>
+Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names; the squad canvas
+may show "No handoff tools configured" for working wiring. Read the squad and assistant back from
+the Vapi API to verify: it is the source of truth. Also, member `assistantOverrides` cannot
+deliver tools on voice calls (toolIds are ignored, inline tools reach chat only), so the saved
+assistant is the only wiring that works on voice.
+</Warning>
 
 <ConnectBeforeGoLive />
 

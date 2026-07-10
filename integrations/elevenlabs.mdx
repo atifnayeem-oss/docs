@@ -6,65 +6,50 @@ description: "Add card-on-file payments to an ElevenLabs agent by call transfer:
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
 Add card-on-file payments to an ElevenLabs agent by call transfer: when the order is confirmed,
-your agent registers a **Checkout Session** and transfers the live call to your Ringup payment
-address, like redirecting to a hosted web checkout. Ringup recognizes the caller, charges their
-saved card, and texts a receipt; your server reconciles from a webhook. If the model is new to
+your agent registers a **Checkout Session** and transfers the live call to a standing Ringup
+payment address, like redirecting to a hosted web checkout. ElevenLabs pins the transfer
+destination in agent config at call start (it ignores model-typed destinations and mid-call
+edits), so the address is set once at setup and `create_checkout` registers each order mid-call;
+Ringup matches the transferred call to that order by the caller's number. If the model is new to
 you, read [Call transfer](/concepts/checkout-session) first.
-
-One ElevenLabs specific shapes the whole integration: **the transfer destination is fixed in
-agent config when the call starts.** ElevenLabs ignores model-typed destinations and mid-call
-config changes (a security positive: an in-call jailbreak cannot redirect the transfer). So the
-destination is a standing Ringup payment address set once at setup, and `create_checkout`
-registers each order with Ringup mid-call; when the transferred call arrives, Ringup matches it
-to that session by the caller's number, which survives the transfer.
-
-## How the pieces map to ElevenLabs
-
-| Ringup piece | On ElevenLabs |
-|---|---|
-| `create_checkout` | A webhook tool on your agent that registers the order with Ringup |
-| The transfer target | Your standing Ringup payment address, pinned in the agent's transfer rule |
-| The transfer | The `transfer_to_number` system tool with `transfer_type: sip_refer` |
-| The result | A `checkout.completed` webhook to your server |
 
 ## Prerequisites
 
 - An ElevenLabs agent on a **SIP-trunk number** (see the warning below).
-- Your ElevenLabs API key.
-- A Ringup account and [API key](/authentication). Test mode works out of the box on a
-  shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
+- Your ElevenLabs API key, and a Ringup [API key](/authentication).
 
 ## Set up
+
+<Warning>
+**Preview.** The transfer transport is live: an agent on a SIP-trunk number can refer the call via
+SIP REFER to the payment line. The piece that makes this work for real per-order amounts, matching
+the transferred call to the order you registered by the caller's number, is still in build.
+Confirm availability in your Ringup dashboard before relying on this in production.
+</Warning>
 
 <Tabs>
 <Tab title="Using the dashboard">
 
 <Steps>
   <Step title="Connect ElevenLabs, once for your account">
-    In the Ringup dashboard, open **Integrations**, then **Connect ElevenLabs**. Paste your
-    ElevenLabs API key. Ringup uses it to list your agents and provision the payment objects,
-    and never stores it.
+    In the Ringup dashboard, open **Integrations**, then **Connect ElevenLabs**, and paste your
+    ElevenLabs API key. Ringup uses it to list your agents and provision the payment objects, and
+    never stores it. One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    Select the agent or agents that answer merchant calls. Ringup registers the `identify`
-    and `create_checkout` tools on each one and pins your payment address in the agent's
-    transfer rule; paste the one prompt line the dashboard shows. There is no per-merchant
-    step: the merchant resolves from the dialed number on every call, and each merchant
-    activates when it connects its processor.
+    Select the agents that answer merchant calls. Ringup registers the `identify` and
+    `create_checkout` tools on each and pins your payment address in the agent's transfer rule;
+    paste the one prompt line the dashboard shows. No per-merchant step: the merchant resolves from
+    the dialed number, and activates when it connects its processor.
   </Step>
   <Step title="Add your webhook endpoint">
-    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
-    Ringup sends a signed `checkout.completed` there for every payment, so your server can
-    mark orders paid. See [Webhooks](/concepts/webhooks).
+    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret. Ringup
+    posts a signed `checkout.completed` there for every payment. See [Webhooks](/concepts/webhooks).
   </Step>
-  <Step title="Rehearse before you flip live">
-    The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
-    order, and pay with the test card; no real card, no real charge. See
-    [Testing](/concepts/testing).
-  </Step>
-  <Step title="Go live">
-    When the rehearsal call reads a confirmation code back, click **Go live**. The same tools
-    now run on your production agent with your live key.
+  <Step title="Rehearse on the rehearsal number, then go live">
+    The dashboard binds a test twin of your agent to a rehearsal number. Call it, order, and pay
+    with the test card (Visa ending 5858): no real charge. When it reads a confirmation code back,
+    click **Go live**.
   </Step>
 </Steps>
 
@@ -72,10 +57,17 @@ to that session by the caller's number, which survives the transfer.
 <Tab title="Using the API">
 
 <Steps>
-  <Step title="Add the Ringup checkout tool to your agent">
-    On your ElevenLabs agent, add a **webhook tool** that calls Ringup's `create_checkout`
-    with your Ringup API key (Agent, then Tools, then Add tool, then Webhook). It registers
-    the order with Ringup and returns whether payment is needed:
+  <Step title="Recognize the caller at the greeting">
+    Register `identify` as a webhook tool (it takes no arguments; the caller's number comes from
+    the call) and call it at the greeting, not at payment. For a returning caller it returns their
+    name and saved card, so your agent greets them by name. See
+    [Recognize at the start of the call](/concepts/identity).
+  </Step>
+  <Step title="Add the Ringup checkout tool">
+    On your agent, add a **webhook tool** that calls Ringup's `create_checkout` with your Ringup
+    API key (Agent, then Tools, then Add tool, then Webhook), and add one prompt line: *when the
+    caller has confirmed their order, call `create_checkout` with the order total, then transfer to
+    payment unless it returns `payment_required: "none"`.*
 
     ```jsonc
     {
@@ -91,21 +83,9 @@ to that session by the caller's number, which survives the transfer.
       }
     }
     ```
-
-    Then add one line to your agent's prompt:
-
-    > When the caller has confirmed their order, call `create_checkout` with the order total,
-    > then transfer to payment unless it returns `payment_required: "none"`.
-  </Step>
-  <Step title="Register identify and call it at the greeting">
-    Register `identify` the same way (it takes no arguments; the caller's number comes from
-    the call) and have the agent call it at the greeting, not at payment. For a returning
-    caller it returns their name and saved card, so the agent greets them by name and never
-    re-asks for anything recognition already provides. See
-    [Recognize at the start of the call](/concepts/identity).
   </Step>
   <Step title="Pin the transfer rule">
-    Add the `transfer_to_number` system tool with your Ringup payment address (from your
+    Add the `transfer_to_number` system tool with your standing Ringup payment address (from your
     dashboard) as a SIP-URI destination and `transfer_type: sip_refer`:
 
     ```jsonc
@@ -125,15 +105,23 @@ to that session by the caller's number, which survives the transfer.
     }
     ```
 
-    The destination is resolved from this rule when the call starts; ElevenLabs ignores a
-    destination the model types and does not apply config edits to in-flight calls. That is
-    why the address is standing config, not a per-order value.
+    The destination is resolved from this rule when the call starts, which is why it is standing
+    config, not a per-order value.
+  </Step>
+  <Step title="Add your webhook endpoint">
+    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy
+    the signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    [Webhooks](/concepts/webhooks).
+  </Step>
+  <Step title="Test it, then go live">
+    Point the `create_checkout` tool's `url` at the keyless sandbox,
+    `https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with your `rk_test_` key).
+    Call your agent and order: the test caller (`+14155550142`) pays on the saved Visa ending 5858;
+    a first-time caller is texted a link and enters `4111 1111 1111 1111`. Expect a confirmation
+    code read back and a test-mode `checkout.completed`. Swap the URL back to the live endpoint to
+    go live.
   </Step>
 </Steps>
-
-Last, register your webhook endpoint in the Ringup dashboard, under **Settings, then
-Webhooks**, and copy the signing secret. Your server verifies the signature and handles the
-`checkout.completed` event. See [Webhooks](/concepts/webhooks).
 
 </Tab>
 </Tabs>
@@ -142,57 +130,9 @@ Webhooks**, and copy the signing secret. Your server verifies the signature and 
 The agent's number must be attached over a **SIP trunk**. ElevenLabs allows a SIP-URI transfer
 destination only with `sip_refer`, and rejects that combination on a native-Twilio number at
 configuration time, so an agent on a native-Twilio number cannot reach the payment line by any
-mode. Custom SIP headers also do not survive the transfer, which is why correlation runs on
-the registered session and the caller's number, never on headers.
+mode. Custom SIP headers also do not survive the transfer, which is why correlation runs on the
+registered session and the caller's number, never on headers.
 </Warning>
-
-## What happens on the call
-
-`create_checkout` registers the order and answers with the merchant's policy for this purchase:
-
-```jsonc
-{
-  "id": "cs_x9f2",                  // Checkout Session id
-  "payment_required": "required"    // "required" | "optional" | "none"
-}
-```
-
-On `none` the agent does not transfer: it carries on and ends the call normally. Otherwise the
-agent invokes the transfer rule, ElevenLabs sends the SIP REFER, and the trunk delivers the
-caller to the Ringup payment line, which matches the call to the registered session by the
-caller's number, confirms the total, and charges the saved card on the merchant's own
-processor. A first-time caller with no saved card is texted a secure pay link instead.
-
-## Test it
-
-Run one full payment in test mode before go-live. Point the `create_checkout` tool's `url` at
-the keyless sandbox, `https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with
-your `rk_test_` key). Call your agent and order: the recognized test caller (`+14155550142`)
-pays on the saved Visa ending 5858; a first-time caller is texted a link and enters the sandbox
-card `4111 1111 1111 1111`. Expect the payment line to read a confirmation code and a test-mode
-`checkout.completed` at your endpoint. Fixtures in [Testing](/concepts/testing).
-
-## The result (the webhook)
-
-ElevenLabs' transfer is one-way: there is no transfer back to your agent after payment. Ringup
-speaks your `success_message` (or a short default), texts the caller a receipt, and ends the
-call. Your server learns the outcome from the signed `checkout.completed` event: match on your
-`order_id`, store the `payment_id`, and flip the order to paid. See
-[Webhooks](/concepts/webhooks) for the payload, signature verification, and idempotency.
-
-## Validation status
-
-<Warning>
-**Preview.** The transfer transport is validated on live calls: an agent on a SIP-trunk number
-referred the call via SIP REFER, the token reached the payment line, and the saved test card
-was charged. The piece that makes this work for real per-order amounts, matching the
-transferred call to the order you registered by the caller's number, is in build. Confirm
-availability in your Ringup dashboard before relying on this in production.
-</Warning>
-
-The validation pinned the ElevenLabs specifics above: the destination is fixed at call start
-(model-typed destinations are ignored), and custom SIP headers do not survive the transfer.
-Both are accounted for in this recipe.
 
 <ConnectBeforeGoLive />
 

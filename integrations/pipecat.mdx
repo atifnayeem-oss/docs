@@ -7,36 +7,21 @@ import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
 Add card-on-file payments to a Pipecat voice pipeline by call transfer: when the order is
 confirmed, your pipeline creates a **Checkout Session** and transfers the live call to it, like
-redirecting to a hosted web checkout. Ringup recognizes the caller, charges their saved card,
-texts a receipt, and optionally returns the call to your agent; your server reconciles from a
-webhook. If the model is new to you, read [Call transfer](/concepts/checkout-session) first.
-
-Pipecat runs the pipeline; the telephony under it is your transport (Twilio, Telnyx, Plivo, or
-Exotel WebSocket serializers, or Daily PSTN/SIP). Your transport owns the call leg, so the
-transfer happens there.
-
-## How the pieces map to Pipecat
-
-| Ringup piece | On Pipecat |
-|---|---|
-| `create_checkout` | An HTTP `POST` from a function your LLM calls when the order is confirmed |
-| The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
-| The transfer | A `<Dial><Sip>` on your telephony transport to the Ringup SIP URI |
-| The result | A `checkout.completed` webhook to your server |
+redirecting to a hosted web checkout. Pipecat runs the pipeline and your transport owns the call
+leg (Twilio, Telnyx, Plivo, Exotel, or Daily), so the transfer happens there. If the model is new
+to you, read [Call transfer](/concepts/checkout-session) first.
 
 ## Prerequisites
 
 - A running Pipecat pipeline with telephony (a Twilio/Telnyx/Plivo/Exotel WebSocket serializer,
   or Daily PSTN/SIP dial-in).
-- The telephony account that owns the inbound call leg.
-- A Ringup account and [API key](/authentication). Test mode works out of the box on a shared sandbox. See
-  [Testing](/concepts/testing).
+- The telephony account that owns the inbound call leg, and a Ringup [API key](/authentication).
 
 ## Set up
 
 <Note>
-The wiring on this page is code in your agent, so there is no dashboard variant of it. Your
-Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashboard.
+The wiring on this page is code in your agent, so there is no dashboard variant of it. Your Ringup
+account side (API keys, the webhook endpoint, go-live) lives in the dashboard.
 </Note>
 
 <Steps>
@@ -44,16 +29,15 @@ Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashb
 
 Call `identify` from your pipeline at the greeting, not at payment (a plain HTTP call, like the
 checkout call below). The caller's number is available the instant the call connects; for a
-returning caller `identify` returns their name and saved card, so your agent greets them by
-name and never re-asks for anything recognition already provides. See
-[Recognize at the start of the call](/concepts/identity).
+returning caller `identify` returns their name and saved card, so your agent greets them by name.
+See [Recognize at the start of the call](/concepts/identity).
 
 </Step>
 <Step title="Create a Checkout Session when the order is confirmed">
 
-Register a function on your LLM (`FunctionSchema`) that the model calls once the order is
-confirmed, and in its handler `POST` to Ringup with your API key. There is nothing to register
-with Ringup; this is a plain HTTP call from your handler.
+Register a function on your LLM (`FunctionSchema`) that the model calls once the order is confirmed,
+and in its handler `POST` to Ringup with your API key. If `payment_required` is `none`, do not
+transfer: finish the call normally. Otherwise transfer to the returned `transfer_to`.
 
 ```python
 async def create_checkout(params: FunctionCallParams):
@@ -70,8 +54,6 @@ async def create_checkout(params: FunctionCallParams):
     await params.result_callback(r.json())
 ```
 
-The response is the Checkout Session:
-
 ```jsonc
 {
   "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
@@ -80,14 +62,12 @@ The response is the Checkout Session:
 }
 ```
 
-If `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer.
-
 </Step>
 <Step title="Transfer on your transport">
 
 Have the agent speak one short bridge line ("One moment, connecting you to secure payment"), then
-transfer the caller on your telephony. On a Twilio transport, redirect the call to TwiML that
-dials the Ringup SIP URI, carrying the Checkout Session `id`:
+transfer the caller on your telephony. On a Twilio transport, redirect the call to TwiML that dials
+the Ringup SIP URI, carrying the Checkout Session `id`:
 
 ```xml
 <Response>
@@ -97,47 +77,26 @@ dials the Ringup SIP URI, carrying the Checkout Session `id`:
 </Response>
 ```
 
-On Daily PSTN/SIP, use the equivalent SIP transfer to the same URI. Because your transport
-controls the telephony, the URI parameter reliably reaches the Ringup line, which matches it to
-the Checkout Session.
+On Daily PSTN/SIP, use the equivalent SIP transfer to the same URI.
 
 </Step>
 <Step title="Register your webhook endpoint">
 
-Webhook configuration lives in the Ringup dashboard: under **Settings, then Webhooks**, add
-your HTTPS endpoint and copy the signing secret. Your code verifies the signature and handles
-the `checkout.completed` event. See [Webhooks](/concepts/webhooks).
+In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+signing secret. Your code verifies the signature and handles `checkout.completed`. See
+[Webhooks](/concepts/webhooks).
+
+</Step>
+<Step title="Test it, then go live">
+
+Point your `POST` at the keyless sandbox, `https://ringup.dev/api/tools/create_checkout` (or keep
+the prod URL with your `rk_test_` key), call your agent, and order: the test caller
+(`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a link and
+enters `4111 1111 1111 1111`. Expect the payment line to read a confirmation code and a test-mode
+`checkout.completed` at your endpoint. Swap the URL back to the live endpoint to go live.
 
 </Step>
 </Steps>
-
-## Test it
-
-Run one full payment in test mode before go-live. Point your `POST` at the keyless sandbox,
-`https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with your `rk_test_` key),
-call your agent, and order: the recognized test caller (`+14155550142`) pays on the saved Visa
-ending 5858; a first-time caller is texted a link and enters the sandbox card
-`4111 1111 1111 1111`. Expect the payment line to read a confirmation code and a test-mode
-`checkout.completed` at your endpoint. Fixtures in [Testing](/concepts/testing).
-
-## The return, and the result
-
-Ringup answers the transferred call, recognizes the caller, and charges the saved card on the
-merchant's own processor (a first-time caller is texted a secure pay link instead). The call
-then ends per your `create_checkout` fields: **`return_to`** transfers the caller back with the
-outcome in SIP headers (`X-Payment-Status`, `X-Confirmation`); **`success_message`** has Ringup
-read your line and end; **neither** gets a short default. A `return_to` that cannot connect
-falls back to speaking the message, so a failed return never strands the caller.
-
-Either way the caller gets an SMS receipt and your server gets the signed `checkout.completed`
-event: match on your `order_id`, store the `payment_id`, and flip the order to paid. See
-[Webhooks](/concepts/webhooks) for the payload, signature verification, and idempotency.
-
-## Validation status
-
-Because your transport owns the telephony, the transfer is standard `<Dial><Sip>` (or the Daily
-SIP equivalent) on your provider. Ringup's hosted transfer endpoint is rolling out; confirm access
-in your Ringup dashboard before relying on this in production.
 
 <ConnectBeforeGoLive />
 

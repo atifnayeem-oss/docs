@@ -7,62 +7,39 @@ import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
 Add card-on-file payments to a Retell agent by call transfer: when the order is confirmed, your
 agent creates a **Checkout Session** and transfers the live call to it, like redirecting to a
-hosted web checkout. Ringup recognizes the caller, charges their saved card, texts a receipt,
-and optionally returns the call to your agent; your server reconciles from a webhook. If the
-model is new to you, read [Call transfer](/concepts/checkout-session) first.
-
-## How the pieces map to Retell
-
-| Ringup piece | On Retell |
-|---|---|
-| `create_checkout` | A custom function on your agent that creates a Checkout Session and returns where to transfer |
-| The transfer target | The `transfer_to` SIP URI the Checkout Session returns |
-| The transfer | Retell's `transfer_call` tool, destination filled from the function's response |
-| The result | A `checkout.completed` webhook to your server |
+hosted web checkout. If the model is new to you, read
+[Call transfer](/concepts/checkout-session) first.
 
 ## Prerequisites
 
-- A Retell agent you already run, with a phone number.
-- Your Retell API key.
-- A Ringup account and [API key](/authentication). Test mode works out of the box on
-  a shared sandbox, so there is nothing to connect. See [Testing](/concepts/testing).
+- A Retell agent you already run, with a phone number (see the warning below).
+- Your Retell API key, and a Ringup [API key](/authentication).
 
 ## Set up
-
-This is the one-time setup. The fastest path is the Ringup dashboard, which registers the
-functions for you. If you prefer to own every object in your Retell account, wire them by
-hand; both end in the same place.
 
 <Tabs>
 <Tab title="Using the dashboard">
 
 <Steps>
   <Step title="Connect Retell, once for your account">
-    In the Ringup dashboard, open **Integrations**, then **Connect Retell**. Paste your
-    Retell API key. Ringup uses it to list your agents and provision the payment
-    objects, and never stores it. One connection covers every merchant you run.
+    In the Ringup dashboard, open **Integrations**, then **Connect Retell**, and paste your Retell
+    API key. Ringup uses it to list your agents and provision the payment objects, and never
+    stores it. One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    Select the agent or agents that answer merchant calls. Ringup registers the `identify`
-    function (called at the greeting, so a returning caller is greeted by name), the
-    `create_checkout` function, and the `transfer_to_payment` tool on each one; paste the one
-    prompt line the dashboard shows. There is no per-merchant step: the merchant resolves
-    from the dialed number on every call, and each merchant activates when it connects its
-    processor.
+    Select the agents that answer merchant calls. Ringup registers `identify` (called at the
+    greeting), `create_checkout`, and the `transfer_to_payment` tool on each; paste the one prompt
+    line the dashboard shows. No per-merchant step: the merchant resolves from the dialed number,
+    and activates when it connects its processor.
   </Step>
   <Step title="Add your webhook endpoint">
-    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
-    Ringup sends a signed `checkout.completed` there for every payment, so your server can
-    mark orders paid. See [Webhooks](/concepts/webhooks).
+    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret. Ringup
+    posts a signed `checkout.completed` there for every payment. See [Webhooks](/concepts/webhooks).
   </Step>
-  <Step title="Rehearse before you flip live">
-    The dashboard binds a test twin of your agent to a rehearsal number. Call it, place an
-    order, and pay with the test card. The whole flow runs in test mode against the sandbox;
-    no real card, no real charge. See [Testing](/concepts/testing).
-  </Step>
-  <Step title="Go live">
-    When the rehearsal call reads a confirmation code back, click **Go live**. The same
-    functions now run on your production agent with your live key.
+  <Step title="Rehearse on the rehearsal number, then go live">
+    The dashboard binds a test twin of your agent to a rehearsal number. Call it, order, and pay
+    with the test card (Visa ending 5858): no real charge. When it reads a confirmation code back,
+    click **Go live**.
   </Step>
 </Steps>
 
@@ -70,10 +47,16 @@ hand; both end in the same place.
 <Tab title="Using the API">
 
 <Steps>
-  <Step title="Add the Ringup checkout function to your agent">
-    Register a custom function on your Retell agent that creates a Ringup Checkout Session,
-    authenticated with your Ringup API key. Add it in the Retell dashboard (Agent, then
-    Functions, then Add custom function) or through the Retell API:
+  <Step title="Recognize the caller at the greeting">
+    Register `identify` as a custom function (it takes no arguments; the caller's number comes
+    from the call) and call it at the greeting, not at payment. For a returning caller it returns
+    their name and saved card, so your agent greets them by name. See
+    [Recognize at the start of the call](/concepts/identity).
+  </Step>
+  <Step title="Add the Ringup checkout function">
+    Register a custom function on your agent that creates a Ringup Checkout Session, authenticated
+    with your Ringup API key, and add one prompt line: *when the caller has confirmed their order,
+    call `create_checkout` with the order total.*
 
     ```jsonc
     {
@@ -89,34 +72,19 @@ hand; both end in the same place.
       },
       "parameters": {
         "amount_cents":    { "type": "number", "description": "Order total in cents" },
-        "success_message": { "type": "string", "description": "One short warm closing line for this order, written from the conversation" },
+        "success_message": { "type": "string", "description": "Optional warm closing line Ringup reads before ending the call" },
         "order_id":        { "type": "string", "description": "Your processor order id, if you have one" }
       },
-      "response_variables": { "ringup_transfer_uri": "transfer_to" },  // fills the transfer destination
+      "response_variables": { "ringup_transfer_uri": "transfer_to" },  // fills the transfer destination server-side
       "speak_during_execution": true,
       "execution_message_type": "static_text",
       "execution_message_description": "One moment, putting your payment through now."
     }
     ```
-
-    `response_variables` stores the `transfer_to` the session returns in a dynamic variable,
-    so the transfer destination is filled server-side, never typed by the model. The
-    `execution_message_description` line is the bridge the caller hears while the session is
-    created and the call moves, so there is never dead air; keep it to one short sentence.
-
-    Then add one line to your agent's prompt so it knows when to call it:
-
-    > When the caller has confirmed their order, call `create_checkout` with the order total.
-  </Step>
-  <Step title="Register identify and call it at the greeting">
-    Register `identify` the same way (same headers; it takes no arguments) and have the agent
-    call it at the greeting, not at payment. For a returning caller it returns their name and
-    saved card, so the agent greets them by name and never re-asks for anything recognition
-    already provides. See [Recognize at the start of the call](/concepts/identity).
   </Step>
   <Step title="Wire the transfer">
-    Add a `transfer_call` tool whose destination is the `transfer_to` the Checkout Session
-    returns, filled through a Retell dynamic variable, never as a value the model types:
+    Add a `transfer_call` tool whose destination is filled from the `ringup_transfer_uri` dynamic
+    variable, never a value the model types, and cold-transfer over SIP REFER:
 
     ```jsonc
     {
@@ -127,90 +95,37 @@ hand; both end in the same place.
     }
     ```
 
-    The session travels inside the transfer address itself, as a signed token in the SIP
-    URI; custom SIP headers do not survive Retell's transfer leg, so the URI is the one
-    carrier that matters. Because the token also holds the caller's number captured at
-    session creation, recognition on the payment line never depends on caller ID surviving
-    the transfer either.
+    The session travels inside the transfer address itself, as a signed token in the SIP URI;
+    custom SIP headers do not survive Retell's transfer leg.
+  </Step>
+  <Step title="Add your webhook endpoint">
+    In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy
+    the signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    [Webhooks](/concepts/webhooks).
+  </Step>
+  <Step title="Test it, then go live">
+    Point the `create_checkout` function's `url` at the keyless sandbox,
+    `https://ringup.dev/api/tools/create_checkout` (or keep the prod URL with your `rk_test_` key).
+    Call your agent and order: the test caller (`+14155550142`) pays on the saved Visa ending 5858;
+    a first-time caller is texted a link and enters `4111 1111 1111 1111`. Expect a confirmation
+    code read back and a test-mode `checkout.completed`. Swap the URL back to the live endpoint to
+    go live.
   </Step>
 </Steps>
-
-Last, register your webhook endpoint in the Ringup dashboard, under **Settings, then
-Webhooks**, and copy the signing secret. Your server verifies the signature and handles the
-`checkout.completed` event. See [Webhooks](/concepts/webhooks).
 
 </Tab>
 </Tabs>
 
 <Warning>
 Transfer to the SIP URI the Checkout Session returns, not to a PSTN number, and from a number
-Retell can move a call from: numbers purchased through Retell and numbers imported over an
-elastic SIP trunk both work. For an imported number, enable call transfer (SIP REFER) on the
-trunk at your telephony provider, or the transfer is refused. A call that reaches the agent
-by dial-to-SIP-URI (a registered call) cannot use Retell's transfer at all; put agents that
-take payments on a real number.
+Retell can move a call from: numbers purchased through Retell and numbers imported over an elastic
+SIP trunk both work. For an imported number, enable call transfer (SIP REFER) on the trunk at your
+telephony provider, or the transfer is refused. A call that reaches the agent by dial-to-SIP-URI (a
+registered call) cannot use Retell's transfer at all; put agents that take payments on a real
+number.
 </Warning>
 
-## What happens on the call
-
-When the caller confirms the order, your agent calls `create_checkout` with the amount and any
-optional fields (`line_items`, `order_id` to settle against an existing order, and `return_to` /
-`success_message` / `failure_message` for how the call ends; full schema on
-[Checkout Session](/concepts/checkout-session)). The response is the Checkout Session:
-
-```jsonc
-{
-  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
-  "payment_required": "required",                    // "required" | "optional" | "none"
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
-}
-```
-
-On `none` there is no `transfer_to`: the merchant takes no payment for this order, so the agent
-carries on and ends the call normally. On `required` or `optional`, the transfer you wired
-fires, its destination filled from the dynamic variable.
-
-<Tip>
-The `execution_message_description` bridge line keeps the caller off silence while the call
-moves. The payment line's voice and model are set in your Ringup dashboard, so you can match
-them to your agent.
-</Tip>
-
-## Test it
-
-Run one full payment in test mode before go-live. Point the `create_checkout` function's `url`
-at the keyless sandbox, `https://ringup.dev/api/tools/create_checkout` (or keep the prod URL
-with your `rk_test_` key). Call your agent and order: the recognized test caller
-(`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a link and
-enters the sandbox card `4111 1111 1111 1111`. Expect the payment line to read a confirmation
-code and a test-mode `checkout.completed` at your endpoint. Fixtures in
-[Testing](/concepts/testing).
-
-## The return, and the result
-
-Ringup answers the transferred call, recognizes the caller, and charges the saved card on the
-merchant's own processor (a first-time caller is texted a secure pay link instead). The call
-then ends per your `create_checkout` fields: **`return_to`** transfers the caller back with the
-outcome in SIP headers (`X-Payment-Status`, `X-Confirmation`) so your agent closes in its own
-voice; **`success_message`** has Ringup read your line and end; **neither** gets a short
-default. A `return_to` that cannot connect falls back to speaking the message, so a failed
-return never strands the caller.
-
-Either way the caller gets an SMS receipt and your server gets the signed `checkout.completed`
-event: match on your `order_id`, store the `payment_id`, and flip the order to paid. See
-[Webhooks](/concepts/webhooks) for the payload, signature verification, and idempotency.
-
-## Validation status
-
-<Check>
-This transfer path is validated end to end on live calls: Checkout Session created mid-call,
-call cold-transferred over SIP REFER, the session token arrived intact in the transfer
-address, the caller recognized, and the saved test card charged in the sandbox.
-</Check>
-
-The return-to-agent path (`return_to`) is documented, not yet validated on Retell; treat it
-as designed behavior until Ringup confirms it for your account.
-
+<ConnectBeforeGoLive />
 
 ## Next steps
 
