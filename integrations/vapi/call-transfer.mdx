@@ -61,7 +61,9 @@ or via the API):
     "parameters": {
       "type": "object",
       "properties": {
-        "amount_cents": { "type": "number", "description": "Order total in cents" }
+        "amount_cents":    { "type": "number", "description": "Order total in cents" },
+        "success_message": { "type": "string", "description": "One short warm closing line for this order, written from the conversation. Example: 'Your large pepperoni will be ready around 7:45, see you soon, Alex!'" },
+        "order_id":        { "type": "string", "description": "Your order reference, if you have one" }
       },
       "required": ["amount_cents"]
     }
@@ -117,7 +119,23 @@ the payment line never depends on caller ID surviving the transfer. You never se
 any of this; it is why the integration stays one tool.
 </Accordion>
 
-## Step 4: After payment
+## Step 4: End the call in the merchant's words
+
+The payment line always reads the confirmation code itself, so the code can never be garbled.
+Everything after the code is yours, three ways, in order of precedence:
+
+1. **Per call, zero code**: your agent fills `success_message` on the tool call it already
+   makes, from the conversation it is already having ("Your large pepperoni will be ready in
+   about 20 minutes, see you soon, Alex!"). Nothing to build; it is one optional argument.
+2. **Once, statically**: set `success_message` and `failure_message` as query parameters on the
+   tool's server URL. Templates may use `{confirmation}`, `{order_id}`, `{amount}`, and
+   `{name}`, filled at charge time from the session and the charge result, never by a model.
+3. **Neither**: Ringup reads a short warm default.
+
+`failure_message` (URL parameter) is spoken if the charge fails, before the payment line
+offers a texted pay link as the backup.
+
+## Step 5: After payment
 
 Ringup charges, texts the caller a receipt, and ends the call with the confirmation code read
 aloud. Your server reconciles from a `checkout.completed` webhook, which carries the Payment
