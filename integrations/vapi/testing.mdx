@@ -1,41 +1,54 @@
 ---
 title: "Testing"
-description: "Test a Vapi Ringup integration end to end: a private-line rehearsal and post-go-live verification, all against the shared sandbox."
+description: "Test a Vapi Ringup call-transfer integration end to end: a private-line rehearsal, wiring verification, and how to read results, all against the shared sandbox."
 ---
 
 Vapi tests against Ringup's shared sandbox, the same one every integration uses. The fixtures
 live in one place, [Testing](/concepts/testing): the sandbox card (`4111 1111 1111 1111`), the
 decline card, the test merchants, and the recognized test caller (`+14155550142`, saved Visa
-ending 5858). This page covers the Vapi specifics: the rehearsal line and how to verify the
-wiring.
+ending 5858). This page covers the Vapi specifics for [call
+transfer](/integrations/vapi/call-transfer), the recommended integration.
 
 ## Rehearse on a private line
 
-When you add payment from the Ringup dashboard (see
-[Native handoff](/integrations/vapi/native)), Ringup binds a test twin of your agent, with the
-go-live changes baked in, to a rehearsal number only you know about. Call it from a real
-phone: you hear your actual agent, your actual prompts, and the full payment flow, before
-anything you own changes. Wiring by hand instead? Build the same rig yourself; the Using the
-API tab of the [native handoff guide](/integrations/vapi/native) walks it.
+When you add payment from the Ringup dashboard (see [Call
+transfer](/integrations/vapi/call-transfer)), Ringup binds a test twin of your agent, with the
+tools and prompt baked in, to a rehearsal number only you know about. Call it from a real
+phone: you hear your actual agent take the order, the heads-up line, the transfer, and the full
+payment flow, before anything you own changes.
+
+Wiring by hand instead? Point the transfer tool's `server.url` at the keyless sandbox
+(`https://ringup.dev/api/transfer-destination`) and call your agent. Two journeys to run:
+
+1. **Recognized caller**: the test caller is greeted by name and pays on the saved Visa ending
+   5858 with one yes.
+2. **First-time caller**: call from a number the sandbox does not know; the payment line texts
+   a secure link, you pay with `4111 1111 1111 1111`, and the call announces the payment the
+   moment it lands.
+
+Both should end with a confirmation code read back and a test-mode `checkout.completed`.
 
 ## Verify the wiring after go-live
 
-Read the wiring back from the Vapi API: the squad structure, the payment and wrap-up
-configuration, the handoff tool shape, and every transcriber model name (Vapi accepts typos
-silently and they only fail at runtime).
+Read the assistant back from the Vapi API and check three things:
+
+- Both tools are attached: `identify` and `transfer_to_payment` appear in the assistant's
+  `toolIds`, and the transfer tool is `async: true` with the Ringup `server.url`.
+- The prompt block is present (identify at the greeting; transfer on order confirmation).
+- The agent's phone number can transfer to SIP: Vapi-native and SIP-trunk numbers can; a
+  number imported from a telephony provider cannot (the guide's warning covers the options).
 
 <Note>
-Vapi's dashboard does not render squad-scoped wiring or apiRequest tool names; the squad
-canvas may show "No handoff tools configured" for working wiring. The Vapi API is the source
-of truth.
+Vapi's dashboard does not always render apiRequest tool names; the Vapi API is the source of
+truth for wiring. If you use [native handoff](/integrations/vapi/native) (limited preview),
+its guide covers the extra squad-level checks that mode needs.
 </Note>
 
 ## Reading test results
 
 Only a `succeeded` charge result with a payment id and confirmation code proves a payment
-happened; an agent can narrate success it did not have. And validate squads with a **voice
-call**: Vapi chat pipelines assemble handoffs differently, so a text-chat smoke test proves
-nothing about voice.
+happened; an agent can narrate success it did not have. And always validate with a **voice
+call**, never text chat: transfers only exist on voice, so a chat smoke test proves nothing.
 
 ## Next steps
 
