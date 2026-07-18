@@ -38,7 +38,8 @@ plain tools instead (recognize the caller, charge the saved card, no transfer at
     `transfer_to_payment` on each and shows one prompt line to paste. No per-merchant step:
     the merchant resolves from the dialed number, and activates when it connects its processor.
   </Step>
-  <Step title="Add your webhook endpoint">
+  <Step title="Optional: add a webhook endpoint">
+    You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
     Ringup posts a signed `checkout.completed` there for every payment. See
     [Webhooks](/concepts/webhooks).
@@ -93,7 +94,8 @@ plain tools instead (recognize the caller, charge the saved card, no transfer at
     }
     ```
   </Step>
-  <Step title="Add your webhook endpoint">
+  <Step title="Optional: add a webhook endpoint">
+    You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
     In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy
     the signing secret. Your server verifies the signature and handles `checkout.completed`
     (`payment_id`, your `order_id`, the confirmation). See [Webhooks](/concepts/webhooks).
