@@ -3,8 +3,6 @@ title: "Call transfer"
 description: "Take payment on a Vapi call with one tool: your agent confirms the order, Ringup transfers the call to its payment line, charges the saved card, and webhooks you the result."
 ---
 
-import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
-
 **Call transfer is the recommended way to add Ringup to a Vapi agent.** At payment time your agent
 moves the live call to a Ringup payment line, like a hosted checkout over the phone, and Ringup runs
 the whole payment. The whole integration is one tool: your agent calls `transfer_to_payment` with
@@ -43,6 +41,20 @@ plain tools instead (recognize the caller, charge the saved card, no transfer at
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
     Ringup posts a signed `checkout.completed` there for every payment. See
     [Webhooks](/concepts/webhooks).
+  </Step>
+  <Step title="Add the Connect button to your merchant dashboard">
+    Charges settle only for merchants who have connected their own payment processor. Embed the
+    one-line Connect button on your merchant-facing dashboard so each merchant self-connects;
+    until a merchant does, the payment layer stays inaudible on their calls, so going live first
+    is safe.
+
+    ```html
+    <script src="https://ringup.dev/connect/button.js"
+            data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
+    ```
+
+    Button options, the hosted connect flow, and supported processors:
+    [Payment providers](/payment-providers/overview).
   </Step>
   <Step title="Test on the rehearsal number, then go live">
     The dashboard binds a test twin of your agent to a rehearsal number. Call it, order, and
@@ -100,6 +112,20 @@ plain tools instead (recognize the caller, charge the saved card, no transfer at
     the signing secret. Your server verifies the signature and handles `checkout.completed`
     (`payment_id`, your `order_id`, the confirmation). See [Webhooks](/concepts/webhooks).
   </Step>
+  <Step title="Add the Connect button to your merchant dashboard">
+    Charges settle only for merchants who have connected their own payment processor. Embed the
+    one-line Connect button on your merchant-facing dashboard so each merchant self-connects;
+    until a merchant does, the payment layer stays inaudible on their calls, so going live first
+    is safe.
+
+    ```html
+    <script src="https://ringup.dev/connect/button.js"
+            data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
+    ```
+
+    Button options, the hosted connect flow, and supported processors:
+    [Payment providers](/payment-providers/overview).
+  </Step>
   <Step title="Test it, then go live">
     Point the tool's `server.url` at the keyless sandbox,
     `https://ringup.dev/api/transfer-destination`. Call your agent and order: the test caller
@@ -118,8 +144,6 @@ both can. A number **imported from a telephony provider** cannot, so put those a
 [native handoff](/integrations/vapi/native) or move the number onto a SIP trunk. The dashboard
 flags which path fits each agent when you connect.
 </Warning>
-
-<ConnectBeforeGoLive />
 
 ## What Ringup guarantees during the transfer
 

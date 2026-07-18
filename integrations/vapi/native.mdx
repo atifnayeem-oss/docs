@@ -3,8 +3,6 @@ title: "Native handoff (limited preview)"
 description: "The in-squad payment step, in your agent's own voice, plus the in-agent tools mode. In limited preview: start with call transfer unless you have a specific reason."
 ---
 
-import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
-
 <Warning>
 **Native handoff is in limited preview.** The payment step runs inside a Vapi squad, and in our
 field testing the platform's mid-call step assembly occasionally fails, which can end a call
@@ -51,6 +49,20 @@ payment moment handled for you.
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
     Ringup posts a signed `checkout.completed` there for every payment. See
     [Webhooks](/concepts/webhooks).
+  </Step>
+  <Step title="Add the Connect button to your merchant dashboard">
+    Charges settle only for merchants who have connected their own payment processor. Embed the
+    one-line Connect button on your merchant-facing dashboard so each merchant self-connects;
+    until a merchant does, the payment layer stays inaudible on their calls, so going live first
+    is safe.
+
+    ```html
+    <script src="https://ringup.dev/connect/button.js"
+            data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
+    ```
+
+    Button options, the hosted connect flow, and supported processors:
+    [Payment providers](/payment-providers/overview).
   </Step>
   <Step title="Rehearse on the rehearsal number, then go live">
     The dashboard binds a test twin of your agent, with the go-live changes baked in, to a
@@ -167,6 +179,20 @@ identity header and the model never types identity.
     signing secret. Your server verifies the signature and handles `checkout.completed`. See
     [Webhooks](/concepts/webhooks).
   </Step>
+  <Step title="Add the Connect button to your merchant dashboard">
+    Charges settle only for merchants who have connected their own payment processor. Embed the
+    one-line Connect button on your merchant-facing dashboard so each merchant self-connects;
+    until a merchant does, the payment layer stays inaudible on their calls, so going live first
+    is safe.
+
+    ```html
+    <script src="https://ringup.dev/connect/button.js"
+            data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
+    ```
+
+    Button options, the hosted connect flow, and supported processors:
+    [Payment providers](/payment-providers/overview).
+  </Step>
   <Step title="Test it, then go live">
     Point the tools' `url` at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the prod
     URLs with your `rk_test_` key). Call your agent and order: the test caller (`+14155550142`) is
@@ -178,8 +204,6 @@ identity header and the model never types identity.
 
 </Tab>
 </Tabs>
-
-<ConnectBeforeGoLive />
 
 ## Next steps
 
