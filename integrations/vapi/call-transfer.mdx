@@ -5,16 +5,17 @@ description: "Take payment on a Vapi call with one tool: your agent confirms the
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-**Call transfer** is the hosted mode standardized across platforms: at payment time your agent
+**Call transfer is the recommended way to add Ringup to a Vapi agent.** At payment time your agent
 moves the live call to a Ringup payment line, like a hosted checkout over the phone, and Ringup runs
 the whole payment. The whole integration is one tool: your agent calls `transfer_to_payment` with
-the order total, and Ringup does the rest. You write no payment logic.
+the order total, and Ringup does the rest. You write no payment logic, and every improvement Ringup
+ships to the payment conversation reaches your callers with no change on your side.
 
-Ringup adds to a Vapi agent two ways. This page is the **hosted** mode by transfer. The other hosted
-option, [native handoff](/integrations/vapi/native), keeps the caller in your agent's own voice with
-no transfer. If instead you want to keep the caller in your own agent and add payment as plain tools
-(recognize the caller, charge the saved card, no transfer at all), use the **In your agent** tab of
-[native handoff](/integrations/vapi/native).
+Two alternatives exist. [Native handoff](/integrations/vapi/native) keeps the caller in your agent's
+own voice with no transfer; it is in **limited preview** while we harden its reliability, so start
+here unless you have a specific reason. To keep the caller in your own agent and add payment as
+plain tools instead (recognize the caller, charge the saved card, no transfer at all), use the
+**In your agent** tab of [native handoff](/integrations/vapi/native).
 
 ## Prerequisites
 
@@ -56,7 +57,9 @@ no transfer. If instead you want to keep the caller in your own agent and add pa
   <Step title="Recognize the caller at the greeting">
     Register `identify` as an apiRequest tool and call it at the greeting. It takes no inputs;
     for a returning caller it returns their name and saved card, so your agent greets them by
-    name. See [Recognize at the start of the call](/concepts/identity).
+    name. For an unknown caller it returns `known: false` and your agent continues with no
+    name: never invent, guess, or reuse one, and never claim to recognize a caller `identify`
+    did not return. See [Recognize at the start of the call](/concepts/identity).
   </Step>
   <Step title="Add the transfer tool">
     Create one async function tool pointed at Ringup, and add one prompt line: *when the
@@ -78,7 +81,7 @@ no transfer. If instead you want to keep the caller in your own agent and add pa
           "type": "object",
           "properties": {
             "amount_cents":    { "type": "number", "description": "Order total in cents" },
-            "success_message": { "type": "string", "description": "Optional warm closing line, e.g. 'Your large pepperoni will be ready around 7:45, see you soon, Alex!'" },
+            "success_message": { "type": "string", "description": "Optional warm closing line spoken after payment, e.g. 'Your large pepperoni will be ready around 7:45, see you soon!' Never include the caller's name." },
             "order_id":        { "type": "string", "description": "Your order reference, if you have one" }
           },
           "required": ["amount_cents"]
@@ -115,6 +118,25 @@ flags which path fits each agent when you connect.
 </Warning>
 
 <ConnectBeforeGoLive />
+
+## What Ringup guarantees during the transfer
+
+<Check>
+**The hand-off is never silent.** Before the leg switches, Ringup speaks a heads-up in your
+agent's turn ("Just a sec, connecting you to our secure payment line now") and holds the
+transfer until the sentence finishes.
+</Check>
+
+<Check>
+**A dropped session reference cannot strand a payment.** The Checkout Session rides the
+transfer two ways at once: in the transfer itself and in a short-lived server-side record
+keyed to the caller's number. If either carrier fails, the other completes the payment.
+</Check>
+
+<Check>
+**The confirmation is pushed, not polled.** The moment a payment settles, whether by saved
+card on the call or a texted link paid mid-call, the payment line announces it instantly.
+</Check>
 
 ## Next steps
 

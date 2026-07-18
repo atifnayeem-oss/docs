@@ -1,16 +1,25 @@
 ---
-title: "Native handoff"
-description: "Add payments to a Vapi agent two ways: hosted (the payment step runs inside your squad, in your agent's own voice) or in your own agent via tools. Provision, rehearse, go live, roll back."
+title: "Native handoff (limited preview)"
+description: "The in-squad payment step, in your agent's own voice, plus the in-agent tools mode. In limited preview: start with call transfer unless you have a specific reason."
 ---
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
+
+<Warning>
+**Native handoff is in limited preview.** The payment step runs inside a Vapi squad, and in our
+field testing the platform's mid-call step assembly occasionally fails, which can end a call
+without the spoken confirmation. [Call transfer](/integrations/vapi/call-transfer) is the
+recommended integration: its payment moment runs on Ringup's own line as deterministic code, and
+it is the mode our production traffic runs on. Choose native handoff when you specifically need
+the payment step in your agent's own uninterrupted voice and accept the preview caveat, or when
+your number cannot transfer to SIP.
+</Warning>
 
 Add card-on-file payments to a Vapi agent two ways. **Hosted** runs the payment step inside your
 squad in your agent's own voice, so you write no payment prompt; set it up from the dashboard. **In
 your agent** keeps the caller in your agent the whole call: you add three tools that recognize the
 caller and charge their saved card, and nothing hands off. A recognized caller never reads a card
-aloud, so no card data touches your agent either way. To standardize one integration across several
-platforms instead, use [call transfer](/integrations/vapi/call-transfer).
+aloud, so no card data touches your agent either way.
 
 ## Prerequisites
 
