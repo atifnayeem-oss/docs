@@ -512,7 +512,8 @@ A decline arrives on a `200` from `charge`, as `"status": "failed"` with a `fail
   "failure": {
     "code": "card_declined",
     "decline_code": "insufficient_funds",
-    "processor_code": "INSUFFICIENT_FUNDS",
+    "advice_code": "try_again_later",
+    "processor_code": "…",
     "message": "Card declined by the issuer.",
     "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
     "agent_action": "offer_different_card"
@@ -520,8 +521,9 @@ A decline arrives on a `200` from `charge`, as `"status": "failed"` with a `fail
 }
 ```
 
-`processor_code` is the processor's own code, verbatim, for your logs. `decline_code` is that code
-normalized into the vocabulary below, so one branch works across every processor.
+Branch on `decline_code`: it is Ringup's own vocabulary, identical no matter which processor the
+merchant runs. `processor_code` carries that processor's raw value, unmodified, for your logs when
+you need to trace a specific decline back to its source.
 
 ### Reasons your agent will state plainly
 
@@ -537,6 +539,18 @@ normalized into the vocabulary below, so one branch works across every processor
 | `call_issuer` | "That card was declined and the bank needs to approve it. Would you like to try a different card?" | `offer_different_card` |
 | `authentication_required` | "That card needs extra verification from the bank. Would you like to try a different card?" | `offer_different_card` |
 | `try_again_later` | "That did not go through just now. Shall I try once more?" | `retry_card` |
+
+### Advice on retrying
+
+Each decline also carries `advice_code`, our guidance on what to do programmatically. It is
+separate from `agent_action`, which drives the conversation: a card can be "do not retry this
+card" while the agent still offers a different one.
+
+| `advice_code` | Meaning |
+|---|---|
+| `try_again_later` | Transient. The same card may work shortly. |
+| `confirm_card_data` | The caller likely mistyped something. Re-collect and retry. |
+| `do_not_try_again` | Permanent for this card. Use a different one. |
 
 ### Reasons your agent will never state
 
