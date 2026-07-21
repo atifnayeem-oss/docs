@@ -502,6 +502,57 @@ The checkout session could not be written.
 **Then.** `escalate` · safe to retry
 </Accordion>
 
+## Declines
+
+A decline arrives on a `200` from `charge`, as `"status": "failed"` with a `failure` object:
+
+```json
+{
+  "status": "failed",
+  "failure": {
+    "code": "card_declined",
+    "decline_code": "insufficient_funds",
+    "processor_code": "INSUFFICIENT_FUNDS",
+    "message": "Card declined by the issuer.",
+    "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
+    "agent_action": "offer_different_card"
+  }
+}
+```
+
+`processor_code` is the processor's own code, verbatim, for your logs. `decline_code` is that code
+normalized into the vocabulary below, so one branch works across every processor.
+
+### Reasons your agent will state plainly
+
+| `decline_code` | Your agent says | Then |
+|---|---|---|
+| `insufficient_funds` | "That card was declined for insufficient funds. Would you like to try a different card?" | `offer_different_card` |
+| `expired_card` | "That card has expired. Would you like to try a different card?" | `offer_different_card` |
+| `incorrect_cvc` | "That security code did not match. Would you like to try again?" | `retry_card` |
+| `incorrect_number` | "That card number did not go through. Would you like to try again?" | `retry_card` |
+| `incorrect_postal_code` | "That billing zip code did not match. Would you like to try again?" | `retry_card` |
+| `card_not_supported` | "That card type is not accepted here. Would you like to try a different card?" | `offer_different_card` |
+| `card_velocity_exceeded` | "That card has reached its limit for now. Would you like to try a different card?" | `offer_different_card` |
+| `call_issuer` | "That card was declined and the bank needs to approve it. Would you like to try a different card?" | `offer_different_card` |
+| `authentication_required` | "That card needs extra verification from the bank. Would you like to try a different card?" | `offer_different_card` |
+| `try_again_later` | "That did not go through just now. Shall I try once more?" | `retry_card` |
+
+### Reasons your agent will never state
+
+<Warning>
+Some declines must not be read aloud. A card reported lost or stolen, or one flagged for fraud,
+returns **exactly the same sentence as an ordinary decline**, so your agent cannot reveal it and a
+person listening cannot infer it. The real reason still reaches you in `decline_code` and
+`processor_code`.
+</Warning>
+
+This is an **allowlist**, not a blocklist: only the reasons in the table above are ever stated
+plainly. Every other reason, whether sensitive or simply one we have not catalogued, falls back to
+"That card could not be processed. Would you like to try a different card?" Processors add and rename decline codes without
+notice, so a new or undocumented reason is safe by default rather than safe only until someone
+updates a list.
+
 ## Next steps
 
 <CardGroup cols={2}>
