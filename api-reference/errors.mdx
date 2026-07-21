@@ -3,7 +3,10 @@ title: "Errors"
 description: "Every error Ringup can return: the envelope, the seven error types, and the full code catalog with the exact sentence your agent can speak."
 ---
 
-Every error uses one envelope. Branch on `type` first, then refine on `code`.
+**One envelope, every endpoint.** The same object comes back from provisioning, identify, checkout,
+cards and charge, so you write one parser. A declined charge arrives as a `200` with
+`"status": "failed"` and carries these same fields under `failure`. Branch on `type` first,
+then refine on `code`.
 
 ```json
 {
@@ -11,10 +14,12 @@ Every error uses one envelope. Branch on `type` first, then refine on `code`.
     "type": "processor_error",
     "code": "card_declined",
     "decline_code": "insufficient_funds",
+    "advice_code": "try_again_later",
     "message": "Charge declined by the issuer.",
     "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
     "agent_action": "offer_different_card",
     "doc_url": "https://docs.ringup.dev/api-reference/errors#card_declined",
+    "charge": "chg_77386e2f",
     "request_id": "req_8f3c1d2ab4e9"
   }
 }
@@ -36,6 +41,12 @@ Every error uses one envelope. Branch on `type` first, then refine on `code`.
 </ResponseField>
 <ResponseField name="agent_action" type="string">
   What to do next: `retry_card`, `offer_different_card`, `send_link`, `end_call`, or `escalate`.
+</ResponseField>
+<ResponseField name="advice_code" type="string">
+  Our guidance on retrying: `try_again_later`, `confirm_card_data`, or `do_not_try_again`. Present on every error.
+</ResponseField>
+<ResponseField name="charge" type="string">
+  The charge this error relates to, when there is one.
 </ResponseField>
 <ResponseField name="param" type="string">
   The parameter at fault, when one field caused the error.
