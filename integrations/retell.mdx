@@ -19,7 +19,7 @@ aloud, so no card data touches your agent either way.
 ## Set up
 
 <Tabs>
-<Tab title="Using the dashboard (hosted)">
+<Tab title="Using Dashboard">
 
 Ringup takes payment on a transfer. Best when you want the payment moment handled for you.
 
@@ -49,12 +49,12 @@ Ringup takes payment on a transfer. Best when you want the payment moment handle
 <Warning>
 The hosted transfer needs a number Retell can move a call from: numbers bought through Retell and
 numbers imported over an elastic SIP trunk both work (for a trunk number, enable call transfer /
-SIP REFER at your provider). If your number cannot transfer, use the **In your agent** tab, which
+SIP REFER at your provider). If your number cannot transfer, use the **Using Tools** tab, which
 never transfers.
 </Warning>
 
 </Tab>
-<Tab title="In your agent (API)">
+<Tab title="Using Tools">
 
 Keep the caller in your agent and add three Retell custom functions pointed at Ringup, authed
 with your Ringup key. The caller's number rides the `X-Caller-Number` header Retell fills, so the

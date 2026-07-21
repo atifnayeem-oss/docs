@@ -19,7 +19,7 @@ no card data touches your agent either way.
 ## Set up
 
 <Tabs>
-<Tab title="Using the dashboard (hosted)">
+<Tab title="Using Dashboard">
 
 Ringup takes payment on a transfer. Best when you want the payment moment handled for you.
 
@@ -27,14 +27,14 @@ Ringup takes payment on a transfer. Best when you want the payment moment handle
 The hosted transfer needs the agent's number attached over a **SIP trunk**. ElevenLabs allows a
 SIP-URI transfer destination only with `sip_refer`, and rejects that combination on a native-Twilio
 number, so an agent on a native-Twilio number cannot reach the payment line by transfer. If your
-number cannot transfer, use the **In your agent** tab, which never transfers.
+number cannot transfer, use the **Using Tools** tab, which never transfers.
 </Warning>
 
 <Warning>
 **Preview.** The transfer transport is live: an agent on a SIP-trunk number can refer the call to
 the payment line. The piece that matches the transferred call to the order you registered by the
 caller's number is still in build. Confirm availability in your Ringup dashboard before relying on
-the hosted path in production. The **In your agent** tab is not affected and works today.
+the hosted path in production. The **Using Tools** tab is not affected and works today.
 </Warning>
 
 <Steps>
@@ -61,7 +61,7 @@ the hosted path in production. The **In your agent** tab is not affected and wor
 </Steps>
 
 </Tab>
-<Tab title="In your agent (API)">
+<Tab title="Using Tools">
 
 Keep the caller in your agent and add three ElevenLabs **webhook tools** pointed at Ringup, authed
 with your Ringup key. The caller's number rides `{{system__caller_id}}`, so the model never types

@@ -21,7 +21,7 @@ card aloud, so no card data touches your bridge either way.
 ## Set up
 
 <Tabs>
-<Tab title="In your agent (API)">
+<Tab title="Using Tools">
 
 Keep the caller on your bridge and call Ringup's tools straight from your handler with plain HTTP.
 Recognize the caller at the greeting, then charge their saved card when the order is confirmed. No
@@ -132,7 +132,7 @@ to the live URLs to go live.
 </Steps>
 
 </Tab>
-<Tab title="Using the dashboard (hosted)">
+<Tab title="Using Dashboard">
 
 Your bridge creates a Checkout Session and transfers the live call to it, like redirecting to a
 hosted web checkout. Ringup takes payment on its own line and returns the caller if you ask it to.
@@ -140,7 +140,7 @@ hosted web checkout. Ringup takes payment on its own line and returns the caller
 <Warning>
 The caller must arrive over a carrier leg that honors an inbound SIP REFER: an Elastic SIP Trunk
 does, a plain programmable-voice API leg does not. Point your OpenAI SIP origination at a
-trunk-grade number, or use the **In your agent** tab, which never transfers.
+trunk-grade number, or use the **Using Tools** tab, which never transfers.
 </Warning>
 
 <Note>
