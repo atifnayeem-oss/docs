@@ -73,14 +73,13 @@ order, `return_to` brings the caller back after payment, and `success_message` /
 let Ringup speak the outcome and end the call. `transfer_to` comes back only in transfer mode and
 embeds the session id. See the [API reference](/api-reference/introduction) for the full schema.
 
-## Two ways it is delivered
+## Two ways it is used
 
-A Checkout Session can reach the caller two ways, and the difference is invisible to your order
-logic. Both start with the same `create_checkout`.
+A Checkout Session works two ways, and the difference is invisible to your order logic. Both start
+with the same `create_checkout`.
 
-- **Native handoff.** On platforms that support it, payment runs inside the same call with no
-  transfer. Your agent hands off to Ringup's payment step, which reads the session and takes
-  payment in place.
+- **In your agent (API).** Your agent reads the session and charges the saved card itself with
+  Ringup's tools, no transfer. The flexible path.
 - **Call transfer.** If you have ever used a hosted web checkout, you already know this shape. In
   a web checkout you create a session, redirect the browser to a hosted page, and pass a return
   URL; the customer pays and lands back on your site. A Ringup call transfer is the same over the

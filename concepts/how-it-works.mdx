@@ -91,9 +91,8 @@ an API-driven one. Both use the same tools, the same identity, and the same off-
 - **Hosted.** Ringup takes the payment on its own line. Your agent hands the call off at the payment
   moment and Ringup runs the whole payment conversation: confirm the amount, charge, handle a
   decline, text a first-time link, read the confirmation. You write no payment logic and set it up
-  from the dashboard. The handoff is either a transfer to a Ringup payment line (works on any
-  platform, see [Checkout Session](/concepts/checkout-session)) or, where the platform supports it,
-  an in-call handoff in your agent's own voice with no transfer.
+  from the dashboard. Your agent transfers the call to a Ringup payment line (works on any platform,
+  see [Checkout Session](/concepts/checkout-session)).
 - **In your agent (API).** Your agent stays on the call the whole time and calls Ringup's tools to
   add payment: [`identify`](/concepts/identity) at the greeting, then [`charge`](/concepts/charge)
   for a recognized caller with a saved card, or [`send_link`](/concepts/send-link) for a first-time
