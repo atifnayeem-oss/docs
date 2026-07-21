@@ -78,13 +78,18 @@
           {
             "group": "API reference",
             "pages": [
-              "api-reference/introduction",
-              "api-reference/errors"
+              "api-reference/introduction"
             ]
           },
           {
             "group": "Tools",
             "openapi": "api-reference/openapi.json"
+          },
+          {
+            "group": "Errors",
+            "pages": [
+              "api-reference/errors"
+            ]
           }
         ]
       },
