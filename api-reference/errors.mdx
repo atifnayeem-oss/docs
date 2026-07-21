@@ -4,9 +4,8 @@ description: "Every error Ringup can return: the envelope, the seven error types
 ---
 
 **One envelope, every endpoint.** The same object comes back from provisioning, identify, checkout,
-cards and charge, so you write one parser. A declined charge arrives as a `200` with
-`"status": "failed"` and carries these same fields under `failure`. Branch on `type` first,
-then refine on `code`.
+cards and charge, so you write one parser. A declined charge is no exception: it arrives as a
+`402` in this same shape. Branch on `type` first, then refine on `code`.
 
 ```json
 {
@@ -90,10 +89,15 @@ reveal something it was never sent. The specific reason still reaches your logs 
 | `rate_limit_error` | Too many requests. Back off and retry. |
 | `api_error` | A fault on Ringup's side. Safe to retry. |
 
-## Payment outcomes are not errors
+## Declined payments are errors
 
-A declined card on a completed request is a **result**, not an HTTP error. `charge` returns `200`
-with `"status": "failed"` and a reason. Branch on the `status` field, never on `200` alone.
+A decline returns **`402`** with the same error envelope as everything else, carrying
+`decline_code`, `advice_code` and `processor_code`. It is not a `200` with a status field,
+so the ordinary `if (!response.ok)` check catches a declined payment rather than reading it as a
+success.
+
+Reading a payment *afterwards* is different: `payment_status` is a lookup and returns `200` with
+whatever the outcome was.
 
 ## Error codes
 
@@ -515,19 +519,20 @@ The checkout session could not be written.
 
 ## Declines
 
-A decline arrives on a `200` from `charge`, as `"status": "failed"` with a `failure` object:
+A decline arrives as a `402` from `charge`, in the standard envelope:
 
 ```json
 {
-  "status": "failed",
-  "failure": {
+  "error": {
+    "type": "processor_error",
     "code": "card_declined",
     "decline_code": "insufficient_funds",
     "advice_code": "try_again_later",
     "processor_code": "…",
     "message": "Card declined by the issuer.",
     "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
-    "agent_action": "offer_different_card"
+    "agent_action": "offer_different_card",
+    "charge": "chg_77386e2f"
   }
 }
 ```

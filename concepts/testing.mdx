@@ -74,9 +74,9 @@ differently from voice pipelines. Validate with a voice call.
 ## Edge cases and gotchas
 
 <AccordionGroup>
-  <Accordion title="A declined card is a 200, not an error" icon="triangle-exclamation">
-    The decline card (`4000 0000 0000 0002`) returns `200` with `"status": "failed"`, not an HTTP
-    error. Branch on the `status` field, never on the HTTP code alone. See
+  <Accordion title="A declined card is a 402 with the standard error envelope" icon="triangle-exclamation">
+    The decline card (`4000 0000 0000 0002`) returns `402`, carrying `decline_code`, `advice_code`
+    and the sentence your agent can speak. Your ordinary `if (!response.ok)` check catches it. See
     [Errors](/api-reference/errors).
   </Accordion>
   <Accordion title="Web and dashboard test calls have no caller ID" icon="phone-slash">
