@@ -7,6 +7,19 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="July 2026" description="Declines return 402">
+## A declined card is an error, not a result
+
+- [`charge`](/concepts/charge) now returns **`402`** on a decline, in the same
+  [error envelope](/api-reference/errors) as every other failure, carrying `decline_code`,
+  `advice_code`, `processor_code`, and the sentence your agent can speak. It previously returned
+  `200` with a `failure` block, which meant an ordinary `if (!response.ok)` check read a declined
+  payment as a success. **This is a breaking change within `/v1`**, made deliberately and before
+  any integration depended on it.
+- `payment_status` is unchanged at `200`: it is a read, so it reports whatever the outcome was.
+- `decline_code` is Ringup's own vocabulary, identical across processors. `processor_code` carries
+  the processor's raw value for tracing.
+
 <Update label="July 2026" description="Two integration modes">
 ## Hosted and in-agent API, on every platform
 
@@ -41,8 +54,8 @@ ships under a new version. See the stability note in the [API introduction](/api
 
 - A live **playground** on every tool in the [API reference](/api-reference/introduction): call
   the sandbox from the page.
-- A new [Errors](/api-reference/errors) page that separates transport errors (`4xx`/`5xx`) from
-  payment outcomes (a decline is a `200` with `status: failed`, not an HTTP error).
+- A new [Errors](/api-reference/errors) page cataloguing every code Ringup can return. (Declines
+  were a `200` with `status: failed` at the time; see the later entry that made them a `402`.)
 - `curl`, Node, and Python tabs on the [Quickstart](/quickstart).
 - A rendered flow diagram on [How it works](/concepts/how-it-works), and a "Next steps" trail on
   every page.

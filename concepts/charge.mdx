@@ -67,6 +67,13 @@ payment = requests.post(
 `X-Call-Id` keys [idempotency](#idempotent-under-retries) so a retry within a call never
 double-charges. `status` is `succeeded`, `failed`, or `pending`; only `succeeded` moved money.
 
+<Note>
+The tool surface above always answers `200` and puts the outcome in `status`, because a voice
+platform handles a non-`200` tool response poorly. Calling the REST API directly is different: a
+decline there is a `402` in the standard [error envelope](/api-reference/errors). Either way the
+reason and the sentence your agent can speak come back with it.
+</Note>
+
 ## Only after the caller agrees, and only `succeeded` is true
 
 Charge the card only after the caller verbally agrees to the amount. The result is ground truth:
