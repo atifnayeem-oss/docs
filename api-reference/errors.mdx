@@ -35,11 +35,26 @@ cards and charge, so you write one parser. A declined charge is no exception: it
 <ResponseField name="message" type="string">
   A developer-facing explanation. Written for your logs. **Never speak this to a caller.**
 </ResponseField>
-<ResponseField name="agent_message" type="string">
-  The sentence your voice agent can say, verbatim. Safe for a caller to hear, always.
+<ResponseField name="audience" type="string">
+  Who this error is for: `developer` or `caller`. It decides whether the three fields below
+  carry anything. A bug in your integration is not something a caller can act on, so we do not
+  hand your agent words for it.
 </ResponseField>
-<ResponseField name="agent_action" type="string">
-  What to do next: `retry_card`, `offer_different_card`, `send_link`, `end_call`, or `escalate`.
+<ResponseField name="agent_message" type="string | null">
+  The sentence your voice agent can say, verbatim. Safe for a caller to hear, always.
+  **Null on every `developer` error.**
+</ResponseField>
+<ResponseField name="display_message" type="string | null">
+  The same fact written to be read rather than spoken, for a screen or an SMS. Null on every
+  `developer` error.
+</ResponseField>
+<ResponseField name="agent_action" type="string | null">
+  The next PAYMENT move, when there is one: `retry_card`, `offer_different_card`, or
+  `send_link`. Null whenever the next move is not ours to choose.
+
+  This list is deliberately short. Whether to escalate, end the call, or carry on without
+  payment is a call-flow decision that belongs to you, not to your payments API, so we no
+  longer return one.
 </ResponseField>
 <ResponseField name="advice_code" type="string">
   Our guidance on retrying: `try_again_later`, `confirm_card_data`, or `do_not_try_again`. Present on every error.
@@ -66,7 +81,12 @@ cards and charge, so you write one parser. A declined charge is no exception: it
 ## Speaking errors to a caller
 
 Ringup ships the words. On a phone call there is no time to compose a message from a code, so every
-error carries `agent_message`: one sentence, written to be spoken, ending with the next move.
+error a CALLER can act on carries `agent_message`: one sentence, written to be spoken.
+
+Check `audience` first. A `developer` error (a malformed request, a bad key, a merchant id that
+does not exist) returns `null` for `agent_message`, `display_message` and `agent_action`,
+because a caller cannot do anything about your integration and inventing a line for your agent to
+say would be us guessing at your call flow.
 
 <Warning>
 Speak `agent_message` verbatim and never `message`. `message` is for your logs and can contain
@@ -110,9 +130,7 @@ The amount sent does not match the authoritative total on the referenced process
 
 **Resolution.** Send `order_id` without `amount_cents`, or send an amount equal to the order total.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="instrument_not_found  ·  404">
@@ -130,9 +148,7 @@ The credentials object is missing or not a plain object.
 
 **Resolution.** Send `credentials` as a JSON object matching the processor's shape.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_environment  ·  400">
@@ -140,9 +156,7 @@ The credentials object is missing or not a plain object.
 
 **Resolution.** Send one of the two supported values.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_events  ·  400">
@@ -150,9 +164,7 @@ The credentials object is missing or not a plain object.
 
 **Resolution.** Subscribe only to documented event types, or omit to receive all.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_json  ·  400">
@@ -160,9 +172,7 @@ The request body is not valid JSON.
 
 **Resolution.** Send a JSON body with Content-Type: application/json.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_payment_policy  ·  400">
@@ -170,9 +180,7 @@ The request body is not valid JSON.
 
 **Resolution.** Use `always`, `above_amount`, or `optional`.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_payment_policy_amount_cents  ·  400">
@@ -180,9 +188,7 @@ The request body is not valid JSON.
 
 **Resolution.** Send a positive integer threshold with the `above_amount` policy.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_processor  ·  400">
@@ -190,9 +196,7 @@ The request body is not valid JSON.
 
 **Resolution.** Use a supported processor value.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_state_key  ·  400">
@@ -200,9 +204,7 @@ The state key is missing or outside the allowed namespace.
 
 **Resolution.** Use a key within the documented namespace.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_ttl  ·  400">
@@ -210,9 +212,7 @@ The requested lifetime is outside the allowed range.
 
 **Resolution.** Send a ttl within the documented bounds.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_url  ·  400">
@@ -220,9 +220,7 @@ The webhook URL is missing or not a valid https URL.
 
 **Resolution.** Send an absolute https URL.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_value  ·  400">
@@ -230,9 +228,7 @@ A parameter was present but its value is not acceptable.
 
 **Resolution.** The `param` attribute names the offending field.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="invalid_vault  ·  400">
@@ -240,9 +236,7 @@ A parameter was present but its value is not acceptable.
 
 **Resolution.** Use a supported vault value, or omit it.
 
-**Your agent says.** "I can text you a secure link to pay instead. Would that work?"
-
-**Then.** `send_link`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="key_not_found  ·  404">
@@ -250,9 +244,7 @@ No API key with that id belongs to your account.
 
 **Resolution.** Check the key id.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="merchant_not_connected  ·  422">
@@ -260,9 +252,7 @@ The merchant exists but has not finished connecting their payment processor, so 
 
 **Resolution.** Send the merchant through the Connect button; wait for the `merchant.connected` webhook.
 
-**Your agent says.** "I'm not able to take payment on this line right now."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="merchant_not_found  ·  404">
@@ -270,9 +260,7 @@ No merchant with that id belongs to your account.
 
 **Resolution.** Check the merchant id, and that it was created with this account's key.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="missing_checkout_session_id  ·  400">
@@ -280,9 +268,7 @@ No merchant with that id belongs to your account.
 
 **Resolution.** Pass the id returned by create_checkout.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="missing_instrument_fields  ·  400">
@@ -290,9 +276,7 @@ The instrument payload is missing required fields.
 
 **Resolution.** The `param` attribute names the first missing field.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="missing_required_fields  ·  400">
@@ -300,9 +284,7 @@ A required parameter is missing.
 
 **Resolution.** The `param` attribute names the first missing field.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="needs_enrollment  ·  422">
@@ -320,9 +302,7 @@ No route matches this path and method.
 
 **Resolution.** Check the method and path against the API reference.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="order_lookup_unsupported  ·  422">
@@ -330,9 +310,7 @@ This processor cannot resolve an order total by reference.
 
 **Resolution.** Send `amount_cents` instead of `order_id` for this processor.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="processor_mismatch  ·  409">
@@ -350,9 +328,7 @@ The checkout session passed its expiry and can no longer be paid.
 
 **Resolution.** Create a new checkout session.
 
-**Your agent says.** "That payment request has expired. Let me start a new one for you."
-
-**Then.** `retry_card`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="session_missing_consumer  ·  422">
@@ -360,9 +336,7 @@ The session has no caller identity attached, so no card can be selected.
 
 **Resolution.** Call identify at the start of the call before creating the session.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="session_not_found  ·  404">
@@ -370,9 +344,7 @@ No checkout session with that id belongs to your account.
 
 **Resolution.** Check `checkout_session_id`.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 ### authentication_error
@@ -382,9 +354,7 @@ The API key is missing, malformed, revoked, or does not match the mode of the re
 
 **Resolution.** Send `Authorization: Bearer rk_test_…` (or `rk_live_…`) and confirm the key is not revoked.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 <Accordion title="vendor_not_provisioned  ·  422">
@@ -392,9 +362,7 @@ The key authenticated but its vendor has no provisioned account.
 
 **Resolution.** Complete vendor onboarding before minting keys.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 ### permission_error
@@ -404,9 +372,7 @@ That saved card does not belong to the caller on this session.
 
 **Resolution.** Charge only cards returned by identify for this caller.
 
-**Your agent says.** "That card could not be processed. Would you like to try a different card?"
-
-**Then.** `offer_different_card`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 ### processor_error
@@ -438,7 +404,6 @@ The merchant's stored processor credentials were rejected, so nothing can settle
 
 **Your agent says.** "I'm not able to take payment on this line right now."
 
-**Then.** `null`
 </Accordion>
 
 <Accordion title="order_lookup_failed  ·  424">
@@ -448,7 +413,7 @@ The processor could not be reached to resolve the order total.
 
 **Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
 
-**Then.** `null` · safe to retry
+Safe to retry.
 </Accordion>
 
 <Accordion title="processor_unavailable  ·  424">
@@ -468,9 +433,7 @@ This idempotency key was already used with different charge details.
 
 **Resolution.** Use a new key, or resend the original parameters unchanged.
 
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-**Then.** `null`
+**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
 ### rate_limit_error
@@ -482,7 +445,7 @@ Too many requests in a short window.
 
 **Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
 
-**Then.** `null` · safe to retry
+Safe to retry.
 </Accordion>
 
 ### api_error
@@ -494,7 +457,7 @@ An unexpected fault on Ringup's side.
 
 **Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
 
-**Then.** `null` · safe to retry
+Safe to retry.
 </Accordion>
 
 <Accordion title="not_configured  ·  503">
@@ -504,7 +467,7 @@ A required backend dependency is not configured in this environment.
 
 **Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
 
-**Then.** `null` · safe to retry
+Safe to retry.
 </Accordion>
 
 <Accordion title="session_create_failed  ·  500">
@@ -514,7 +477,7 @@ The checkout session could not be written.
 
 **Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
 
-**Then.** `null` · safe to retry
+Safe to retry.
 </Accordion>
 
 ## Declines

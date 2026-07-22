@@ -112,23 +112,9 @@
                 "$ref": "#/components/schemas/ErrorType"
               }
             },
-            "required": [
-              "type",
-              "code",
-              "audience",
-              "message",
-              "advice_code",
-              "agent_message",
-              "display_message",
-              "agent_action",
-              "doc_url"
-            ],
             "type": "object"
           }
         },
-        "required": [
-          "error"
-        ],
         "type": "object"
       },
       "AttachCredentialsRequest": {
@@ -150,10 +136,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "merchant_id",
-          "status"
-        ],
         "type": "object"
       },
       "Audience": {
@@ -226,18 +208,6 @@
             "$ref": "#/components/schemas/ChargeStatus"
           }
         },
-        "required": [
-          "status",
-          "amount_cents",
-          "currency",
-          "replay",
-          "charge_id",
-          "checkout_session_id",
-          "processor_payment_id",
-          "merchant_id",
-          "order_id",
-          "platform_call_id"
-        ],
         "type": "object"
       },
       "ChargeStatus": {
@@ -276,12 +246,6 @@
                     "$ref": "#/components/schemas/ChargeStatus"
                   }
                 },
-                "required": [
-                  "charge_id",
-                  "status",
-                  "amount_cents",
-                  "processor_payment_id"
-                ],
                 "type": "object"
               },
               {
@@ -342,19 +306,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "session_status",
-          "payment_required",
-          "amount_cents",
-          "currency",
-          "return_to",
-          "charge",
-          "checkout_session_id",
-          "merchant_id",
-          "order_id",
-          "platform_call_id",
-          "metadata"
-        ],
         "type": "object"
       },
       "CreateCardRequest": {
@@ -409,12 +360,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "consumer_id",
-          "instrument_id",
-          "brand",
-          "last_four"
-        ],
         "type": "object"
       },
       "CreateCheckoutRequest": {
@@ -528,18 +473,6 @@
             ]
           }
         },
-        "required": [
-          "checkout_session_id",
-          "payment_required",
-          "amount_cents",
-          "currency",
-          "amount_source",
-          "transfer_to",
-          "expires_at",
-          "cards",
-          "default_card_id",
-          "metadata"
-        ],
         "type": "object"
       },
       "CreateConsumerInstrument": {
@@ -608,9 +541,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "consumer_id"
-        ],
         "type": "object"
       },
       "CreateMerchantRequest": {
@@ -650,11 +580,6 @@
             ]
           }
         },
-        "required": [
-          "merchant_id",
-          "reference_id",
-          "onboarding_url"
-        ],
         "type": "object"
       },
       "CreateWebhookEndpointRequest": {
@@ -693,12 +618,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "webhook_endpoint_id",
-          "url",
-          "events",
-          "signing_secret"
-        ],
         "type": "object"
       },
       "ErrorCode": {
@@ -785,12 +704,6 @@
             ]
           }
         },
-        "required": [
-          "id",
-          "first_name",
-          "last_name",
-          "email"
-        ],
         "type": "object"
       },
       "IdentifyRequest": {
@@ -824,10 +737,6 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "known",
-          "consumer"
-        ],
         "type": "object"
       },
       "ListWebhookEndpointsResponse": {
@@ -840,9 +749,6 @@
             "type": "array"
           }
         },
-        "required": [
-          "webhook_endpoints"
-        ],
         "type": "object"
       },
       "MerchantStatusResponse": {
@@ -858,10 +764,6 @@
                 "type": "boolean"
               }
             },
-            "required": [
-              "api_access_key",
-              "sandbox"
-            ],
             "type": "object"
           },
           "created_at": {
@@ -901,15 +803,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "merchant_id",
-          "reference_id",
-          "processor",
-          "status",
-          "payment_policy",
-          "payment_policy_amount_cents",
-          "created_at"
-        ],
         "type": "object"
       },
       "MintKeyRequest": {
@@ -941,12 +834,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "api_key_id",
-          "key",
-          "key_prefix",
-          "environment"
-        ],
         "type": "object"
       },
       "PaymentRequired": {
@@ -968,10 +855,6 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "api_key_id",
-          "revoked"
-        ],
         "type": "object"
       },
       "SavedCard": {
@@ -991,12 +874,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "instrument_id",
-          "brand",
-          "last_four",
-          "expiry"
-        ],
         "type": "object"
       },
       "SendLinkRequest": {
@@ -1047,16 +924,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "sent",
-          "pay_url",
-          "short_url",
-          "payment_required",
-          "checkout_session_id",
-          "merchant_id",
-          "order_id",
-          "platform_call_id"
-        ],
         "type": "object"
       },
       "WebhookEndpointSummary": {
@@ -1086,12 +953,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "webhook_endpoint_id",
-          "url",
-          "events",
-          "created_at"
-        ],
         "type": "object"
       }
     }
@@ -1100,7 +961,8 @@
     "/v1/identify": {
       "post": {
         "operationId": "identify",
-        "summary": "Recognize a caller by phone number. Returns who they are, never what they can pay with: cards depend on a merchant this endpoint never sees.",
+        "summary": "Recognize a caller",
+        "description": "Look a caller up by phone number. Returns who they are, never what they can pay with: cards depend on a merchant this endpoint never sees.",
         "security": [
           {
             "bearerAuth": []
@@ -1153,7 +1015,8 @@
     "/v1/create_checkout": {
       "post": {
         "operationId": "createCheckout",
-        "summary": "Open a Checkout Session: resolve the amount, apply the merchant's payment policy, and return the transfer target when payment is required.",
+        "summary": "Create a checkout session",
+        "description": "Resolve the amount, apply the merchant's payment policy, and return the transfer target when payment is required.",
         "security": [
           {
             "bearerAuth": []
@@ -1246,7 +1109,8 @@
     "/v1/checkout_sessions/{checkout_session_id}": {
       "get": {
         "operationId": "getCheckoutSession",
-        "summary": "Read a Checkout Session and its charge. A lookup, so a decline reads as 200 with a failed charge.",
+        "summary": "Retrieve a checkout session",
+        "description": "Read a session and its charge. A lookup, so a decline reads as 200 with a failed charge.",
         "security": [
           {
             "bearerAuth": []
@@ -1299,7 +1163,8 @@
     "/v1/charge": {
       "post": {
         "operationId": "charge",
-        "summary": "Charge the saved card against an open Checkout Session. A decline is a 402 in the standard error envelope, not a 200 result.",
+        "summary": "Charge a saved card",
+        "description": "Charge the card the caller chose against an open Checkout Session. A decline is a 402 in the standard error envelope, not a 200 result.",
         "security": [
           {
             "bearerAuth": []
@@ -1422,7 +1287,8 @@
     "/v1/send_link": {
       "post": {
         "operationId": "sendLink",
-        "summary": "Text the caller a pay link for an open Checkout Session. Repeat sends inside a short window return the link with `sent: false` rather than texting twice.",
+        "summary": "Send a pay link",
+        "description": "Text the caller a pay link for an open Checkout Session. Repeat sends inside a short window return the link with `sent: false` rather than texting twice.",
         "security": [
           {
             "bearerAuth": []
@@ -1495,7 +1361,8 @@
     "/v1/cards": {
       "post": {
         "operationId": "createCard",
-        "summary": "Save a card for a caller from a processor token, with consent evidence.",
+        "summary": "Save a card",
+        "description": "Save a card for a caller from a processor token, with consent evidence.",
         "security": [
           {
             "bearerAuth": []
@@ -1578,7 +1445,8 @@
     "/v1/merchants": {
       "post": {
         "operationId": "createMerchant",
-        "summary": "Create a merchant and get the hosted onboarding URL its owner uses to connect a processor.",
+        "summary": "Create a merchant",
+        "description": "Create a merchant and get the hosted onboarding URL its owner uses to connect a processor.",
         "security": [
           {
             "bearerAuth": []
@@ -1631,7 +1499,8 @@
     "/v1/merchants/{merchant_id}": {
       "get": {
         "operationId": "getMerchant",
-        "summary": "Read a merchant's connection state and payment policy.",
+        "summary": "Retrieve a merchant",
+        "description": "Read a merchant's connection state and payment policy.",
         "security": [
           {
             "bearerAuth": []
@@ -1684,7 +1553,8 @@
     "/v1/merchants/{merchant_id}/credentials": {
       "post": {
         "operationId": "setMerchantCredentials",
-        "summary": "Attach processor credentials to a merchant. Encrypted at rest and emits merchant.connected.",
+        "summary": "Attach processor credentials",
+        "description": "Attach processor credentials to a merchant. Encrypted at rest, and emits merchant.connected.",
         "security": [
           {
             "bearerAuth": []
@@ -1757,7 +1627,8 @@
     "/v1/consumers": {
       "post": {
         "operationId": "upsertConsumer",
-        "summary": "Create or update a caller record, optionally with a saved card.",
+        "summary": "Create or update a caller",
+        "description": "Create or update a caller record, optionally with a saved card.",
         "security": [
           {
             "bearerAuth": []
@@ -1820,7 +1691,8 @@
     "/v1/webhook_endpoints": {
       "post": {
         "operationId": "createWebhookEndpoint",
-        "summary": "Register an HTTPS endpoint for signed events. The signing secret is returned once.",
+        "summary": "Create a webhook endpoint",
+        "description": "Register an HTTPS endpoint for signed events. The signing secret is returned once.",
         "security": [
           {
             "bearerAuth": []
@@ -1871,7 +1743,8 @@
       },
       "get": {
         "operationId": "listWebhookEndpoints",
-        "summary": "List your registered webhook endpoints. Secrets are never returned again.",
+        "summary": "List webhook endpoints",
+        "description": "List your registered webhook endpoints. Secrets are never returned again.",
         "security": [
           {
             "bearerAuth": []
@@ -1904,7 +1777,8 @@
     "/v1/keys": {
       "post": {
         "operationId": "createKey",
-        "summary": "Mint an API key. The secret is returned once and stored only as a hash.",
+        "summary": "Create an API key",
+        "description": "Mint an API key. The secret is returned once and stored only as a hash.",
         "security": [
           {
             "bearerAuth": []
@@ -1957,7 +1831,8 @@
     "/v1/keys/{api_key_id}": {
       "delete": {
         "operationId": "revokeKey",
-        "summary": "Revoke an API key.",
+        "summary": "Revoke an API key",
+        "description": "Revoke an API key.",
         "security": [
           {
             "bearerAuth": []
