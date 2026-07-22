@@ -488,6 +488,7 @@
           "invalid_request_error",
           "authentication_error",
           "permission_error",
+          "card_error",
           "processor_error",
           "idempotency_error",
           "rate_limit_error",

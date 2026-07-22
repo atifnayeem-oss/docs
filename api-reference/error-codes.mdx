@@ -264,9 +264,9 @@ That saved card does not belong to the caller on this session.
 **Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
 </Accordion>
 
-## processor_error
+## card_error
 
-The merchant's payment processor declined the payment or could not be reached. Carries `processor_code`, and `decline_code` when the issuer gave a reason.
+The card was refused. The most common error you will handle, and the only one the caller can act on: carries `decline_code` when the issuer gave a reason, plus the sentence your agent can say.
 
 <Accordion title="card_declined  ·  402">
 The issuer declined the charge. `decline_code` carries the specific reason where the issuer gave one.
@@ -287,6 +287,10 @@ The processor rejected the card while saving it.
 
 **Then.** `offer_different_card`
 </Accordion>
+
+## processor_error
+
+The merchant's payment processor could not be reached, or rejected the request for reasons unrelated to the card. Carries `processor_code`. Nothing to ask the caller for.
 
 <Accordion title="merchant_credentials_invalid  ·  422">
 The merchant's stored processor credentials were rejected, so nothing can settle.

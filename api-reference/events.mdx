@@ -1,0 +1,147 @@
+---
+title: "Events"
+description: "The webhook event envelope and the exact payload of every event Ringup sends, generated from the API's own types."
+---
+
+Payment outcomes reach you twice: as the response to your call, and as a signed event posted to
+your endpoint. The event is the one that survives the caller hanging up, so it is the record you
+reconcile against.
+
+Register an endpoint with [`POST /v1/webhook_endpoints`](/api-reference/create-a-webhook-endpoint).
+For signature verification, retries and idempotent handling, see
+[Webhooks](/concepts/webhooks).
+
+## The envelope
+
+Every event has the same outer shape. `data` carries the payload for that event type.
+
+<ResponseField name="created_at" type="string">
+  When Ringup created the event, ISO 8601. Not when it was delivered.
+</ResponseField>
+<ResponseField name="data" type="object">
+  The payload for this event type.
+</ResponseField>
+<ResponseField name="environment" type="test | live">
+  Which environment produced it, so one endpoint can serve both safely.
+</ResponseField>
+<ResponseField name="event_id" type="string">
+  Unique per event. Dedupe on this: delivery is at-least-once.
+</ResponseField>
+<ResponseField name="type" type="WebhookEventType">
+  Which event this is. Branch on it to know what `data` holds.
+</ResponseField>
+
+<Note>
+Dedupe on `event_id`. Delivery is at-least-once, so the same event can arrive more than once,
+and an endpoint that is not idempotent will double-fulfil an order eventually rather than never.
+</Note>
+
+## Event types
+
+<ResponseField name="checkout.completed" type="event">
+  A charge against a Checkout Session succeeded. The money moved.
+</ResponseField>
+<ResponseField name="checkout.failed" type="event">
+  A charge was declined, or the session expired without payment. `reason` tells you which, and `last_payment_error` carries the same error object the 402 returned.
+</ResponseField>
+<ResponseField name="merchant.connected" type="event">
+  A merchant finished connecting their payment processor, so their calls can now take payment.
+</ResponseField>
+
+## checkout.completed
+
+A charge against a Checkout Session succeeded. The money moved.
+
+<ResponseField name="amount_cents" type="number">
+  What was actually charged, in the smallest currency unit.
+</ResponseField>
+<ResponseField name="card" type="object | null">
+  The card that paid, for a receipt line. Never more than brand and last four.
+</ResponseField>
+<ResponseField name="charge_id" type="string">
+  The charge that paid it.
+</ResponseField>
+<ResponseField name="checkout_session_id" type="string">
+  The session that was paid.
+</ResponseField>
+<ResponseField name="currency" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="merchant_id" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="metadata" type="object | null">
+  Whatever you attached at create_checkout, echoed back untouched.
+</ResponseField>
+<ResponseField name="order_id" type="string | null">
+  The merchant's order number, and the confirmation a caller can quote back to them.
+</ResponseField>
+<ResponseField name="platform_call_id" type="string | null">
+  Your platform's call id, to tie this payment to your own call logs.
+</ResponseField>
+<ResponseField name="processor_payment_id" type="string | null">
+  The processor's own id for the payment, for reconciliation against their dashboard.
+</ResponseField>
+<ResponseField name="status" type="ChargeStatus">
+  Always `completed` on this event; present so one parser handles both outcomes.
+</ResponseField>
+
+## checkout.failed
+
+A charge was declined, or the session expired without payment. `reason` tells you which, and `last_payment_error` carries the same error object the 402 returned.
+
+<ResponseField name="amount_cents" type="number">
+  &nbsp;
+</ResponseField>
+<ResponseField name="charge_id" type="string | null">
+  Null when the session expired without any attempt.
+</ResponseField>
+<ResponseField name="checkout_session_id" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="currency" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="last_payment_error" type="object | null">
+  The SAME error object the 402 returned, minus `request_id`, which belongs to a request and not to an event. Stripe embeds the error this way on `last_payment_error` rather than flattening it, so one parser handles the synchronous and asynchronous paths. Null when the session merely expired: nothing was attempted, so there is no error to report.
+</ResponseField>
+<ResponseField name="merchant_id" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="metadata" type="object | null">
+  &nbsp;
+</ResponseField>
+<ResponseField name="order_id" type="string | null">
+  &nbsp;
+</ResponseField>
+<ResponseField name="platform_call_id" type="string | null">
+  &nbsp;
+</ResponseField>
+<ResponseField name="reason" type="declined | expired">
+  `declined` fires on a real decline; `expired` when the session lapsed unpaid.
+</ResponseField>
+
+## merchant.connected
+
+A merchant finished connecting their payment processor, so their calls can now take payment.
+
+<ResponseField name="merchant_id" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="processor" type="string">
+  &nbsp;
+</ResponseField>
+<ResponseField name="reference_id" type="string | null">
+  YOUR id for this merchant, echoed back (R15d).
+</ResponseField>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Signatures, retries, and handling events idempotently.
+  </Card>
+  <Card title="Error codes" icon="list" href="/api-reference/error-codes">
+    What `last_payment_error` can carry on a failed checkout.
+  </Card>
+</CardGroup>

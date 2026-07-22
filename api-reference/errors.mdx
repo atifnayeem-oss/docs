@@ -90,8 +90,11 @@ Branch on `type` first. It is seven values and it changes rarely; `code` refines
 <ResponseField name="permission_error" type="error type">
   The key is valid but is not allowed to act on this resource.
 </ResponseField>
+<ResponseField name="card_error" type="error type">
+  The card was refused. The most common error you will handle, and the only one the caller can act on: carries `decline_code` when the issuer gave a reason, plus the sentence your agent can say.
+</ResponseField>
 <ResponseField name="processor_error" type="error type">
-  The merchant's payment processor declined the payment or could not be reached. Carries `processor_code`, and `decline_code` when the issuer gave a reason.
+  The merchant's payment processor could not be reached, or rejected the request for reasons unrelated to the card. Carries `processor_code`. Nothing to ask the caller for.
 </ResponseField>
 <ResponseField name="idempotency_error" type="error type">
   An idempotency key was reused with different parameters.
