@@ -67,7 +67,7 @@ Content-Type: application/json
   "amount_cents": 1900,                              // resolved from the order
   "currency": "USD",
   "amount_source": "order",                          // "order" | "request"
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",  // null unless payment is required
+  "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev",  // null unless payment is required
   "expires_at": "2026-07-21T18:35:12Z",
   "cards": [],                                       // saved cards chargeable at this merchant
   "default_card_id": null,
@@ -86,7 +86,7 @@ Speak one line first so the caller is not on silence:
 <Response>
   <Say>One moment, connecting you to secure payment.</Say>
   <Dial>
-    <Sip>sip:cs_x9f2@transfer.ringup.dev?X-Session-Id=cs_x9f2</Sip>
+    <Sip>sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev</Sip>
   </Dial>
 </Response>
 ```

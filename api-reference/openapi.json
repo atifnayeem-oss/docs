@@ -847,7 +847,7 @@
                   "amount_cents": 1650,
                   "currency": "USD",
                   "amount_source": "order",
-                  "transfer_to": "sip:cs_453b5401286d0f80@transfer.ringup.dev",
+                  "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev",
                   "expires_at": "2026-07-21T18:34:12.000Z",
                   "cards": [
                     {
@@ -866,7 +866,7 @@
             }
           },
           "400": {
-            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.",
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
             "content": {
               "application/json": {
                 "schema": {
@@ -904,23 +904,6 @@
                         "display_message": null,
                         "agent_action": null,
                         "doc_url": "https://docs.ringup.dev/api-reference/error-codes#missing_required_fields",
-                        "request_id": "req_8f3c1d2ab4e9"
-                      }
-                    }
-                  },
-                  "invalid_value": {
-                    "summary": "A parameter was present but its value is not acceptable.",
-                    "value": {
-                      "error": {
-                        "type": "invalid_request_error",
-                        "code": "invalid_value",
-                        "audience": "developer",
-                        "message": "A parameter was present but its value is not acceptable.",
-                        "advice_code": "do_not_try_again",
-                        "agent_message": null,
-                        "display_message": null,
-                        "agent_action": null,
-                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_value",
                         "request_id": "req_8f3c1d2ab4e9"
                       }
                     }
@@ -1068,6 +1051,35 @@
                         "display_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
                         "agent_action": null,
                         "doc_url": "https://docs.ringup.dev/api-reference/error-codes#order_lookup_failed",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`session_create_failed` The checkout session could not be written.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "session_create_failed": {
+                    "summary": "The checkout session could not be written.",
+                    "value": {
+                      "error": {
+                        "type": "api_error",
+                        "code": "session_create_failed",
+                        "audience": "caller",
+                        "message": "The checkout session could not be written.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "display_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#session_create_failed",
                         "request_id": "req_8f3c1d2ab4e9"
                       }
                     }
@@ -1344,6 +1356,35 @@
               }
             }
           },
+          "403": {
+            "description": "`instrument_not_authorized` That saved card does not belong to the caller on this session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "instrument_not_authorized": {
+                    "summary": "That saved card does not belong to the caller on this session.",
+                    "value": {
+                      "error": {
+                        "type": "permission_error",
+                        "code": "instrument_not_authorized",
+                        "audience": "developer",
+                        "message": "That saved card does not belong to the caller on this session.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#instrument_not_authorized",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "`session_not_found` No checkout session with that id belongs to your account.\n\n`instrument_not_found` No saved card with that id belongs to this caller.",
             "content": {
@@ -1391,7 +1432,7 @@
             }
           },
           "409": {
-            "description": "`processor_mismatch` That saved card cannot be charged at this merchant, because it lives in a different processor's wallet.",
+            "description": "`processor_mismatch` That saved card cannot be charged at this merchant, because it lives in a different processor's wallet.\n\n`charge_details_mismatch` This idempotency key was already used with different charge details.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1411,6 +1452,23 @@
                         "display_message": "I can text you a secure link to pay instead. Would that work?",
                         "agent_action": "send_link",
                         "doc_url": "https://docs.ringup.dev/api-reference/error-codes#processor_mismatch",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "charge_details_mismatch": {
+                    "summary": "This idempotency key was already used with different charge details.",
+                    "value": {
+                      "error": {
+                        "type": "idempotency_error",
+                        "code": "charge_details_mismatch",
+                        "audience": "developer",
+                        "message": "This idempotency key was already used with different charge details.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#charge_details_mismatch",
                         "request_id": "req_8f3c1d2ab4e9"
                       }
                     }
@@ -1449,13 +1507,30 @@
             }
           },
           "422": {
-            "description": "`merchant_not_connected` The merchant exists but has not finished connecting their payment processor, so no charge can settle.\n\n`merchant_credentials_invalid` The merchant's stored processor credentials were rejected, so nothing can settle.\n\n`needs_enrollment` The caller has no card on file usable at this merchant, so there is nothing to charge. Expected for a first-time caller at a per-merchant processor.",
+            "description": "`session_missing_consumer` The session has no caller identity attached, so no card can be selected.\n\n`merchant_not_connected` The merchant exists but has not finished connecting their payment processor, so no charge can settle.\n\n`merchant_credentials_invalid` The merchant's stored processor credentials were rejected, so nothing can settle.\n\n`needs_enrollment` The caller has no card on file usable at this merchant, so there is nothing to charge. Expected for a first-time caller at a per-merchant processor.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
                 },
                 "examples": {
+                  "session_missing_consumer": {
+                    "summary": "The session has no caller identity attached, so no card can be selected.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "session_missing_consumer",
+                        "audience": "developer",
+                        "message": "The session has no caller identity attached, so no card can be selected.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#session_missing_consumer",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
                   "merchant_not_connected": {
                     "summary": "The merchant exists but has not finished connecting their payment processor, so no charge can settle.",
                     "value": {

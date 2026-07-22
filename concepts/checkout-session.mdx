@@ -70,7 +70,7 @@ checkout = requests.post(
   "amount_cents": 1900,
   "currency": "USD",
   "amount_source": "order",
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",
+  "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev",
   "expires_at": "2026-07-21T18:35:12Z",
   "cards": [
     { "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/2028" }
@@ -146,6 +146,14 @@ A Checkout Session works two ways, and the difference is invisible to your order
 `transfer_to` (in the response) is where you send the call. `return_to` (in the request) is where
 Ringup sends the caller back. They are the two ends of the same trip. `transfer_to` is `null`
 whenever payment is not required, because there is nothing to transfer to.
+
+<Warning>
+**Treat `transfer_to` as opaque.** The user part is a signed token carrying the session, the
+caller, the amount and your closing lines. It is not the session id and cannot be assembled from
+one: build the URI yourself and the transfer will be rejected. Pass the string through exactly as
+returned, and do not append parameters to it. On some platforms only the URI survives the
+transfer leg, so anything you add to the end is dropped without an error.
+</Warning>
 
 ## Three ways a transfer ends
 

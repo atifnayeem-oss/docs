@@ -66,7 +66,7 @@ Content-Type: application/json
   "amount_cents": 1900,                              // resolved from the order
   "currency": "USD",
   "amount_source": "order",                          // "order" | "request"
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",  // null unless payment is required
+  "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev",  // null unless payment is required
   "expires_at": "2026-07-21T18:35:12Z",
   "cards": [],                                       // saved cards chargeable at this merchant
   "default_card_id": null,
@@ -85,7 +85,7 @@ Speak one bridge line, then transfer the caller's SIP participant to `transfer_t
 await livekit_api.sip.transfer_sip_participant(
     room_name=room,
     participant_identity=caller_identity,
-    transfer_to=checkout["transfer_to"],                 # sip:cs_x9f2@transfer.ringup.dev
+    transfer_to=checkout["transfer_to"],                 # sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev
     headers={"X-Session-Id": checkout["checkout_session_id"]},  # cs_x9f2
     play_dialtone=False,                                 # the bridge line covers the gap
 )
