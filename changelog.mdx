@@ -7,6 +7,34 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="2026-07-22" description="Infrastructure trouble is returned, and `created` becomes `pending`">
+## A charge no longer says "fine" when we do not know
+
+**Breaking: the non-terminal charge status is now `pending`, not `created`.** Same position in the
+lifecycle, better name. `created` described our record; `pending` describes your problem, which is
+that the outcome is not settled and you should not start a second payment.
+
+**`charge` now returns infrastructure failures instead of absorbing them.** Previously a rate limit
+or a server error from the merchant's processor came back as `200` with the charge left unsettled,
+which told you the call had gone fine while nothing had. Two codes are now reachable that were
+documented but never emitted:
+
+- **`rate_limit` (429).** The processor refused the request before touching a card. Nothing was
+  charged and the charge is marked `failed`.
+- **`processor_unavailable` (424).** A server error, a timeout, or a lost connection. The outcome is
+  **unknown**: the payment may have succeeded. The charge stays `pending` while we ask the processor
+  what really happened, and the result reaches you on the webhook.
+
+**Retrying is safe and needs nothing from you.** The idempotency key is derived from the Checkout
+Session and the card, so repeating the same `charge` call cannot charge twice. There is no header to
+send.
+
+**`processor_unavailable` no longer suggests a pay link.** Its `agent_action` is now `null`, and the
+spoken line claims no outcome: "I'm still confirming that payment. I'll send you a confirmation as
+soon as it comes through." A pay link would open a second payment under a different key, which is
+how an unknown charge becomes a double charge.
+</Update>
+
 <Update label="2026-07-21" description="One name per concept, cards move to the session">
 ## The session owns the cards, and every name is the same everywhere
 

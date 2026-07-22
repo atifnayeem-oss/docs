@@ -190,9 +190,9 @@
         "type": "object"
       },
       "ChargeStatus": {
-        "description": "Where a charge stands.\n\n`created` means the charge record exists and the processor has not confirmed an outcome. `completed` and `failed` are settled. A charge left `created` is resolved for you, and the result arrives on the webhook.",
+        "description": "Where a charge stands.\n\n`pending` means the charge is not settled: the processor has not confirmed an outcome, and it may or may not have taken the payment. Do NOT start another payment for the same order. We resolve it for you and the result arrives on the webhook.\n\n`completed` and `failed` are settled and final.",
         "enum": [
-          "created",
+          "pending",
           "completed",
           "failed"
         ],

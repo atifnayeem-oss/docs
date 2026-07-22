@@ -95,14 +95,18 @@ your agent's choice explicit and auditable.
 | `status` | What it means |
 |---|---|
 | `completed` | The money moved. This is the only status you announce. |
-| `created` | A charge record exists and the processor has not confirmed it yet. |
+| `pending` | Not settled. The processor has not confirmed an outcome. |
 | `failed` | Nothing was charged. |
 
-`created` says what **we** know: the charge exists on our side and the processor has not come back.
-It deliberately is not called `pending`, which would assert something about the processor's state
-nobody told us, and which reads to a caller like "stuck". Treat `created` as unfinished, not failed:
-read the outcome from the [webhook](/concepts/webhooks) or by
-[reading the session back](/concepts/checkout-session).
+`pending` is the one that needs care, because it does **not** mean "nothing happened". It means the
+outcome is unknown: the payment may already have gone through. That is why the safe response is to
+wait rather than to charge again, and why your agent should not tell the caller the payment failed.
+
+Do not start a second payment for the same order. If you want to retry, repeat the **same**
+`charge` call: it carries the same idempotency key, so it cannot charge twice. Otherwise read the
+outcome from the [webhook](/concepts/webhooks) or by
+[reading the session back](/concepts/checkout-session). We resolve a pending charge for you by
+asking the processor what really happened.
 
 Never tell the caller payment happened without a `completed` status.
 

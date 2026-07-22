@@ -110,7 +110,8 @@ A charge is in one of three states, and the same values appear on the
 [session](/concepts/checkout-session) and in the [charge](/concepts/charge) response:
 
 - **`completed`**: the charge settled. This is the only status that means money moved.
-- **`created`**: the charge record exists and the processor has not confirmed it yet.
+- **`pending`**: not settled. The processor has not confirmed an outcome, and the payment may or
+  may not have gone through, so never announce it either way.
 - **`failed`**: the charge was declined or errored; nothing was charged.
 
 ## Getting it right

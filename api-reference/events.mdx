@@ -54,7 +54,7 @@ A charge against a Checkout Session succeeded. The money moved.
 <ResponseField name="charge_id" type="string">
   The charge that paid it.
 </ResponseField>
-<ResponseField name="status" type="created | completed | failed">
+<ResponseField name="status" type="pending | completed | failed">
   Always `completed` on this event; present so one parser handles both outcomes.
 </ResponseField>
 <ResponseField name="amount_cents" type="number">
