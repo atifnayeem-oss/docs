@@ -569,60 +569,6 @@
         },
         "type": "object"
       },
-      "MerchantStatusResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "clover_public": {
-            "additionalProperties": false,
-            "properties": {
-              "api_access_key": {
-                "type": "string"
-              },
-              "sandbox": {
-                "type": "boolean"
-              }
-            },
-            "type": "object"
-          },
-          "created_at": {
-            "type": "string"
-          },
-          "merchant_id": {
-            "type": "string"
-          },
-          "payment_policy": {
-            "enum": [
-              "always",
-              "above_amount",
-              "optional"
-            ],
-            "type": "string"
-          },
-          "payment_policy_amount_cents": {
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "processor": {
-            "type": "string"
-          },
-          "reference_id": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "status": {
-            "enum": [
-              "connected",
-              "unconnected"
-            ],
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "PaymentRequired": {
         "enum": [
           "required",
@@ -1121,60 +1067,6 @@
           },
           "503": {
             "description": "`not_configured` A required backend dependency is not configured in this environment.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/merchants/{merchant_id}": {
-      "get": {
-        "operationId": "getMerchant",
-        "summary": "Retrieve a merchant",
-        "description": "Read a merchant's connection state and payment policy.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "merchant_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MerchantStatusResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "`merchant_not_found` No merchant with that id belongs to your account.",
             "content": {
               "application/json": {
                 "schema": {
