@@ -56,8 +56,8 @@ The general shape is the same on every platform:
     caller, follow the texted link and enter the sandbox card above.
   </Step>
   <Step title="Read the result">
-    A successful test charge returns `status: "completed"` with a `charge_id`, and the `order_id`
-    the wrap-up step reads back to the caller. Your server receives a `checkout.completed` webhook.
+    A successful test charge returns `status: "succeeded"` with a `charge_id`, and the `order_id`
+    the wrap-up step reads back to the caller. Your server receives a `checkout.succeeded` webhook.
   </Step>
 </Steps>
 
@@ -67,7 +67,7 @@ wires this up for you, binding a rehearsal number to a test copy of your agent.
 
 ## Reading test results
 
-**The charge response is ground truth, not the assistant's words.** Only a `completed` charge
+**The charge response is ground truth, not the assistant's words.** Only a `succeeded` charge
 result with a `charge_id` proves a payment happened. An agent can narrate success it did not have;
 the API result cannot.
 
@@ -100,6 +100,6 @@ differently from voice pipelines. Validate with a voice call.
     Each platform page ends its setup with a Test it section using these fixtures.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
-    Watch the test-mode checkout.completed arrive at your endpoint.
+    Watch the test-mode checkout.succeeded arrive at your endpoint.
   </Card>
 </CardGroup>

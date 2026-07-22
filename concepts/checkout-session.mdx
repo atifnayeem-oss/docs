@@ -193,7 +193,7 @@ curl https://api.ringup.dev/v1/checkout_sessions/cs_x9f2 \
   "return_to": "sip:agent@your-number",
   "charge": {
     "charge_id": "chg_5m1p",
-    "status": "completed",
+    "status": "succeeded",
     "amount_cents": 1900,
     "processor_payment_id": "pi_3Qx8"
   },
@@ -211,7 +211,7 @@ declined charge reads as `200` with a failed charge rather than an error.
 
 ## Reconcile from the webhook
 
-However the call ends, your server learns the outcome from a `checkout.completed`
+However the call ends, your server learns the outcome from a `checkout.succeeded`
 [webhook](/concepts/webhooks). That is your source of truth, independent of what the caller heard,
 and it is what you flip your own order on.
 

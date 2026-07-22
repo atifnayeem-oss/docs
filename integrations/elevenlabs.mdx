@@ -51,7 +51,7 @@ the hosted path in production. The **Using Tools** tab is not affected and works
   </Step>
   <Step title="Add your webhook endpoint">
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret. Ringup
-    posts a signed `checkout.completed` there for every payment. See [Webhooks](/concepts/webhooks).
+    posts a signed `checkout.succeeded` there for every payment. See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Rehearse on the rehearsal number, then go live">
     The dashboard binds a test twin of your agent to a rehearsal number. Call it, order, and pay
@@ -180,7 +180,7 @@ transfers.
   </Step>
   <Step title="Add your webhook endpoint">
     In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
-    signing secret. Your server verifies the signature and handles `checkout.completed`. See
+    signing secret. Your server verifies the signature and handles `checkout.succeeded`. See
     [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Test it, then go live">
@@ -188,7 +188,7 @@ transfers.
     URLs with your `rk_test_` key). Call your agent and order: the test caller (`+14155550142`) is
     recognized and pays on the saved Visa ending 5858; a first-time caller is texted a link and
     enters `4111 1111 1111 1111`. Expect the confirmation read back and a test-mode
-    `checkout.completed`. Swap to the live URLs to go live.
+    `checkout.succeeded`. Swap to the live URLs to go live.
   </Step>
 </Steps>
 

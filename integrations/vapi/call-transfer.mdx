@@ -37,7 +37,7 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
   <Step title="Optional: add a webhook endpoint">
     You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
     Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
-    Ringup posts a signed `checkout.completed` there for every payment. See
+    Ringup posts a signed `checkout.succeeded` there for every payment. See
     [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Add the Connect button to your merchant dashboard">
@@ -108,7 +108,7 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
   <Step title="Optional: add a webhook endpoint">
     You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
     In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy
-    the signing secret. Your server verifies the signature and handles `checkout.completed`
+    the signing secret. Your server verifies the signature and handles `checkout.succeeded`
     (`charge_id`, your `order_id`, the card). See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Add the Connect button to your merchant dashboard">
@@ -130,7 +130,7 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
     `https://ringup.dev/api/transfer-destination`. Call your agent and order: the test caller
     (`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a link
     and enters `4111 1111 1111 1111`. Expect a confirmation code read back and a test-mode
-    `checkout.completed`. Swap the URL back to the live endpoint to go live.
+    `checkout.succeeded`. Swap the URL back to the live endpoint to go live.
   </Step>
 </Steps>
 

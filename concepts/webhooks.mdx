@@ -20,7 +20,7 @@ Every event has the same shape:
 ```jsonc
 {
   "event_id": "evt_9f2",         // unique per event; use it to dedupe
-  "type": "checkout.completed",  // see the catalog below
+  "type": "checkout.succeeded",  // see the catalog below
   "environment": "test",         // "test" or "live"
   "created_at": "2026-07-21T18:05:12Z",
   "data": { ... }                // shape depends on type
@@ -31,14 +31,14 @@ Every event has the same shape:
 
 | Type | When it fires |
 |---|---|
-| `checkout.completed` | A Checkout Session was paid, on a saved card or through the texted link. |
+| `checkout.succeeded` | A Checkout Session was paid, on a saved card or through the texted link. |
 | `checkout.failed` | The charge was declined, or the session expired unpaid. |
 | `merchant.connected` | A merchant finished connecting their payment processor to Ringup. |
 
-The catalog is deliberately small. A first-time link payment is a `checkout.completed` like any
+The catalog is deliberately small. A first-time link payment is a `checkout.succeeded` like any
 other, not a separate event.
 
-## `checkout.completed`
+## `checkout.succeeded`
 
 The one you build against. Its `data` carries everything you need to mark an order paid:
 
@@ -46,7 +46,7 @@ The one you build against. Its `data` carries everything you need to mark an ord
 "data": {
   "checkout_session_id": "cs_x9f2",
   "charge_id": "chg_5m1p",
-  "status": "completed",
+  "status": "succeeded",
   "amount_cents": 1900,
   "currency": "USD",
   "processor_payment_id": "pi_3Qx8",   // the id in the merchant's own processor
@@ -109,7 +109,7 @@ and an event is not one.
 A charge is in one of three states, and the same values appear on the
 [session](/concepts/checkout-session) and in the [charge](/concepts/charge) response:
 
-- **`completed`**: the charge settled. This is the only status that means money moved.
+- **`succeeded`**: the charge settled. This is the only status that means money moved.
 - **`pending`**: not settled. The processor has not confirmed an outcome, and the payment may or
   may not have gone through, so never announce it either way.
 - **`failed`**: the charge was declined or errored; nothing was charged.

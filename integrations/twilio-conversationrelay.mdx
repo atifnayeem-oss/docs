@@ -95,7 +95,7 @@ Speak one line first so the caller is not on silence:
 <Step title="Register your webhook endpoint">
 
 In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
-signing secret. Your code verifies the signature and handles `checkout.completed`. See
+signing secret. Your code verifies the signature and handles `checkout.succeeded`. See
 [Webhooks](/concepts/webhooks).
 
 </Step>
@@ -105,7 +105,7 @@ Point your `POST` at the keyless sandbox, `https://ringup.dev/api/tools/create_c
 the prod URL with your `rk_test_` key), call your agent, and order: the test caller
 (`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a link and
 enters `4111 1111 1111 1111`. Expect the payment line to read a confirmation code and a test-mode
-`checkout.completed` at your endpoint. Swap the URL back to the live endpoint to go live.
+`checkout.succeeded` at your endpoint. Swap the URL back to the live endpoint to go live.
 
 </Step>
 </Steps>
@@ -213,7 +213,7 @@ const res = await fetch("https://api.ringup.dev/v1/charge", {
 });
 if (!res.ok) { /* a decline is a 402: speak error.agent_message */ }
 const charge = await res.json();
-// read charge.order_id back only when charge.status === "completed"
+// read charge.order_id back only when charge.status === "succeeded"
 ```
 </CodeGroup>
 
@@ -249,7 +249,7 @@ const link = await fetch("https://api.ringup.dev/v1/send_link", {
 <Step title="Register your webhook endpoint">
 
 In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
-signing secret. Your code verifies the signature and handles `checkout.completed`. See
+signing secret. Your code verifies the signature and handles `checkout.succeeded`. See
 [Webhooks](/concepts/webhooks).
 
 </Step>
@@ -258,7 +258,7 @@ signing secret. Your code verifies the signature and handles `checkout.completed
 Point your calls at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the prod URLs with
 your `rk_test_` key). Call your agent and order: the test caller (`+14155550142`) is recognized and
 pays on the saved Visa ending 5858; a first-time caller is texted a link and enters
-`4111 1111 1111 1111`. Expect the confirmation read back and a test-mode `checkout.completed`. Swap
+`4111 1111 1111 1111`. Expect the confirmation read back and a test-mode `checkout.succeeded`. Swap
 to the live URLs to go live.
 
 </Step>

@@ -159,7 +159,7 @@ sign up for and nothing to connect between you and a first working response. See
 
     ```json Response
     {
-      "status": "completed",
+      "status": "succeeded",
       "amount_cents": 2500,
       "currency": "USD",
       "replay": false,
@@ -173,7 +173,7 @@ sign up for and nothing to connect between you and a first working response. See
     ```
 
     That is the whole in-agent payment path: `identify` at the greeting, `create_checkout` when the
-    order is ready, `charge` when the caller says yes. Only `completed` moved money. `order_id` is
+    order is ready, `charge` when the caller says yes. Only `succeeded` moved money. `order_id` is
     `null` here because this session was created from an amount; open the session with the
     merchant's `order_id` and it comes back on the charge, which is the number the agent reads out
     as the confirmation. When `cards` comes back empty,

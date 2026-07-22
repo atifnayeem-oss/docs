@@ -26,7 +26,7 @@ Wiring by hand instead? Point the transfer tool's `server.url` at the keyless sa
    a secure link, you pay with `4111 1111 1111 1111`, and the call announces the payment the
    moment it lands.
 
-Both should end with a confirmation code read back and a test-mode `checkout.completed`.
+Both should end with a confirmation code read back and a test-mode `checkout.succeeded`.
 
 ## Verify the wiring after go-live
 
@@ -45,7 +45,7 @@ truth for wiring.
 
 ## Reading test results
 
-Only a `completed` charge result with a `charge_id` proves a payment happened; an agent can
+Only a `succeeded` charge result with a `charge_id` proves a payment happened; an agent can
 narrate success it did not have. And always validate with a **voice
 call**, never text chat: transfers only exist on voice, so a chat smoke test proves nothing.
 

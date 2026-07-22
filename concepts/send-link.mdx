@@ -97,7 +97,7 @@ Payment can complete either way:
   have to wait.
 
 Either way the caller gets an SMS receipt, and your server learns the outcome from a
-`checkout.completed` [webhook](/concepts/webhooks). A link payment is not a separate event, so one
+`checkout.succeeded` [webhook](/concepts/webhooks). A link payment is not a separate event, so one
 webhook handler covers both a saved-card charge and a first-time link payment.
 
 Once the caller has paid once, their card shows up in `cards` on the next session and you can
@@ -110,6 +110,6 @@ Once the caller has paid once, their card shows up in `cards` on the next sessio
     The recognized-caller path: run a saved card without a link.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
-    A first-time link payment lands as checkout.completed too.
+    A first-time link payment lands as checkout.succeeded too.
   </Card>
 </CardGroup>

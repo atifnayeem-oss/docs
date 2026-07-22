@@ -67,7 +67,7 @@ charge = requests.post(
 
 ```json Response
 {
-  "status": "completed",
+  "status": "succeeded",
   "amount_cents": 1900,
   "currency": "USD",
   "replay": false,
@@ -94,7 +94,7 @@ your agent's choice explicit and auditable.
 
 | `status` | What it means |
 |---|---|
-| `completed` | The money moved. This is the only status you announce. |
+| `succeeded` | The money moved. This is the only status you announce. |
 | `pending` | Not settled. The processor has not confirmed an outcome. |
 | `failed` | Nothing was charged. |
 
@@ -108,7 +108,7 @@ outcome from the [webhook](/concepts/webhooks) or by
 [reading the session back](/concepts/checkout-session). We resolve a pending charge for you by
 asking the processor what really happened.
 
-Never tell the caller payment happened without a `completed` status.
+Never tell the caller payment happened without a `succeeded` status.
 
 ## A decline is a 402
 

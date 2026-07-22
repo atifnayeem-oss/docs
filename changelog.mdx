@@ -7,12 +7,20 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
-<Update label="2026-07-22" description="Infrastructure trouble is returned, and `created` becomes `pending`">
+<Update label="2026-07-22" description="Infrastructure trouble is returned, and the charge statuses are renamed">
 ## A charge no longer says "fine" when we do not know
 
-**Breaking: the non-terminal charge status is now `pending`, not `created`.** Same position in the
-lifecycle, better name. `created` described our record; `pending` describes your problem, which is
-that the outcome is not settled and you should not start a second payment.
+**Breaking: the charge statuses are now `pending | succeeded | failed`.**
+
+`created` became **`pending`**. Same position in the lifecycle, better name: `created` described our
+record, while `pending` describes your problem, which is that the outcome is not settled and you
+should not start a second payment.
+
+`completed` became **`succeeded`**, and the webhook events moved with it: **`checkout.completed` is
+now `checkout.succeeded`**. One word for one idea across the object and the webhook, and the word is
+the one you already know from other payments APIs. `checkout.failed` and `merchant.connected` are
+unchanged, as is the Checkout Session's own `complete` status, which is a different fact: the
+session finished, which is not the same as a payment succeeding.
 
 **`charge` now returns infrastructure failures instead of absorbing them.** Previously a rate limit
 or a server error from the merchant's processor came back as `200` with the charge left unsettled,

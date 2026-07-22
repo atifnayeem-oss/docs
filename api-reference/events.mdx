@@ -18,7 +18,7 @@ Every event has the same outer shape. `data` carries the payload for that event 
 <ResponseField name="event_id" type="string">
   Unique per event. Dedupe on this: delivery is at-least-once.
 </ResponseField>
-<ResponseField name="type" type="checkout.completed | checkout.failed | merchant.connected">
+<ResponseField name="type" type="checkout.succeeded | checkout.failed | merchant.connected">
   Which event this is. Branch on it to know what `data` holds.
 </ResponseField>
 <ResponseField name="environment" type="test | live">
@@ -40,11 +40,11 @@ and an endpoint that is not idempotent will double-fulfil an order eventually ra
 
 | Event | Fires when |
 |---|---|
-| [`checkout.completed`](#checkout-completed) | A charge against a Checkout Session succeeded. The money moved. |
+| [`checkout.succeeded`](#checkout-succeeded) | A charge against a Checkout Session succeeded. The money moved. |
 | [`checkout.failed`](#checkout-failed) | A charge was declined, or the session expired without payment. `reason` tells you which, and `last_payment_error` carries the same error object the 402 returned. |
 | [`merchant.connected`](#merchant-connected) | A merchant finished connecting their payment processor, so their calls can now take payment. |
 
-## checkout.completed
+## checkout.succeeded
 
 A charge against a Checkout Session succeeded. The money moved.
 
@@ -54,8 +54,8 @@ A charge against a Checkout Session succeeded. The money moved.
 <ResponseField name="charge_id" type="string">
   The charge that paid it.
 </ResponseField>
-<ResponseField name="status" type="pending | completed | failed">
-  Always `completed` on this event; present so one parser handles both outcomes.
+<ResponseField name="status" type="pending | succeeded | failed">
+  Always `succeeded` on this event; present so one parser handles both outcomes.
 </ResponseField>
 <ResponseField name="amount_cents" type="number">
   What was actually charged, in the smallest currency unit.

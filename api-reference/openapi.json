@@ -193,7 +193,7 @@
         "description": "Where a charge stands.\n\n`pending` means the charge is not settled: the processor has not confirmed an outcome, and it may or may not have taken the payment. Do NOT start another payment for the same order. We resolve it for you and the result arrives on the webhook.\n\n`completed` and `failed` are settled and final.",
         "enum": [
           "pending",
-          "completed",
+          "succeeded",
           "failed"
         ],
         "type": "string"
@@ -1836,7 +1836,7 @@
               "example": {
                 "url": "https://example.com/webhooks/ringup",
                 "events": [
-                  "checkout.completed",
+                  "checkout.succeeded",
                   "checkout.failed"
                 ]
               }
@@ -1855,7 +1855,7 @@
                   "webhook_endpoint_id": "wh_2b6f14ac",
                   "url": "https://example.com/webhooks/ringup",
                   "events": [
-                    "checkout.completed",
+                    "checkout.succeeded",
                     "checkout.failed"
                   ],
                   "signing_secret": "whsec_example_not_a_real_secret"
@@ -1980,7 +1980,7 @@
                       "webhook_endpoint_id": "wh_2b6f14ac",
                       "url": "https://example.com/webhooks/ringup",
                       "events": [
-                        "checkout.completed",
+                        "checkout.succeeded",
                         "checkout.failed"
                       ],
                       "created_at": "2026-07-20T15:02:44.000Z"
