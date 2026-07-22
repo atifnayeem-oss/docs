@@ -1,23 +1,25 @@
 ---
 title: "Errors"
-description: "Every error Ringup can return: the envelope, the seven error types, and the full code catalog with the exact sentence your agent can speak."
+description: "The error envelope every Ringup endpoint returns, its attributes, and the seven error types."
 ---
 
-**One envelope, every endpoint.** The same object comes back from provisioning, identify, checkout,
-cards and charge, so you write one parser. A declined charge is no exception: it arrives as a
-`402` in this same shape. Branch on `type` first, then refine on `code`.
+**One envelope, every endpoint.** The same object comes back from every call, so you write one
+parser. A declined charge is no exception: it arrives as a `402` in this same shape. Branch on
+`type` first, then refine on `code`.
 
 ```json
 {
   "error": {
     "type": "processor_error",
     "code": "card_declined",
+    "audience": "caller",
     "decline_code": "insufficient_funds",
     "advice_code": "try_again_later",
     "message": "Charge declined by the issuer.",
     "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
+    "display_message": "That card was declined for insufficient funds.",
     "agent_action": "offer_different_card",
-    "doc_url": "https://docs.ringup.dev/api-reference/errors#card_declined",
+    "doc_url": "https://docs.ringup.dev/api-reference/error-codes#card_declined",
     "charge": "chg_77386e2f",
     "request_id": "req_8f3c1d2ab4e9"
   }
@@ -27,37 +29,32 @@ cards and charge, so you write one parser. A declined charge is no exception: it
 ## Attributes
 
 <ResponseField name="type" type="string">
-  The broad class. Branch on this first: it is a small, stable set.
+  The broad class. Branch on this first: it is a small, stable set, listed below.
 </ResponseField>
 <ResponseField name="code" type="string">
-  The specific, machine-readable reason. Every code is catalogued below.
+  The specific, machine-readable reason. Every code is catalogued in [Error codes](/api-reference/error-codes).
+</ResponseField>
+<ResponseField name="audience" type="string">
+  Who this error is for: `developer` or `caller`. It decides whether the three spoken fields
+  carry anything. See [Handling errors](/api-reference/handling-errors).
 </ResponseField>
 <ResponseField name="message" type="string">
   A developer-facing explanation. Written for your logs. **Never speak this to a caller.**
 </ResponseField>
-<ResponseField name="audience" type="string">
-  Who this error is for: `developer` or `caller`. It decides whether the three fields below
-  carry anything. A bug in your integration is not something a caller can act on, so we do not
-  hand your agent words for it.
-</ResponseField>
 <ResponseField name="agent_message" type="string | null">
-  The sentence your voice agent can say, verbatim. Safe for a caller to hear, always.
-  **Null on every `developer` error.**
+  The sentence your voice agent can say, verbatim. Null on every `developer` error.
 </ResponseField>
 <ResponseField name="display_message" type="string | null">
   The same fact written to be read rather than spoken, for a screen or an SMS. Null on every
   `developer` error.
 </ResponseField>
 <ResponseField name="agent_action" type="string | null">
-  The next PAYMENT move, when there is one: `retry_card`, `offer_different_card`, or
+  The next payment move, when there is one: `retry_card`, `offer_different_card`, or
   `send_link`. Null whenever the next move is not ours to choose.
-
-  This list is deliberately short. Whether to escalate, end the call, or carry on without
-  payment is a call-flow decision that belongs to you, not to your payments API, so we no
-  longer return one.
 </ResponseField>
 <ResponseField name="advice_code" type="string">
-  Our guidance on retrying: `try_again_later`, `confirm_card_data`, or `do_not_try_again`. Present on every error.
+  Our guidance on retrying: `try_again_later`, `confirm_card_data`, or `do_not_try_again`.
+  Present on every error.
 </ResponseField>
 <ResponseField name="charge" type="string">
   The charge this error relates to, when there is one.
@@ -66,36 +63,19 @@ cards and charge, so you write one parser. A declined charge is no exception: it
   The parameter at fault, when one field caused the error.
 </ResponseField>
 <ResponseField name="decline_code" type="string">
-  The issuer's reason, on a decline. For your logs. Sensitive reasons are deliberately not reflected in `agent_message`.
+  The issuer's reason, on a decline. For your logs. Sensitive reasons are deliberately not
+  reflected in `agent_message`.
 </ResponseField>
 <ResponseField name="processor_code" type="string">
-  The processor's own code, on a `processor_error`.
+  The processor's own code, unmodified, on a `processor_error`.
 </ResponseField>
 <ResponseField name="doc_url" type="string">
-  Links straight to that code's entry on this page.
+  Links straight to that code's entry in [Error codes](/api-reference/error-codes).
 </ResponseField>
 <ResponseField name="request_id" type="string">
-  Unique per request, also returned as the `Ringup-Request-Id` header on **every** response. Quote it in support requests: it matches our logs exactly.
+  Unique per request, also returned as the `Ringup-Request-Id` header on **every** response.
+  Quote it in support requests: it matches our logs exactly.
 </ResponseField>
-
-## Speaking errors to a caller
-
-Ringup ships the words. On a phone call there is no time to compose a message from a code, so every
-error a CALLER can act on carries `agent_message`: one sentence, written to be spoken.
-
-Check `audience` first. A `developer` error (a malformed request, a bad key, a merchant id that
-does not exist) returns `null` for `agent_message`, `display_message` and `agent_action`,
-because a caller cannot do anything about your integration and inventing a line for your agent to
-say would be us guessing at your call flow.
-
-<Warning>
-Speak `agent_message` verbatim and never `message`. `message` is for your logs and can contain
-ids and internal detail.
-</Warning>
-
-`agent_message` is **safe by construction**. Sensitive declines (a card reported lost, stolen, or
-flagged for fraud) return exactly the same sentence as an ordinary decline, so your agent cannot
-reveal something it was never sent. The specific reason still reaches your logs in `decline_code`.
 
 ## Error types
 
@@ -109,440 +89,16 @@ reveal something it was never sent. The specific reason still reaches your logs 
 | `rate_limit_error` | Too many requests. Back off and retry. |
 | `api_error` | A fault on Ringup's side. Safe to retry. |
 
-## Error codes
-
-Every code Ringup can return, with the sentence your agent will speak.
-
-### invalid_request_error
-
-<Accordion title="amount_mismatch  ·  409">
-The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.
-
-**Resolution.** Send `order_id` without `amount_cents`, or send an amount equal to the order total.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="instrument_not_found  ·  404">
-No saved card with that id belongs to this caller.
-
-**Resolution.** Use an `instrument_id` returned by identify.
-
-**Your agent says.** "That card could not be processed. Would you like to try a different card?"
-
-**Then.** `offer_different_card`
-</Accordion>
-
-<Accordion title="invalid_credentials  ·  400">
-The credentials object is missing or not a plain object.
-
-**Resolution.** Send `credentials` as a JSON object matching the processor's shape.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_environment  ·  400">
-`environment` must be `test` or `live`.
-
-**Resolution.** Send one of the two supported values.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_events  ·  400">
-`events` contains an unsupported event type.
-
-**Resolution.** Subscribe only to documented event types, or omit to receive all.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_json  ·  400">
-The request body is not valid JSON.
-
-**Resolution.** Send a JSON body with Content-Type: application/json.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_payment_policy  ·  400">
-`payment_policy` is not one of the supported values.
-
-**Resolution.** Use `always`, `above_amount`, or `optional`.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_payment_policy_amount_cents  ·  400">
-`payment_policy` is `above_amount` but `payment_policy_amount_cents` is missing or not a positive integer.
-
-**Resolution.** Send a positive integer threshold with the `above_amount` policy.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_processor  ·  400">
-`processor` is not one of the supported processors.
-
-**Resolution.** Use a supported processor value.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_state_key  ·  400">
-The state key is missing or outside the allowed namespace.
-
-**Resolution.** Use a key within the documented namespace.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_ttl  ·  400">
-The requested lifetime is outside the allowed range.
-
-**Resolution.** Send a ttl within the documented bounds.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_url  ·  400">
-The webhook URL is missing or not a valid https URL.
-
-**Resolution.** Send an absolute https URL.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_value  ·  400">
-A parameter was present but its value is not acceptable.
-
-**Resolution.** The `param` attribute names the offending field.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="invalid_vault  ·  400">
-`vault` is not one of the supported vault kinds.
-
-**Resolution.** Use a supported vault value, or omit it.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="key_not_found  ·  404">
-No API key with that id belongs to your account.
-
-**Resolution.** Check the key id.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="merchant_not_connected  ·  422">
-The merchant exists but has not finished connecting their payment processor, so no charge can settle.
-
-**Resolution.** Send the merchant through the Connect button; wait for the `merchant.connected` webhook.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="merchant_not_found  ·  404">
-No merchant with that id belongs to your account.
-
-**Resolution.** Check the merchant id, and that it was created with this account's key.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="missing_checkout_session_id  ·  400">
-`checkout_session_id` is required for this call.
-
-**Resolution.** Pass the id returned by create_checkout.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="missing_instrument_fields  ·  400">
-The instrument payload is missing required fields.
-
-**Resolution.** The `param` attribute names the first missing field.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="missing_required_fields  ·  400">
-A required parameter is missing.
-
-**Resolution.** The `param` attribute names the first missing field.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="needs_enrollment  ·  422">
-The caller has no card on file usable at this merchant, so there is nothing to charge. Expected for a first-time caller at a per-merchant processor.
-
-**Resolution.** Send a pay link so the caller can add a card.
-
-**Your agent says.** "I can text you a secure link to pay instead. Would that work?"
-
-**Then.** `send_link`
-</Accordion>
-
-<Accordion title="not_found  ·  404">
-No route matches this path and method.
-
-**Resolution.** Check the method and path against the API reference.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="order_lookup_unsupported  ·  422">
-This processor cannot resolve an order total by reference.
-
-**Resolution.** Send `amount_cents` instead of `order_id` for this processor.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="processor_mismatch  ·  409">
-That saved card cannot be charged at this merchant, because it lives in a different processor's wallet.
-
-**Resolution.** Charge a card from the merchant's own processor, or send a pay link to enroll one.
-
-**Your agent says.** "I can text you a secure link to pay instead. Would that work?"
-
-**Then.** `send_link`
-</Accordion>
-
-<Accordion title="session_expired  ·  410">
-The checkout session passed its expiry and can no longer be paid.
-
-**Resolution.** Create a new checkout session.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="session_missing_consumer  ·  422">
-The session has no caller identity attached, so no card can be selected.
-
-**Resolution.** Call identify at the start of the call before creating the session.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="session_not_found  ·  404">
-No checkout session with that id belongs to your account.
-
-**Resolution.** Check `checkout_session_id`.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-### authentication_error
-
-<Accordion title="invalid_key  ·  401">
-The API key is missing, malformed, revoked, or does not match the mode of the resource.
-
-**Resolution.** Send `Authorization: Bearer rk_test_…` (or `rk_live_…`) and confirm the key is not revoked.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-<Accordion title="vendor_not_provisioned  ·  422">
-The key authenticated but its vendor has no provisioned account.
-
-**Resolution.** Complete vendor onboarding before minting keys.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-### permission_error
-
-<Accordion title="instrument_not_authorized  ·  403">
-That saved card does not belong to the caller on this session.
-
-**Resolution.** Charge only cards returned by identify for this caller.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-### processor_error
-
-<Accordion title="card_declined  ·  402">
-The issuer declined the charge. `decline_code` carries the specific reason where the issuer gave one.
-
-**Resolution.** Ask for a different card. Sensitive decline reasons are deliberately not reflected in `agent_message`.
-
-**Your agent says.** "That card could not be processed. Would you like to try a different card?"
-
-**Then.** `offer_different_card`
-</Accordion>
-
-<Accordion title="card_save_failed  ·  402">
-The processor rejected the card while saving it.
-
-**Resolution.** Ask for a different card. `processor_code` carries the processor's own reason.
-
-**Your agent says.** "That card could not be processed. Would you like to try a different card?"
-
-**Then.** `offer_different_card`
-</Accordion>
-
-<Accordion title="merchant_credentials_invalid  ·  422">
-The merchant's stored processor credentials were rejected, so nothing can settle.
-
-**Resolution.** The merchant must reconnect their processor.
-
-**Your agent says.** "I'm not able to take payment on this line right now."
-
-</Accordion>
-
-<Accordion title="order_lookup_failed  ·  424">
-The processor could not be reached to resolve the order total.
-
-**Resolution.** Retry. The processor may be temporarily unavailable.
-
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-Safe to retry.
-</Accordion>
-
-<Accordion title="processor_unavailable  ·  424">
-The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.
-
-**Resolution.** Retry with backoff, or send a pay link so the caller can pay out of band.
-
-**Your agent says.** "I can text you a secure link to pay instead. Would that work?"
-
-**Then.** `send_link` · safe to retry
-</Accordion>
-
-### idempotency_error
-
-<Accordion title="charge_details_mismatch  ·  409">
-This idempotency key was already used with different charge details.
-
-**Resolution.** Use a new key, or resend the original parameters unchanged.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
-### rate_limit_error
-
-<Accordion title="rate_limit  ·  429">
-Too many requests in a short window.
-
-**Resolution.** Back off and retry, honouring `Retry-After`.
-
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-Safe to retry.
-</Accordion>
-
-### api_error
-
-<Accordion title="internal_error  ·  500">
-An unexpected fault on Ringup's side.
-
-**Resolution.** Retry. If it persists, contact support with the request id.
-
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-Safe to retry.
-</Accordion>
-
-<Accordion title="not_configured  ·  503">
-A required backend dependency is not configured in this environment.
-
-**Resolution.** Contact support with the request id.
-
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-Safe to retry.
-</Accordion>
-
-<Accordion title="session_create_failed  ·  500">
-The checkout session could not be written.
-
-**Resolution.** Retry. If it persists, contact support with the request id.
-
-**Your agent says.** "I'm having trouble taking payment right now. Let me get someone to help you."
-
-Safe to retry.
-</Accordion>
-
-## Declines
-
-A decline arrives as a `402` from `charge`, in the standard envelope:
-
-```json
-{
-  "error": {
-    "type": "processor_error",
-    "code": "card_declined",
-    "decline_code": "insufficient_funds",
-    "advice_code": "try_again_later",
-    "processor_code": "…",
-    "message": "Card declined by the issuer.",
-    "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
-    "agent_action": "offer_different_card",
-    "charge": "chg_77386e2f"
-  }
-}
-```
-
-Branch on `decline_code`: it is Ringup's own vocabulary, identical no matter which processor the
-merchant runs. `processor_code` carries that processor's raw value, unmodified, for your logs when
-you need to trace a specific decline back to its source.
-
-### Reasons your agent will state plainly
-
-| `decline_code` | Your agent says | Then |
-|---|---|---|
-| `insufficient_funds` | "That card was declined for insufficient funds. Would you like to try a different card?" | `offer_different_card` |
-| `expired_card` | "That card has expired. Would you like to try a different card?" | `offer_different_card` |
-| `incorrect_cvc` | "That security code did not match. Would you like to try again?" | `retry_card` |
-| `incorrect_number` | "That card number did not go through. Would you like to try again?" | `retry_card` |
-| `incorrect_postal_code` | "That billing zip code did not match. Would you like to try again?" | `retry_card` |
-| `card_not_supported` | "That card type is not accepted here. Would you like to try a different card?" | `offer_different_card` |
-| `card_velocity_exceeded` | "That card has reached its limit for now. Would you like to try a different card?" | `offer_different_card` |
-| `call_issuer` | "That card was declined and the bank needs to approve it. Would you like to try a different card?" | `offer_different_card` |
-| `authentication_required` | "That card needs extra verification from the bank. Would you like to try a different card?" | `offer_different_card` |
-| `try_again_later` | "That did not go through just now. Shall I try once more?" | `retry_card` |
-
-### Advice on retrying
-
-Each decline also carries `advice_code`, our guidance on what to do programmatically. It is
-separate from `agent_action`, which drives the conversation: a card can be "do not retry this
-card" while the agent still offers a different one.
-
-| `advice_code` | Meaning |
-|---|---|
-| `try_again_later` | Transient. The same card may work shortly. |
-| `confirm_card_data` | The caller likely mistyped something. Re-collect and retry. |
-| `do_not_try_again` | Permanent for this card. Use a different one. |
-
-### Reasons your agent will never state
-
-<Warning>
-Some declines must not be read aloud. A card reported lost or stolen, or one flagged for fraud,
-returns **exactly the same sentence as an ordinary decline**, so your agent cannot reveal it and a
-person listening cannot infer it. The real reason still reaches you in `decline_code` and
-`processor_code`.
-</Warning>
-
-This is an **allowlist**, not a blocklist: only the reasons in the table above are ever stated
-plainly. Every other reason, whether sensitive or simply one we have not catalogued, falls back to
-"That card could not be processed. Would you like to try a different card?" Processors add and rename decline codes without
-notice, so a new or undocumented reason is safe by default rather than safe only until someone
-updates a list.
+Every endpoint in this reference lists the specific codes it can return, so you never have to
+hold the whole catalog in mind to know what one call can do.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Authentication" icon="key" href="/authentication">
-    Keys, modes, and the header every request needs.
+  <Card title="Error codes" icon="list" href="/api-reference/error-codes">
+    Every code Ringup returns, with its resolution.
   </Card>
-  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
-    The out-of-band record of every payment outcome.
+  <Card title="Handling errors" icon="shield-check" href="/api-reference/handling-errors">
+    What to catch, and what your agent says out loud.
   </Card>
 </CardGroup>

@@ -1,0 +1,73 @@
+---
+title: "Handling errors"
+description: "What to branch on, what your agent speaks, and why a developer error hands your agent nothing to say."
+---
+
+Branch on `type` first: it is seven values and it will not grow often. Refine on `code` only
+where you need to act differently. Everything you need is on the error itself, so you never parse
+`message`.
+
+```js
+const res = await fetch("https://api.ringup.dev/v1/charge", { /* … */ });
+
+if (!res.ok) {
+  const { error } = await res.json();
+
+  // A caller can act on this: say the sentence we wrote, and follow the move.
+  if (error.audience === "caller") {
+    speak(error.agent_message);
+    if (error.agent_action === "send_link") await sendPayLink();
+    return;
+  }
+
+  // A developer error is yours, not theirs. Log it with the request id and handle the
+  // call however your product handles an outage.
+  log.error({ code: error.code, param: error.param, request_id: error.request_id });
+  return;
+}
+```
+
+## Check `audience` before you speak
+
+Ringup ships the words. On a phone call there is no time to compose a message from a code, so
+every error a **caller** can act on carries `agent_message`: one sentence, written to be spoken.
+
+A **developer** error (a malformed request, a bad key, a merchant id that does not exist) returns
+`null` for `agent_message`, `display_message` and `agent_action`. A caller cannot do
+anything about your integration, and inventing a line for your agent to say would be us guessing
+at your call flow. What your agent should do when payment is unavailable is your decision, so we
+state the fact and stop.
+
+<Warning>
+Speak `agent_message` verbatim and never `message`. `message` is written for your logs and
+can contain ids and internal detail.
+</Warning>
+
+## The spoken sentence is safe by construction
+
+Sensitive declines (a card reported lost, stolen, or flagged for fraud) return **exactly the same
+sentence** as an ordinary decline, so your agent cannot reveal something it was never sent. The
+specific reason still reaches your logs in `decline_code`. See
+[Error codes](/api-reference/error-codes) for the full allowlist.
+
+## Retries and idempotency
+
+`advice_code` tells you whether retrying can help. Charges are deduplicated server-side per
+Checkout Session, so a retry after a timeout returns the original charge with `replay: true`
+rather than charging twice. That is a server guarantee, not a client convention.
+
+## Quote the request id
+
+Every response carries `Ringup-Request-Id`, and every error repeats it as `request_id`. It
+matches our logs exactly, so quoting it in a support request skips a round of questions.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Error codes" icon="list" href="/api-reference/error-codes">
+    Every code, with its resolution.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Failures that arrive after the call has moved on.
+  </Card>
+</CardGroup>
