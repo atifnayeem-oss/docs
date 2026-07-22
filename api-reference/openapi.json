@@ -1058,35 +1058,6 @@
                 }
               }
             }
-          },
-          "500": {
-            "description": "`session_create_failed` The checkout session could not be written.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                },
-                "examples": {
-                  "session_create_failed": {
-                    "summary": "The checkout session could not be written.",
-                    "value": {
-                      "error": {
-                        "type": "api_error",
-                        "code": "session_create_failed",
-                        "audience": "caller",
-                        "message": "The checkout session could not be written.",
-                        "advice_code": "try_again_later",
-                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
-                        "display_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
-                        "agent_action": null,
-                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#session_create_failed",
-                        "request_id": "req_8f3c1d2ab4e9"
-                      }
-                    }
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -1251,7 +1222,7 @@
             }
           },
           "400": {
-            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1288,6 +1259,23 @@
                         "display_message": null,
                         "agent_action": null,
                         "doc_url": "https://docs.ringup.dev/api-reference/error-codes#missing_required_fields",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "invalid_value": {
+                    "summary": "A parameter was present but its value is not acceptable.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_value",
+                        "audience": "developer",
+                        "message": "A parameter was present but its value is not acceptable.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_value",
                         "request_id": "req_8f3c1d2ab4e9"
                       }
                     }
@@ -1578,64 +1566,6 @@
                         "display_message": "I can text you a secure link to pay instead. Would that work?",
                         "agent_action": "send_link",
                         "doc_url": "https://docs.ringup.dev/api-reference/error-codes#needs_enrollment",
-                        "request_id": "req_8f3c1d2ab4e9"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "424": {
-            "description": "`processor_unavailable` The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                },
-                "examples": {
-                  "processor_unavailable": {
-                    "summary": "The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.",
-                    "value": {
-                      "error": {
-                        "type": "processor_error",
-                        "code": "processor_unavailable",
-                        "audience": "caller",
-                        "message": "The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.",
-                        "advice_code": "try_again_later",
-                        "agent_message": "I can text you a secure link to pay instead. Would that work?",
-                        "display_message": "We could not reach the payment system just now. Please try again in a moment.",
-                        "agent_action": "send_link",
-                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#processor_unavailable",
-                        "request_id": "req_8f3c1d2ab4e9"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "`rate_limit` Too many requests in a short window.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                },
-                "examples": {
-                  "rate_limit": {
-                    "summary": "Too many requests in a short window.",
-                    "value": {
-                      "error": {
-                        "type": "rate_limit_error",
-                        "code": "rate_limit",
-                        "audience": "caller",
-                        "message": "Too many requests in a short window.",
-                        "advice_code": "try_again_later",
-                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
-                        "display_message": "Too many attempts just now. Please wait a moment and try again.",
-                        "agent_action": null,
-                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#rate_limit",
                         "request_id": "req_8f3c1d2ab4e9"
                       }
                     }
