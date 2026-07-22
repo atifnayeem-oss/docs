@@ -1573,6 +1573,64 @@
                 }
               }
             }
+          },
+          "424": {
+            "description": "`processor_unavailable` The merchant's payment processor is unreachable or returned a server error, so the outcome of this charge is UNKNOWN. It may still have settled. Not a Ringup outage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "processor_unavailable": {
+                    "summary": "The merchant's payment processor is unreachable or returned a server error, so the outcome of this charge is UNKNOWN. It may still have settled. Not a Ringup outage.",
+                    "value": {
+                      "error": {
+                        "type": "processor_error",
+                        "code": "processor_unavailable",
+                        "audience": "caller",
+                        "message": "The merchant's payment processor is unreachable or returned a server error, so the outcome of this charge is UNKNOWN. It may still have settled. Not a Ringup outage.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I'm still confirming that payment. I'll send you a confirmation as soon as it comes through.",
+                        "display_message": "We are still confirming this payment. Do not pay again: we will send a confirmation as soon as it comes through.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#processor_unavailable",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limit` Too many requests in a short window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "rate_limit": {
+                    "summary": "Too many requests in a short window.",
+                    "value": {
+                      "error": {
+                        "type": "rate_limit_error",
+                        "code": "rate_limit",
+                        "audience": "caller",
+                        "message": "Too many requests in a short window.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "display_message": "Too many attempts just now. Please wait a moment and try again.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#rate_limit",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

@@ -312,13 +312,13 @@ Safe to retry.
 </Accordion>
 
 <Accordion title="processor_unavailable  ·  424">
-The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.
+The merchant's payment processor is unreachable or returned a server error, so the outcome of this charge is UNKNOWN. It may still have settled. Not a Ringup outage.
 
-**Resolution.** Retry with backoff, or send a pay link so the caller can pay out of band.
+**Resolution.** Repeat the same charge request: it is idempotent, so it cannot charge twice. Or wait for the webhook, which carries the settled outcome once we have reconciled it.
 
-**Your agent says.** "I can text you a secure link to pay instead. Would that work?"
+**Your agent says.** "I'm still confirming that payment. I'll send you a confirmation as soon as it comes through."
 
-**Then.** `send_link` · safe to retry
+Safe to retry.
 </Accordion>
 
 ## idempotency_error
