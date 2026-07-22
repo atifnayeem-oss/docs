@@ -47,12 +47,6 @@ See [Authentication](/authentication) for test versus live keys and how to keep 
 | `POST /v1/charge` | Charge one saved card against one open session. |
 | `POST /v1/send_link` | Text the caller a pay link for an open session. |
 
-<Note>
-`GET /v1/payment_status?checkout_session_id=...` is the previous name for the session read. It
-still works and is deprecated; write new code against
-`GET /v1/checkout_sessions/{checkout_session_id}`.
-</Note>
-
 ## Identity travels in the body
 
 The caller and the merchant are ordinary request fields: `caller_phone` on `identify` and

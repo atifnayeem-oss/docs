@@ -201,11 +201,6 @@ curl https://api.ringup.dev/v1/checkout_sessions/cs_x9f2 \
 its own `status` inside `charge`, which is `null` until something is attempted. This is a read, so a
 declined charge reads as `200` with a failed charge rather than an error.
 
-<Note>
-`GET /v1/payment_status?checkout_session_id=...` is the old name for this read. It still works and
-is deprecated; write new code against `GET /v1/checkout_sessions/{checkout_session_id}`.
-</Note>
-
 ## Reconcile from the webhook
 
 However the call ends, your server learns the outcome from a `checkout.completed`

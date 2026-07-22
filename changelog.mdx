@@ -44,7 +44,6 @@ you respond to both of its meanings the same way.
 **New canonical read: `GET /v1/checkout_sessions/{checkout_session_id}`.** The top-level `status` is
 now `session_status`, because the charge has a status of its own; `return_uri` is `return_to` and
 `processor_charge_ref` is `processor_payment_id`.
-`GET /v1/payment_status?checkout_session_id=...` still works and is deprecated.
 
 **`send_link` takes only `{ "checkout_session_id": "cs_..." }`.** Drop `phone`, `merchant_id` and
 `amount_cents`: they all live on the session, so a link can no longer carry a total nobody derived
