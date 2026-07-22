@@ -5,19 +5,24 @@ description: "Ringup settles on the merchant's own payment processor. You embed 
 
 Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You never need to know which processor a given merchant uses: you embed **one generic button**, and the merchant chooses their processor on a Ringup-hosted page.
 
-## Send the merchant a connect link
+## Add the Connect button
 
-<Note>
-The embeddable Connect button is being reissued. It used to carry your key in the link, and a key
-does not belong in a URL that reaches a processor's logs and the merchant's browser history. Until
-the replacement ships, create a connect link per merchant from your dashboard.
-</Note>
+Drop this one line wherever your merchants manage their account. It renders a **"Connect Pay by Phone"** button that opens Ringup's hosted connect page, where the merchant chooses when payment should be taken and authorizes their own processor.
 
-In your dashboard, open **Connections** and use **Onboard a merchant**. You get a link that is
-single use, expires in ten minutes, and carries no key, so it is safe to send by email or chat.
-Give it your own id for that merchant (`reference_id`) and it comes back to you on the
-`merchant.connected` event, so you can match our `mch_…` to your record without a lookup.
+```html
+<script src="https://ringup.dev/connect/button.js"
+        data-ringup-key="pk_test_..."></script>
+```
 
+<Warning>
+`data-ringup-key` is your **publishable** key, from **Connections** in your dashboard. It is meant
+to be visible in your page and can do exactly one thing: start a merchant connection. It creates no
+merchant, moves no money, and reads nothing back. Never put your secret key (`rk_...`) here.
+</Warning>
+
+Optional attributes: `data-ringup-label` (button text), `data-ringup-variant` (`filled` default, or `outline`), `data-ringup-return` (URL to send the merchant back to), `data-ringup-reference` (your own id for this merchant, echoed back on `merchant.connected`).
+
+Prefer to send a link instead? Create one per merchant in your dashboard, under **Connections** > **Onboard a merchant**. It is single use and expires in ten minutes.
 
 ## What the merchant sees
 

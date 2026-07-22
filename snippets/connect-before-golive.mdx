@@ -1,11 +1,14 @@
 <Warning>
 **Before you go live: add the Connect button to your dashboard.** Wiring the payment tools into
 your agent does not, by itself, let any charge settle. Each merchant must first connect their own
-payment processor. Create a connect link for them in your dashboard, under **Connections** >
-**Onboard a merchant**: it is single use, expires in ten minutes, and carries no key, so it is
-safe to send.
+payment processor, from a button you embed on your merchant-facing dashboard:
 
-Do it alongside this integration so a merchant can connect the moment they are ready; until
+```html
+<script src="https://ringup.dev/connect/button.js"
+        data-ringup-key="pk_test_..."></script>
+```
+
+That is your **publishable** key, not your secret one. Ship it alongside this integration so a merchant can connect the moment they are ready; until
 they do, the payment layer stays inaudible on their calls, so going live early is safe. Button
 options and the connect flow: [Payment providers](/payment-providers/overview).
 </Warning>
