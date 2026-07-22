@@ -5,16 +5,19 @@ description: "Ringup settles on the merchant's own payment processor. You embed 
 
 Ringup never becomes the merchant of record. Every charge settles on the **merchant's own payment processor**, so each merchant connects their processor to Ringup once. You never need to know which processor a given merchant uses: you embed **one generic button**, and the merchant chooses their processor on a Ringup-hosted page.
 
-## Add the Connect button
+## Send the merchant a connect link
 
-Drop this one line wherever your merchants manage their account. It renders a **"Connect Pay by Phone"** button that opens Ringup's hosted connect page, where the merchant picks their processor and authorizes it.
+<Note>
+The embeddable Connect button is being reissued. It used to carry your key in the link, and a key
+does not belong in a URL that reaches a processor's logs and the merchant's browser history. Until
+the replacement ships, create a connect link per merchant from your dashboard.
+</Note>
 
-```html
-<script src="https://ringup.dev/connect/button.js"
-        data-ringup-vendor="YOUR_PUBLIC_KEY"></script>
-```
+In your dashboard, open **Connections** and use **Onboard a merchant**. You get a link that is
+single use, expires in ten minutes, and carries no key, so it is safe to send by email or chat.
+Give it your own id for that merchant (`reference_id`) and it comes back to you on the
+`merchant.connected` event, so you can match our `mch_…` to your record without a lookup.
 
-Optional attributes: `data-ringup-label` (button text), `data-ringup-variant` (`filled` default, or `outline`), `data-ringup-return` (URL to send the merchant back to). Prefer your own UI? Point any element or link at `https://ringup.dev/connect?vendor=YOUR_PUBLIC_KEY`.
 
 ## What the merchant sees
 
