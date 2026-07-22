@@ -34,7 +34,8 @@ Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashb
 
 Call `identify` from your server at the greeting, not at payment (a plain HTTP call, like the
 checkout call below). The caller's number is available the instant the call connects; for a
-returning caller `identify` returns their name and saved card, so your agent greets them by name.
+returning caller `identify` returns their name, so your agent greets them by name. The cards it
+can pay with come later, from the Checkout Session.
 See [Recognize at the start of the call](/concepts/identity).
 
 </Step>
@@ -45,24 +46,32 @@ with your Ringup API key. If `payment_required` is `none`, do not transfer: fini
 normally. Otherwise transfer to the returned `transfer_to`.
 
 ```bash
-POST https://api.ringup.dev/v1/checkouts
+POST https://api.ringup.dev/v1/create_checkout
 Authorization: Bearer <YOUR_RINGUP_KEY>
 Content-Type: application/json
 
 {
-  "amount_cents": 2500,
-  "line_items": [{ "name": "Large pepperoni", "quantity": 1, "amount_cents": 2500 }], // optional
-  "order_id": "sq_abc",                              // optional: settle against an existing order
-  "return_to": "sip:your-app@your-twilio-number",    // optional: transfer the caller back after payment
+  "merchant_id": "tonys-pizza",
+  "caller_phone": "+14155550142",
+  "order_id": "ord_7f21",                            // the merchant's order; the total is read from it
+  "return_to": "sip:your-app@your-twilio-number",       // optional: transfer the caller back after payment
+  "platform_call_id": "call_abc123",                 // optional: ties the payment to your call logs
   "success_message": "You are all set, your order will be ready shortly."  // optional (if no return_to)
 }
 ```
 
 ```jsonc
 {
-  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
+  "checkout_session_id": "cs_x9f2",                  // the correlation token
   "payment_required": "required",                    // "required" | "optional" | "none"
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
+  "amount_cents": 1900,                              // resolved from the order
+  "currency": "USD",
+  "amount_source": "order",                          // "order" | "request"
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",  // null unless payment is required
+  "expires_at": "2026-07-21T18:35:12Z",
+  "cards": [],                                       // saved cards chargeable at this merchant
+  "default_card_id": null,
+  "metadata": null
 }
 ```
 
@@ -70,7 +79,7 @@ Content-Type: application/json
 <Step title="Transfer with a Dial to the SIP URI">
 
 Send an `end` message to close the ConversationRelay session, and have your action URL return TwiML
-that dials the caller to the Ringup SIP URI, carrying the Checkout Session `id` as a URI parameter.
+that dials the caller to the Ringup SIP URI, carrying the `checkout_session_id` as a URI parameter.
 Speak one line first so the caller is not on silence:
 
 ```xml
@@ -111,16 +120,17 @@ transfer, no payment line, and the ConversationRelay session stays open througho
 <Steps>
 <Step title="Recognize the caller at the greeting">
 
-Call `identify` at the greeting, not at payment. Pass the caller's number, available the instant the
-call connects; for a returning caller it returns their name and saved card, so your agent greets
-them by name and knows a saved card is on file. See
-[Recognize at the start of the call](/concepts/identity).
+Call `identify` at the greeting, not at payment. Pass `caller_phone`, which Twilio gives you on
+the setup message. For a returning caller it returns their name, so your agent greets them by name
+and skips questions it already has answers to. An unknown caller comes back `known: false`, which
+is an ordinary first call. See [Recognize at the start of the call](/concepts/identity).
 
 <CodeGroup>
 ```bash curl
 curl -X POST https://api.ringup.dev/v1/identify \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
-  -H "X-Caller-Number: +14155550142"
+  -H "Content-Type: application/json" \
+  -d '{ "caller_phone": "+14155550142" }'
 ```
 
 ```javascript Node
@@ -128,68 +138,110 @@ const caller = await fetch("https://api.ringup.dev/v1/identify", {
   method: "POST",
   headers: {
     "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-    "X-Caller-Number": callerNumber,
+    "Content-Type": "application/json",
   },
+  body: JSON.stringify({ caller_phone: callerNumber }),
 }).then((r) => r.json());
+// caller.known tells you whether to greet by caller.consumer.first_name
 ```
 </CodeGroup>
 
 </Step>
-<Step title="Charge the saved card at payment">
+<Step title="Open a Checkout Session when the order is confirmed">
 
-When your loop confirms the order and `identify` returned a saved card, `POST` to `charge` with the
-order total. Ringup charges the saved card off-session on the merchant's own processor and returns
-the confirmation to read back. It respects the merchant's payment policy server-side, so on an
-unconnected merchant it is a silent no-op.
+`POST` to `create_checkout` with the merchant and the caller. Ringup resolves the total (from the
+merchant's order when you pass `order_id`), applies the merchant's
+[payment policy](/concepts/payment-policy), and returns `cards`: the caller's cards chargeable at
+this merchant. On `payment_required: "none"` say nothing about payment and finish the call.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.ringup.dev/v1/create_checkout \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_id": "tonys-pizza",
+    "caller_phone": "+14155550142",
+    "order_id": "ord_7f21"
+  }'
+```
+
+```javascript Node
+const checkout = await fetch("https://api.ringup.dev/v1/create_checkout", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    merchant_id: merchantId,
+    caller_phone: callerNumber,
+    order_id: orderId,           // or amount_cents, when there is no order
+  }),
+}).then((r) => r.json());
+// checkout.payment_required === "none" means say nothing about payment
+```
+</CodeGroup>
+
+</Step>
+<Step title="Charge the card the caller picked">
+
+Read one card from `cards` back by brand and last four with the amount. After the caller agrees,
+`POST` to `charge` with the session and that card's `instrument_id`. Ringup charges it off-session
+on the merchant's own processor. A decline comes back as a `402` in the standard
+[error envelope](/api-reference/errors), carrying the sentence your agent can speak.
 
 <CodeGroup>
 ```bash curl
 curl -X POST https://api.ringup.dev/v1/charge \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
-  -H "X-Caller-Number: +14155550142" \
   -H "Content-Type: application/json" \
-  -d '{ "amount_cents": 2500, "order_id": "sq_abc" }'
+  -d '{ "checkout_session_id": "cs_x9f2", "instrument_id": "ins_4b7e" }'
 ```
 
 ```javascript Node
-const payment = await fetch("https://api.ringup.dev/v1/charge", {
+const res = await fetch("https://api.ringup.dev/v1/charge", {
   method: "POST",
   headers: {
     "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-    "X-Caller-Number": callerNumber,
     "Content-Type": "application/json",
   },
-  body: JSON.stringify({ amount_cents: 2500, order_id: "sq_abc" }),
-}).then((r) => r.json());
-// read payment.confirmation back only when payment.status === "succeeded"
+  body: JSON.stringify({
+    checkout_session_id: checkout.checkout_session_id,
+    instrument_id: card.instrument_id,   // the card the caller agreed to
+  }),
+});
+if (!res.ok) { /* a decline is a 402: speak error.agent_message */ }
+const charge = await res.json();
+// read charge.order_id back only when charge.status === "completed"
 ```
 </CodeGroup>
 
 </Step>
-<Step title="Text a link for a first-time caller">
+<Step title="Text a link when there is no card to offer">
 
-If `identify` returned no saved card (or the charge declined), `POST` to `send_link`. Ringup texts a
-secure pay link and, when they pay, delivers the confirmation. See [Send Link](/concepts/send-link).
+When `cards` is empty (or the charge declined), `POST` to `send_link`. The session is the only
+input, and Ringup texts a secure pay link. Check `sent`: `false` means a duplicate send returned the
+same link without texting again. See [Send Link](/concepts/send-link).
 
 <CodeGroup>
 ```bash curl
 curl -X POST https://api.ringup.dev/v1/send_link \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
-  -H "X-Caller-Number: +14155550142" \
   -H "Content-Type: application/json" \
-  -d '{ "amount_cents": 2500 }'
+  -d '{ "checkout_session_id": "cs_x9f2" }'
 ```
 
 ```javascript Node
-await fetch("https://api.ringup.dev/v1/send_link", {
+const link = await fetch("https://api.ringup.dev/v1/send_link", {
   method: "POST",
   headers: {
     "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-    "X-Caller-Number": callerNumber,
     "Content-Type": "application/json",
   },
-  body: JSON.stringify({ amount_cents: 2500 }),
-});
+  body: JSON.stringify({ checkout_session_id: checkout.checkout_session_id }),
+}).then((r) => r.json());
+// link.sent === false means a duplicate send: no new text went out, so do not promise one
 ```
 </CodeGroup>
 

@@ -1,15 +1,16 @@
 ---
 title: "Introduction"
-description: "The REST tools behind both integration modes: recognize a caller, charge a saved card, or run a hosted Checkout Session."
+description: "The REST API behind both integration modes: recognize a caller, open a Checkout Session, charge a saved card, or text a pay link."
 ---
 
-Ringup has two integration modes, and the tools below power both. **In your agent** you keep the
-caller in your own agent and call [`identify`](/concepts/identity) at the greeting, then
-[`charge`](/concepts/charge) the saved card or [`send_link`](/concepts/send-link) a first-time
-caller: nothing transfers. **Hosted** creates a high-level
-[Checkout Session](/concepts/checkout-session) and Ringup runs the whole payment on its own line
-(create one, transfer the call, reconcile on the webhook). Pick the mode that fits your agent; the
-same identity and the same off-session charge sit underneath both.
+Ringup has two integration modes, and the endpoints below power both. **In your agent** you keep
+the caller in your own agent: call [`identify`](/concepts/identity) at the greeting, open a
+[Checkout Session](/concepts/checkout-session) when the order is ready, then
+[`charge`](/concepts/charge) the card the caller picked or [`send_link`](/concepts/send-link) when
+the session offers none. Nothing transfers. **Hosted** creates the same Checkout Session and
+transfers the call to Ringup's payment line, which runs the payment and posts you a webhook. Pick
+the mode that fits your agent; the same identity and the same off-session charge sit underneath
+both.
 
 <Note>
 **Stability.** The request and response shapes on this page are stable. The API is versioned in
@@ -24,8 +25,6 @@ the [Changelog](/changelog) for what has shipped.
 https://api.ringup.dev/v1
 ```
 
-All five tools are `POST` endpoints with JSON bodies.
-
 ## Authentication
 
 Every request authenticates with your Ringup API key as a Bearer token:
@@ -38,18 +37,38 @@ The public demo sandbox is open (no key) so you can try the endpoints and the
 [Quickstart](/quickstart) before signing up. For your own merchants and callers, use your key.
 See [Authentication](/authentication) for test versus live keys and how to keep the key safe.
 
-## Identity rides headers, not arguments
+## The payment lifecycle
 
-The caller and the merchant are resolved server-side from three headers your platform
-templates in at call time. The model never types either identity, so neither can be
-mistyped, hallucinated, or prompt-injected. See [Caller Identity](/concepts/identity) and
-[Merchant Identity](/concepts/merchant-identity).
+| Endpoint | What it does |
+|---|---|
+| `POST /v1/identify` | Recognize a caller by phone number. Returns who they are, never what they can pay with. |
+| `POST /v1/create_checkout` | Open a Checkout Session: resolve the amount, apply the merchant's policy, return the cards chargeable at that merchant. |
+| `GET /v1/checkout_sessions/{checkout_session_id}` | Read a session and its charge. |
+| `POST /v1/charge` | Charge one saved card against one open session. |
+| `POST /v1/send_link` | Text the caller a pay link for an open session. |
 
-| Header | Value | Purpose |
+<Note>
+`GET /v1/payment_status?checkout_session_id=...` is the previous name for the session read. It
+still works and is deprecated; write new code against
+`GET /v1/checkout_sessions/{checkout_session_id}`.
+</Note>
+
+## Identity travels in the body
+
+The caller and the merchant are ordinary request fields: `caller_phone` on `identify` and
+`create_checkout`, and `merchant_id` on `create_checkout`. One value in one place, so no consumer
+has to reason about which of two copies wins.
+
+| Field | Value | Purpose |
 |---|---|---|
-| `X-Caller-Number` | The caller's number, E.164 (platform caller-ID variable) | Who is calling |
-| `X-Ringup-Merchant` | The dialed number, E.164, or your explicit merchant id | Which business they called |
-| `X-Call-Id` | The platform's call id | Charge idempotency: retries can never double-charge |
+| `caller_phone` | The caller's number, E.164 | Who is calling |
+| `merchant_id` | The merchant's Ringup id, resolved from the number they dialed | Which business they called |
+| `platform_call_id` | Your platform's call id | Ties the payment to your call logs, and lets Ringup verify caller attestation with the platform |
+
+Fill all three in the code that assembles the request, from the platform's call metadata. A value
+the model composes can be mistyped, hallucinated, or prompt-injected, and these three decide whose
+cards are offered and whose account the money reaches. See
+[Caller Identity](/concepts/identity) and [Merchant Identity](/concepts/merchant-identity).
 
 <Warning>
 Web and dashboard test calls carry no real caller ID, so the caller-ID template resolves to
@@ -59,19 +78,19 @@ everything natively.
 
 ## Idempotency
 
-Charges are deduplicated server-side against the call id and amount. A platform retry, a
-model retry, or a duplicated tool call returns the original payment result instead of
-charging twice. This is a server guarantee, not a client convention.
+Charges are deduplicated server-side per Checkout Session. A platform retry, a model retry, or a
+duplicated tool call returns the original charge with `replay: true` instead of charging twice.
+This is a server guarantee, not a client convention.
 
 ## Webhooks
 
-Payment outcomes also arrive out of band as signed events (`checkout.completed` and the rest of
-the catalog). Add your endpoint in the dashboard under **Settings, then Webhooks**, and copy the
-signing secret. See [Webhooks](/concepts/webhooks).
+Payment outcomes also arrive out of band as signed events: `checkout.completed` when a session is
+paid, `checkout.failed` on a decline or an expiry. Add your endpoint in the dashboard under
+**Settings, then Webhooks**, and copy the signing secret. See [Webhooks](/concepts/webhooks).
 
 ## Test mode
 
-The shared sandbox answers the same five tools, keyless, at `https://ringup.dev/api/tools`, with
+The shared sandbox answers the same endpoints, keyless, at `https://ringup.dev/api/tools`, with
 ready-made fixtures (merchants with different policies, a caller with a saved Visa). See
 [Testing](/concepts/testing).
 

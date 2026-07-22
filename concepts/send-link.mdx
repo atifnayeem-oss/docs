@@ -1,33 +1,44 @@
 ---
 title: "Send Link"
-description: "For a first-time caller with no saved card, send_link texts a secure pay link; the caller taps it, pays, and is recognized on every call after."
+description: "When the session offers no chargeable card, send_link texts the caller a secure pay link; they tap it, pay, and are recognized on every call after."
 ---
 
-When a caller has no saved card, or a recognized caller wants to use a different one, there is
-nothing to charge yet. `send_link` texts them a secure pay link so they can pay on their own
-phone, without ever reading a card number aloud on the call. It is the first-time path in both
-integration modes: whether Ringup runs the hosted payment or your own agent calls the tools,
-a first-time caller is enrolled the same way, and is [recognized](/concepts/identity) on every
-call after.
+When a [Checkout Session](/concepts/checkout-session) comes back with an empty `cards` array, there
+is nothing to charge yet. `send_link` texts the caller a secure pay link so they pay on their own
+phone, without ever reading a card number aloud. It is the first-time path in both integration
+modes, and once they pay they are [recognized](/concepts/identity) on every call after, at any
+Ringup merchant.
+
+## The whole path
+
+<Steps>
+  <Step title="Open a session when the order is ready">
+    [`create_checkout`](/concepts/checkout-session) resolves the amount and returns `cards`.
+  </Step>
+  <Step title="Find no card to offer">
+    `cards` is empty, so there is nothing the caller can approve on the call.
+  </Step>
+  <Step title="Ask, then text the link">
+    Send the link only after the caller agrees to the text.
+  </Step>
+</Steps>
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://ringup.dev/api/tools/send_link \
+curl -X POST https://api.ringup.dev/v1/send_link \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
-  -H "X-Caller-Number: +14155550142" \
-  -H "X-Ringup-Merchant: tonys-pizza" \
-  -d '{ "amount_cents": 1900 }'
+  -d '{ "checkout_session_id": "cs_x9f2" }'
 ```
 
 ```javascript Node
-const res = await fetch("https://ringup.dev/api/tools/send_link", {
+const res = await fetch("https://api.ringup.dev/v1/send_link", {
   method: "POST",
   headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
     "Content-Type": "application/json",
-    "X-Caller-Number": "+14155550142",
-    "X-Ringup-Merchant": "tonys-pizza",
   },
-  body: JSON.stringify({ amount_cents: 1900 }),
+  body: JSON.stringify({ checkout_session_id: checkout.checkout_session_id }),
 });
 const link = await res.json();
 ```
@@ -36,45 +47,61 @@ const link = await res.json();
 import requests
 
 link = requests.post(
-    "https://ringup.dev/api/tools/send_link",
-    headers={
-        "X-Caller-Number": "+14155550142",
-        "X-Ringup-Merchant": "tonys-pizza",
-    },
-    json={"amount_cents": 1900},
+    "https://api.ringup.dev/v1/send_link",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={"checkout_session_id": checkout["checkout_session_id"]},
 ).json()
 ```
 </CodeGroup>
 
 ```json Response
-{ "ok": true, "sent_to": "+14155550142", "link": "https://ringup.dev/pay" }
+{
+  "sent": true,
+  "pay_url": "https://ringup.dev/pay/link/eyJhbGciOi...",
+  "short_url": "https://ringup.dev/l/k7m2xq",
+  "payment_required": "required",
+  "checkout_session_id": "cs_x9f2",
+  "merchant_id": "tonys-pizza",
+  "order_id": "ord_7f21",
+  "platform_call_id": "call_abc123"
+}
 ```
 
-## What happens
+## The session is the only input
 
-The caller taps the link and pays on a Ringup-hosted page. The card number is entered there, on a
-web page, so it never touches the call. Once the payment clears, the card is saved by phone
-number, so the same person is [recognized](/concepts/identity) on their next call, at any Ringup
-merchant, and can pay from a saved card with no link at all.
+`send_link` takes one field: `checkout_session_id`. The caller, the merchant, the amount and the
+policy all live on the session already, so passing them again could only introduce a disagreement.
+This is what makes a pay link trustworthy: it can never carry a total nobody derived from a real
+order, and it can never be texted to a number the session was not opened for.
 
-Only send the link after the caller clearly agrees to the text.
+## Check `sent` before you speak
+
+`sent` is `false` when a repeat send inside a short dedupe window returned the same link **without
+texting again**. A duplicate is common: platforms retry a slow tool call, and models fire twice.
+
+Read the field. An agent that assumes a `200` means a text went out tells the caller "I have texted
+you" when nothing went out, and the caller waits for a message that will never arrive. On `false`,
+say the link was already sent and point them at the earlier message.
+
+A caller whose link genuinely never arrived and who asks again seconds later is outside the window
+and gets a fresh text, so resending always works.
 
 ## During the call or after
 
 Payment can complete either way:
 
-- **During the call.** The caller pays while still on the phone. You can poll the payment state so
-  your agent knows the moment it clears and can close the call knowing the order is paid.
+- **During the call.** The caller pays while still on the phone. Poll the
+  [session](/concepts/checkout-session) so your agent knows the moment it clears and can close the
+  call knowing the order is paid.
 - **After the call ends.** The caller hangs up and pays later from the same link. The call does not
   have to wait.
 
-Either way, the caller gets an SMS receipt, and your server learns the outcome from a
-`checkout.completed` [webhook](/concepts/webhooks) with `method: "link"`. A link payment is not a
-separate event: it is a `checkout.completed` like any other, so one webhook handler covers both a
-saved-card charge and a first-time link payment.
+Either way the caller gets an SMS receipt, and your server learns the outcome from a
+`checkout.completed` [webhook](/concepts/webhooks). A link payment is not a separate event, so one
+webhook handler covers both a saved-card charge and a first-time link payment.
 
-Once the caller has paid once, prefer a direct [`charge`](/concepts/charge) on their saved card
-next time.
+Once the caller has paid once, their card shows up in `cards` on the next session and you can
+[`charge`](/concepts/charge) it directly.
 
 ## Next steps
 

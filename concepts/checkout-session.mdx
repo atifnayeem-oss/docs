@@ -1,42 +1,44 @@
 ---
 title: "Checkout Session"
-description: "The central object: created when an order is ready to pay, it carries Ringup's payment policy and, in transfer mode, where to send the call."
+description: "The central object: created when an order is ready to pay, it resolves the amount, applies the merchant's payment policy, and returns the caller's chargeable cards."
 ---
 
-The **Checkout Session** is the object at the center of the **hosted** payment mode, where Ringup
-takes the payment on its own line. You create one the moment an order is ready to pay, and it
-carries everything the payment step needs: the amount, Ringup's
-[policy decision](/concepts/payment-policy) for this order, and, when payment runs by transfer, the
-destination to send the live call.
+The **Checkout Session** is the object every payment turns on. You create one the moment an order is
+ready to pay, and it carries everything the payment step needs: the resolved amount, Ringup's
+[policy decision](/concepts/payment-policy) for this purchase, the caller's cards that are
+chargeable at this merchant, and, when payment runs by transfer, where to send the live call.
 
-If instead you keep the caller in your own agent (the [in-agent API path](/concepts/charge)), you do
-not create a Checkout Session: you call [`identify`](/concepts/identity) at the greeting and
-[`charge`](/concepts/charge) the saved card directly, and nothing transfers.
+Both integration modes start here. Whether your agent charges a card itself or hands the call to
+Ringup's payment line, the session is the same object.
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://ringup.dev/api/tools/create_checkout \
+curl -X POST https://api.ringup.dev/v1/create_checkout \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
-  -H "X-Ringup-Merchant: tonys-pizza" \
   -d '{
-    "amount_cents": 2500,
-    "order_id": "sq_abc",
+    "merchant_id": "tonys-pizza",
+    "caller_phone": "+14155550142",
+    "order_id": "ord_7f21",
     "return_to": "sip:agent@your-number",
+    "platform_call_id": "call_abc123",
     "success_message": "You are all set, ready in fifteen minutes."
   }'
 ```
 
 ```javascript Node
-const res = await fetch("https://ringup.dev/api/tools/create_checkout", {
+const res = await fetch("https://api.ringup.dev/v1/create_checkout", {
   method: "POST",
   headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
     "Content-Type": "application/json",
-    "X-Ringup-Merchant": "tonys-pizza",
   },
   body: JSON.stringify({
-    amount_cents: 2500,
-    order_id: "sq_abc",
+    merchant_id: "tonys-pizza",
+    caller_phone: "+14155550142",
+    order_id: "ord_7f21",
     return_to: "sip:agent@your-number",
+    platform_call_id: "call_abc123",
     success_message: "You are all set, ready in fifteen minutes.",
   }),
 });
@@ -47,12 +49,14 @@ const checkout = await res.json();
 import requests
 
 checkout = requests.post(
-    "https://ringup.dev/api/tools/create_checkout",
-    headers={"X-Ringup-Merchant": "tonys-pizza"},
+    "https://api.ringup.dev/v1/create_checkout",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
     json={
-        "amount_cents": 2500,
-        "order_id": "sq_abc",
+        "merchant_id": "tonys-pizza",
+        "caller_phone": "+14155550142",
+        "order_id": "ord_7f21",
         "return_to": "sip:agent@your-number",
+        "platform_call_id": "call_abc123",
         "success_message": "You are all set, ready in fifteen minutes.",
     },
 ).json()
@@ -61,46 +65,100 @@ checkout = requests.post(
 
 ```json Response
 {
-  "id": "cs_x9f2",
+  "checkout_session_id": "cs_x9f2",
   "payment_required": "required",
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"
+  "amount_cents": 1900,
+  "currency": "USD",
+  "amount_source": "order",
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",
+  "expires_at": "2026-07-21T18:35:12Z",
+  "cards": [
+    { "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/28" }
+  ],
+  "default_card_id": "ins_4b7e",
+  "metadata": null
 }
 ```
 
-`amount_cents` is the only required field. `line_items`, `order_id`, `return_to`,
-`success_message`, and `failure_message` are optional: `order_id` settles against an existing
-order, `return_to` brings the caller back after payment, and `success_message` / `failure_message`
-let Ringup speak the outcome and end the call. `transfer_to` comes back only in transfer mode and
-embeds the session id. See the [API reference](/api-reference/introduction) for the full schema.
+## What you send
+
+| Field | Required | What it does |
+|---|---|---|
+| `merchant_id` | yes | Which business the caller reached. Sets the policy, the processor, and which cards are chargeable. |
+| `caller_phone` | yes | The caller, E.164. The same number [`identify`](/concepts/identity) took. |
+| `order_id` | no | The merchant's own order. The amount authority when present. |
+| `amount_cents` | only without `order_id` | The total in cents. |
+| `currency` | no | Defaults to `USD`. |
+| `return_to` | no | Where to send the caller back after payment. |
+| `platform_call_id` | no | Your platform's call id. Recommended: it ties the payment to your call logs. |
+| `success_message` | no | Spoken after a successful payment. |
+| `failure_message` | no | Spoken after a failed one. |
+| `metadata` | no | Your own key/value pairs. Stored, echoed back, never interpreted by Ringup. |
+
+## The order is the amount authority
+
+When you pass `order_id`, Ringup reads the total from the merchant's own order and returns it as
+`amount_cents` with `amount_source: "order"`. You do not have to compute the total, and a total
+nobody derived from a real order cannot reach the caller.
+
+`amount_cents` is required only when there is no `order_id`, and it is never trusted over an order.
+If you send both and they disagree, the request fails with `409 amount_mismatch` rather than
+quietly charging one of the two. The response says where the number came from:
+
+- `amount_source: "order"`: resolved from the merchant's order.
+- `amount_source: "request"`: the amount you sent, because there was no order to read.
+
+## The cards are the ones chargeable here
+
+`cards` holds the caller's saved cards that can actually be charged **at this merchant**, newest
+first. Each entry is the same shape everywhere a card appears:
+
+```json
+{ "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/28" }
+```
+
+Offer them by brand and last four, then pass the chosen `instrument_id` to
+[`charge`](/concepts/charge).
+
+This filter is handle-aware, not merely processor-aware. On a processor whose card-on-file is
+scoped per merchant, a card the caller enrolled at one merchant has no charge handle at another,
+and it cannot get one without the card again. Listing it would read fine to your agent and then
+fail at the charge, after the caller had already said yes to it. So a card that cannot be charged
+here is not offered here.
+
+An empty `cards` array means there is nothing to offer: [text a link](/concepts/send-link) instead.
+
+`default_card_id` is the newest card, a suggestion for what to offer first. It is never charged
+implicitly: `charge` always requires an explicit `instrument_id`.
 
 ## Two ways it is used
 
-A Checkout Session works two ways, and the difference is invisible to your order logic. Both start
-with the same `create_checkout`.
+A Checkout Session works two ways, and the difference is invisible to your order logic.
 
-- **In your agent (API).** Your agent reads the session and charges the saved card itself with
-  Ringup's tools, no transfer. The flexible path.
-- **Call transfer.** If you have ever used a hosted web checkout, you already know this shape. In
-  a web checkout you create a session, redirect the browser to a hosted page, and pass a return
-  URL; the customer pays and lands back on your site. A Ringup call transfer is the same over the
-  phone: `transfer_to` is the checkout URL, transferring the call is the redirect, and `return_to`
-  is the return URL. The caller pays on the Ringup line and the call comes back to your agent.
+- **In your agent (API).** Your agent reads the session, offers a card from `cards`, and calls
+  [`charge`](/concepts/charge) itself. Nothing transfers. The flexible path.
+- **Call transfer.** If you have ever used a hosted web checkout, you already know this shape. In a
+  web checkout you create a session, redirect the browser to a hosted page, and pass a return URL;
+  the customer pays and lands back on your site. A Ringup call transfer is the same over the phone:
+  `transfer_to` is the checkout URL, transferring the call is the redirect, and `return_to` is the
+  return URL. The caller pays on the Ringup line and the call comes back to your agent.
 
 `transfer_to` (in the response) is where you send the call. `return_to` (in the request) is where
-Ringup sends the caller back. They are the two ends of the same trip.
+Ringup sends the caller back. They are the two ends of the same trip. `transfer_to` is `null`
+whenever payment is not required, because there is nothing to transfer to.
 
 ## Three ways a transfer ends
 
-However the transfer ends, the payment itself is identical: Ringup charges the caller, texts them
-an SMS receipt, and posts a [webhook](/concepts/webhooks) to your server. The three options below
+However the transfer ends, the payment itself is identical: Ringup charges the caller, texts them an
+SMS receipt, and posts a [webhook](/concepts/webhooks) to your server. The three options below
 change only what the caller hears and where the call goes next, never whether they get a receipt or
 whether you get the webhook.
 
 `return_to` and the spoken messages are complementary. Use whichever fits; you do not need both.
 
-1. **Transfer back (`return_to`).** Ringup returns the caller to your agent and attaches the
-   outcome as SIP headers, so your agent resumes already knowing payment succeeded and closes in
-   its own voice. Best when you want to keep talking (upsell, fulfillment, goodbye).
+1. **Transfer back (`return_to`).** Ringup returns the caller to your agent and attaches the outcome
+   as SIP headers, so your agent resumes already knowing payment succeeded and closes in its own
+   voice. Best when you want to keep talking (upsell, fulfillment, goodbye).
 2. **Ringup speaks the result (`success_message`).** No transfer back: Ringup reads your line and
    ends the call. Best when payment is the last thing on the call but you want the closing words in
    your words.
@@ -109,15 +167,50 @@ whether you get the webhook.
 A `return_to` that cannot connect falls back to speaking `success_message` (or the default) and
 ending, so a failed return never strands the caller.
 
+## Read a session back
+
+To check on a session later, fetch it by id:
+
+```bash
+curl https://api.ringup.dev/v1/checkout_sessions/cs_x9f2 \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>"
+```
+
+```json Response
+{
+  "session_status": "complete",
+  "payment_required": "required",
+  "amount_cents": 1900,
+  "currency": "USD",
+  "return_to": "sip:agent@your-number",
+  "charge": {
+    "charge_id": "chg_5m1p",
+    "status": "completed",
+    "amount_cents": 1900,
+    "processor_payment_id": "pi_3Qx8"
+  },
+  "checkout_session_id": "cs_x9f2",
+  "merchant_id": "tonys-pizza",
+  "order_id": "ord_7f21",
+  "platform_call_id": "call_abc123",
+  "metadata": null
+}
+```
+
+`session_status` is `open`, `complete`, or `expired`, and it describes the session. The charge has
+its own `status` inside `charge`, which is `null` until something is attempted. This is a read, so a
+declined charge reads as `200` with a failed charge rather than an error.
+
+<Note>
+`GET /v1/payment_status?checkout_session_id=...` is the old name for this read. It still works and
+is deprecated; write new code against `GET /v1/checkout_sessions/{checkout_session_id}`.
+</Note>
+
 ## Reconcile from the webhook
 
 However the call ends, your server learns the outcome from a `checkout.completed`
-[webhook](/concepts/webhooks) carrying the **Payment**. That is your source of truth, independent
-of what the caller heard.
-
-If the caller has no saved card, Ringup instead [texts a pay link](/concepts/send-link); if you
-already have a recognized caller and just want to run the card, [`charge`](/concepts/charge) skips
-the session entirely.
+[webhook](/concepts/webhooks). That is your source of truth, independent of what the caller heard,
+and it is what you flip your own order on.
 
 ## Next steps
 
@@ -125,7 +218,7 @@ the session entirely.
   <Card title="Payment Policy" icon="scale-balanced" href="/concepts/payment-policy">
     How Ringup decides payment_required for the session.
   </Card>
-  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
-    Reconcile the outcome from the checkout.completed event.
+  <Card title="Charge" icon="credit-card" href="/concepts/charge">
+    Run the card the caller picked out of the session.
   </Card>
 </CardGroup>

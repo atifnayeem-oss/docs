@@ -32,12 +32,15 @@ This card is sandbox-only. It never reaches a live payment processor and never m
 |---|---|
 | Test merchant, payment optional under $50 | `tonys-pizza` |
 | Test merchant, payment always required | `beacon-insurance` |
-| Unconnected merchant (payment never mentioned) | any unknown merchant id |
 | Test caller with a saved card | `+14155550142` (Visa ending 5858) |
 
-The test caller already has the sandbox card on file, so a call from that number skips the pay
-link and charges the saved card. A first-time (unrecognized) caller is texted a link and enters
-the sandbox card above.
+The test caller already has the sandbox card on file, so a session created for that number comes
+back with one entry in `cards` and you can charge it straight away. A first-time (unrecognized)
+caller gets an empty `cards`, is texted a link, and enters the sandbox card above.
+
+A merchant id Ringup does not know is a `merchant_not_found` error, not a quiet no-op. A merchant
+that exists but has connected no processor is the quiet case: the session returns
+`payment_required: "none"` and payment is never mentioned on the call.
 
 ## Run a test payment
 
@@ -53,8 +56,8 @@ The general shape is the same on every platform:
     caller, follow the texted link and enter the sandbox card above.
   </Step>
   <Step title="Read the result">
-    A successful test charge returns `succeeded` with a real confirmation code, which the
-    wrap-up step speaks back to the caller. Your server receives a `checkout.completed` webhook.
+    A successful test charge returns `status: "completed"` with a `charge_id`, and the `order_id`
+    the wrap-up step reads back to the caller. Your server receives a `checkout.completed` webhook.
   </Step>
 </Steps>
 
@@ -64,9 +67,9 @@ wires this up for you, binding a rehearsal number to a test copy of your agent.
 
 ## Reading test results
 
-**The charge response is ground truth, not the assistant's words.** Only a `succeeded`
-charge result with a payment id and confirmation code proves a payment happened. An agent
-can narrate success it did not have; the API result cannot.
+**The charge response is ground truth, not the assistant's words.** Only a `completed` charge
+result with a `charge_id` proves a payment happened. An agent can narrate success it did not have;
+the API result cannot.
 
 **Text-chat smoke tests cannot prove voice.** Platform chat pipelines assemble handoffs
 differently from voice pipelines. Validate with a voice call.

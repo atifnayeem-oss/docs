@@ -1,241 +1,2006 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Ringup tools API",
-    "description": "Five REST tools for taking payment on a voice call. Identity rides trusted headers; the model never types a phone number or merchant id.",
-    "version": "1.0.0"
+    "title": "Ringup API",
+    "version": "v1",
+    "description": "Take a card payment on a phone call. Every endpoint is authenticated with a Bearer API key; the key prefix (`rk_test_` / `rk_live_`) selects the environment."
   },
   "servers": [
-    { "url": "https://ringup.dev/api/tools" }
+    {
+      "url": "https://api.ringup.dev"
+    }
   ],
   "components": {
-    "parameters": {
-      "CallerNumber": {
-        "name": "X-Caller-Number",
-        "in": "header",
-        "required": true,
-        "description": "The caller's phone number in E.164, templated from the platform's caller-ID variable. Never model-generated.",
-        "schema": { "type": "string", "example": "+14155550142" }
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "rk_live_…"
+      }
+    },
+    "schemas": {
+      "AdviceCode": {
+        "description": "R38 `advice_code` — OUR guidance to the DEVELOPER on what to do with this decline programmatically. Distinct from `agent_action`, which drives the CONVERSATION. A decline can be \"don't retry this card\" (advice) while still being \"offer a different card\" (agent action).\n\nLayering note: Stripe IS the processor, so their raw layer is the card network (`network_decline_code`). Ringup sits ON TOP of processors, so our raw layer is the processor (`processor_code`). Same two-layer shape, correct floor for where we sit. We never see the network, so we deliberately do NOT ship empty network_* fields.",
+        "enum": [
+          "try_again_later",
+          "do_not_try_again",
+          "confirm_card_data"
+        ],
+        "type": "string"
       },
-      "Merchant": {
-        "name": "X-Ringup-Merchant",
-        "in": "header",
-        "required": true,
-        "description": "The dialed number in E.164 (resolved to a merchant server-side) or an explicit merchant id.",
-        "schema": { "type": "string", "example": "tonys-pizza" }
+      "AgentAction": {
+        "description": "What the agent should DO next. Keeps conversational branching deterministic too.",
+        "enum": [
+          "retry_card",
+          "offer_different_card",
+          "send_link",
+          "end_call",
+          "escalate"
+        ],
+        "type": "string"
       },
-      "CallId": {
-        "name": "X-Call-Id",
-        "in": "header",
-        "required": false,
-        "description": "The platform's call id. Used for charge idempotency: retries within a call can never double-charge.",
-        "schema": { "type": "string" }
+      "ApiErrorBody": {
+        "additionalProperties": false,
+        "description": "THE error object. Identical on every endpoint: provisioning, identify, checkout, cards, charge. A failed charge (which arrives as a 200 with `status: \"failed\"`) carries the SAME fields under `failure`, so a developer writes one parser and it works everywhere.",
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "advice_code": {
+                "$ref": "#/components/schemas/AdviceCode",
+                "description": "try_again_later | confirm_card_data | do_not_try_again"
+              },
+              "agent_action": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentAction"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Null on every `developer`-audience error: see agent_message."
+              },
+              "agent_message": {
+                "description": "Speak verbatim WHEN NON-NULL. Null on every `developer`-audience error.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "audience": {
+                "$ref": "#/components/schemas/Audience",
+                "description": "Who this error is for. Drives whether there is anything to speak at all."
+              },
+              "charge": {
+                "description": "Present when the error concerns a specific charge.",
+                "type": "string"
+              },
+              "code": {
+                "$ref": "#/components/schemas/ErrorCode"
+              },
+              "decline_code": {
+                "type": "string"
+              },
+              "display_message": {
+                "description": "The same fact written for a screen. Null on `developer`-audience errors.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "doc_url": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "param": {
+                "type": "string"
+              },
+              "processor_code": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "request_log_url": {
+                "description": "Deep link to this request in the dashboard. Present once the dashboard log view exists.",
+                "type": "string"
+              },
+              "type": {
+                "$ref": "#/components/schemas/ErrorType"
+              }
+            },
+            "required": [
+              "type",
+              "code",
+              "audience",
+              "message",
+              "advice_code",
+              "agent_message",
+              "display_message",
+              "agent_action",
+              "doc_url"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "AttachCredentialsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "credentials": {}
+        },
+        "type": "object"
+      },
+      "AttachCredentialsResponse": {
+        "additionalProperties": false,
+        "description": "Response of POST /v1/merchants/:id/credentials.",
+        "properties": {
+          "merchant_id": {
+            "type": "string"
+          },
+          "status": {
+            "const": "connected",
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "status"
+        ],
+        "type": "object"
+      },
+      "Audience": {
+        "description": "WHO an error is for. The envelope was built for the payment moment, where an agent must say something, and every other error was then forced through the same speech fields: a malformed request would tell a caller \"I'm having trouble taking payment\", about a bug the caller has no part in, and then escalate a call that had nothing wrong with it (Atif, 2026-07-21).\n\n`developer` errors carry NO speakable copy. Not a neutral filler sentence: null. A filler invites an agent to mention payment when nothing about payment has failed.",
+        "enum": [
+          "developer",
+          "caller"
+        ],
+        "type": "string"
+      },
+      "ChargeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "checkout_session_id": {
+            "type": "string"
+          },
+          "instrument_id": {
+            "description": "Required, never defaulted. The caller verbally agreed to a SPECIFIC card, so an implicit default is how a misheard \"use my other one\" charges the wrong one.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checkout_session_id",
+          "instrument_id"
+        ],
+        "type": "object"
+      },
+      "ChargeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "type": "number"
+          },
+          "charge_id": {
+            "type": "string"
+          },
+          "checkout_session_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "order_id": {
+            "description": "Also the confirmation number the agent reads back: it is the MERCHANT's, not ours.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform_call_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processor_payment_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "replay": {
+            "description": "True when this exact charge already happened and you are seeing the original.",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ChargeStatus"
+          }
+        },
+        "required": [
+          "status",
+          "amount_cents",
+          "currency",
+          "replay",
+          "charge_id",
+          "checkout_session_id",
+          "processor_payment_id",
+          "merchant_id",
+          "order_id",
+          "platform_call_id"
+        ],
+        "type": "object"
+      },
+      "ChargeStatus": {
+        "description": "`created` is deliberate: it says what WE know, that a charge record exists and the processor has not confirmed. `pending` would assert something about their state we were never told, and reads as \"stuck\" (Atif, 2026-07-21).",
+        "enum": [
+          "created",
+          "completed",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "CheckoutSessionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "type": "number"
+          },
+          "charge": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "amount_cents": {
+                    "type": "number"
+                  },
+                  "charge_id": {
+                    "type": "string"
+                  },
+                  "processor_payment_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/ChargeStatus"
+                  }
+                },
+                "required": [
+                  "charge_id",
+                  "status",
+                  "amount_cents",
+                  "processor_payment_id"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checkout_session_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payment_required": {
+            "$ref": "#/components/schemas/PaymentRequired"
+          },
+          "platform_call_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "return_to": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "session_status": {
+            "description": "Named for the object it describes: the CHARGE has its own `status` below.",
+            "enum": [
+              "open",
+              "complete",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_status",
+          "payment_required",
+          "amount_cents",
+          "currency",
+          "return_to",
+          "charge",
+          "checkout_session_id",
+          "merchant_id",
+          "order_id",
+          "platform_call_id",
+          "metadata"
+        ],
+        "type": "object"
+      },
+      "CreateCardRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_text": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_four": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "verification_token": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateCardResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "consumer_id": {
+            "type": "string"
+          },
+          "instrument_id": {
+            "type": "string"
+          },
+          "last_four": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "consumer_id",
+          "instrument_id",
+          "brand",
+          "last_four"
+        ],
+        "type": "object"
+      },
+      "CreateCheckoutRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "description": "Required only when there is no `order_id`. Never trusted over an order.",
+            "type": "number"
+          },
+          "caller_phone": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "failure_message": {
+            "description": "Spoken after a failed one.",
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Your own key/value pairs. Opaque to Ringup: stored, echoed, never interpreted.",
+            "type": "object"
+          },
+          "order_id": {
+            "description": "The merchant's POS order. THE amount authority when present.",
+            "type": "string"
+          },
+          "platform_call_id": {
+            "description": "The voice platform's id for this call. Functional, not metadata: we call the platform with it to verify caller attestation. Recommended.",
+            "type": "string"
+          },
+          "return_to": {
+            "description": "Where to send the caller back after payment.",
+            "type": "string"
+          },
+          "success_message": {
+            "description": "Spoken after a successful payment.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "caller_phone"
+        ],
+        "type": "object"
+      },
+      "CreateCheckoutResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_cents": {
+            "description": "What we RESOLVED. Under the order model the total is derived, so we must return it.",
+            "type": "number"
+          },
+          "amount_source": {
+            "description": "Where the total came from, so a derived amount is visibly derived.",
+            "enum": [
+              "order",
+              "request"
+            ],
+            "type": "string"
+          },
+          "cards": {
+            "description": "Cards chargeable AT THIS MERCHANT, newest first. Handle-aware, not merely silo-aware: a Clover card enrolled at merchant A has no charge handle at merchant B, and offering it would fail at charge after the caller had already agreed to it. Empty means text a link.",
+            "items": {
+              "$ref": "#/components/schemas/SavedCard"
+            },
+            "type": "array"
+          },
+          "checkout_session_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "default_card_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payment_required": {
+            "$ref": "#/components/schemas/PaymentRequired"
+          },
+          "transfer_to": {
+            "description": "Null unless payment is required. Nothing to transfer to means do not transfer.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "checkout_session_id",
+          "payment_required",
+          "amount_cents",
+          "currency",
+          "amount_source",
+          "transfer_to",
+          "expires_at",
+          "cards",
+          "default_card_id",
+          "metadata"
+        ],
+        "type": "object"
+      },
+      "CreateConsumerInstrument": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "expiry": {
+            "type": "string"
+          },
+          "last_four": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "processor": {
+            "type": "string"
+          },
+          "processor_customer_id": {
+            "type": "string"
+          },
+          "vault": {
+            "type": "string"
+          },
+          "vault_ref": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateConsumerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "description": "Collected as separate fields on the pay page, so stored that way (R53).",
+            "type": "string"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/CreateConsumerInstrument"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "name": {
+            "description": "Accepted for callers that only have one string; split on the first space.",
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateConsumerResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "consumer_id": {
+            "type": "string"
+          },
+          "instrument_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "consumer_id"
+        ],
+        "type": "object"
+      },
+      "CreateMerchantRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "payment_policy": {
+            "type": "string"
+          },
+          "payment_policy_amount_cents": {
+            "type": "number"
+          },
+          "processor": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateMerchantResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "merchant_id": {
+            "type": "string"
+          },
+          "onboarding_url": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "merchant_id",
+          "reference_id",
+          "onboarding_url"
+        ],
+        "type": "object"
+      },
+      "CreateWebhookEndpointRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {},
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateWebhookEndpointResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signing_secret": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "webhook_endpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_endpoint_id",
+          "url",
+          "events",
+          "signing_secret"
+        ],
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "invalid_json",
+          "missing_required_fields",
+          "invalid_value",
+          "invalid_key",
+          "vendor_not_provisioned",
+          "merchant_not_found",
+          "merchant_not_connected",
+          "invalid_processor",
+          "invalid_credentials",
+          "invalid_payment_policy",
+          "invalid_payment_policy_amount_cents",
+          "session_not_found",
+          "session_expired",
+          "session_create_failed",
+          "session_missing_consumer",
+          "missing_checkout_session_id",
+          "amount_mismatch",
+          "order_lookup_failed",
+          "order_lookup_unsupported",
+          "instrument_not_found",
+          "instrument_not_authorized",
+          "missing_instrument_fields",
+          "processor_mismatch",
+          "needs_enrollment",
+          "charge_details_mismatch",
+          "card_save_failed",
+          "card_declined",
+          "processor_unavailable",
+          "merchant_credentials_invalid",
+          "invalid_vault",
+          "key_not_found",
+          "invalid_environment",
+          "invalid_url",
+          "invalid_events",
+          "invalid_ttl",
+          "invalid_state_key",
+          "not_found",
+          "not_configured",
+          "rate_limit",
+          "internal_error"
+        ],
+        "type": "string"
+      },
+      "ErrorType": {
+        "enum": [
+          "invalid_request_error",
+          "authentication_error",
+          "permission_error",
+          "processor_error",
+          "idempotency_error",
+          "rate_limit_error",
+          "api_error"
+        ],
+        "type": "string"
+      },
+      "IdentifiedConsumer": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "description": "For the merchant's own workflows (receipts, follow-ups). Not for the agent to say aloud.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_name": {
+            "description": "Stored as parts because the pay page collects them as parts.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "email"
+        ],
+        "type": "object"
+      },
+      "IdentifyRequest": {
+        "additionalProperties": false,
+        "description": "R53: the wire contracts, agreed with Atif field by field before implementation.\n\nOne name per concept. One card shape everywhere. Every response echoes the developer's own identifiers so reconciliation never needs a second call.",
+        "properties": {
+          "caller_phone": {
+            "description": "E.164. The body is the ONLY place this lives: a header carried no cryptographic guarantee (it is unsigned, so it is safer only against the model, not against a caller), and one value in two places is an ambiguity every consumer has to reason about.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "caller_phone"
+        ],
+        "type": "object"
+      },
+      "IdentifyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "consumer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentifiedConsumer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "known": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "known",
+          "consumer"
+        ],
+        "type": "object"
+      },
+      "ListWebhookEndpointsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "webhook_endpoints": {
+            "items": {
+              "$ref": "#/components/schemas/WebhookEndpointSummary"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "webhook_endpoints"
+        ],
+        "type": "object"
+      },
+      "MerchantStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "clover_public": {
+            "additionalProperties": false,
+            "properties": {
+              "api_access_key": {
+                "type": "string"
+              },
+              "sandbox": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "api_access_key",
+              "sandbox"
+            ],
+            "type": "object"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "payment_policy": {
+            "enum": [
+              "always",
+              "above_amount",
+              "optional"
+            ],
+            "type": "string"
+          },
+          "payment_policy_amount_cents": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "processor": {
+            "type": "string"
+          },
+          "reference_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "connected",
+              "unconnected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "merchant_id",
+          "reference_id",
+          "processor",
+          "status",
+          "payment_policy",
+          "payment_policy_amount_cents",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "MintKeyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MintKeyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "api_key_id": {
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "test",
+              "live"
+            ],
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "key_prefix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_key_id",
+          "key",
+          "key_prefix",
+          "environment"
+        ],
+        "type": "object"
+      },
+      "PaymentRequired": {
+        "enum": [
+          "required",
+          "optional",
+          "none"
+        ],
+        "type": "string"
+      },
+      "RevokeKeyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "api_key_id": {
+            "type": "string"
+          },
+          "revoked": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "api_key_id",
+          "revoked"
+        ],
+        "type": "object"
+      },
+      "SavedCard": {
+        "additionalProperties": false,
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "expiry": {
+            "type": "string"
+          },
+          "instrument_id": {
+            "description": "The value `charge` requires.",
+            "type": "string"
+          },
+          "last_four": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "instrument_id",
+          "brand",
+          "last_four",
+          "expiry"
+        ],
+        "type": "object"
+      },
+      "SendLinkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "checkout_session_id": {
+            "description": "The only input. Caller, merchant, amount and verdict all come from the session, so a link can never carry a total nobody derived from an order.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "checkout_session_id"
+        ],
+        "type": "object"
+      },
+      "SendLinkResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checkout_session_id": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "type": "string"
+          },
+          "order_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pay_url": {
+            "type": "string"
+          },
+          "payment_required": {
+            "$ref": "#/components/schemas/PaymentRequired"
+          },
+          "platform_call_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sent": {
+            "description": "False when a repeat send inside the dedupe window returned a link WITHOUT texting. Without this a retrying agent tells the caller \"I've texted you\" when nothing went out.",
+            "type": "boolean"
+          },
+          "short_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sent",
+          "pay_url",
+          "short_url",
+          "payment_required",
+          "checkout_session_id",
+          "merchant_id",
+          "order_id",
+          "platform_call_id"
+        ],
+        "type": "object"
+      },
+      "WebhookEndpointSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "type": "string"
+          },
+          "events": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null means every event type."
+          },
+          "url": {
+            "type": "string"
+          },
+          "webhook_endpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "webhook_endpoint_id",
+          "url",
+          "events",
+          "created_at"
+        ],
+        "type": "object"
       }
     }
   },
   "paths": {
-    "/create_checkout": {
-      "post": {
-        "operationId": "create_checkout",
-        "summary": "Create a Checkout Session for this order",
-        "description": "Create a Ringup Checkout Session for this order, before taking payment. Returns the session id and payment_required, resolved per purchase from the merchant's settings and the amount.",
-        "parameters": [
-          { "$ref": "#/components/parameters/CallerNumber" },
-          { "$ref": "#/components/parameters/Merchant" },
-          { "$ref": "#/components/parameters/CallId" }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount_cents": { "type": "number", "description": "The purchase amount in cents." }
-                }
-              },
-              "example": { "amount_cents": 8500 }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The policy decision for this purchase.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": { "type": "string", "description": "The Checkout Session id (cs_...)." },
-                    "payment_required": { "type": "string", "enum": ["required", "optional", "none"], "description": "required: payment must complete before the call ends. optional: offer once, never block. none: do not offer payment at all; proceed as the business's normal flow." },
-                    "reason": { "type": "string", "description": "One sentence written for the model, telling the payment step how to behave." }
-                  }
-                },
-                "example": { "id": "cs_x9f2", "payment_required": "required", "reason": "amount over $50 requires payment before the call ends" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/identify": {
+    "/v1/identify": {
       "post": {
         "operationId": "identify",
-        "summary": "Look up the caller",
-        "description": "Whether the caller has a saved card with Ringup, resolved from the caller number header. Call this as soon as the payment step begins; never mention a card on file before this confirms one.",
-        "parameters": [
-          { "$ref": "#/components/parameters/CallerNumber" },
-          { "$ref": "#/components/parameters/Merchant" },
-          { "$ref": "#/components/parameters/CallId" }
-        ],
-        "responses": {
-          "200": {
-            "description": "The caller's saved-card status.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "known": { "type": "boolean" },
-                    "name": { "type": "string" },
-                    "card": {
-                      "type": "object",
-                      "properties": {
-                        "brand": { "type": "string" },
-                        "last_4": { "type": "string" },
-                        "exp_month": { "type": "number" },
-                        "exp_year": { "type": "number" }
-                      }
-                    }
-                  }
-                },
-                "example": { "known": true, "name": "Alex", "card": { "brand": "VISA", "last_4": "5858", "exp_month": 7, "exp_year": 2028 } }
-              }
-            }
+        "summary": "Recognize a caller by phone number. Returns who they are, never what they can pay with: cards depend on a merchant this endpoint never sees.",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        }
-      }
-    },
-    "/charge": {
-      "post": {
-        "operationId": "charge",
-        "summary": "Charge the saved card",
-        "description": "Charge the caller's saved card, off-session, settling to the merchant's own payment processor. Only after the caller verbally agrees. Idempotent per call id and amount: retries return the original payment.",
-        "parameters": [
-          { "$ref": "#/components/parameters/CallerNumber" },
-          { "$ref": "#/components/parameters/Merchant" },
-          { "$ref": "#/components/parameters/CallId" }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": ["amount_cents"],
-                "properties": {
-                  "amount_cents": { "type": "number", "description": "Order total in cents." },
-                  "description": { "type": "string", "description": "Short order description for the receipt." }
-                }
-              },
-              "example": { "amount_cents": 8500, "description": "Front brake pads, 2022 Toyota Highlander" }
+                "$ref": "#/components/schemas/IdentifyRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The charge result. Only a succeeded status with a payment id and confirmation code proves a payment.",
+            "description": "Success.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "status": { "type": "string", "description": "succeeded on success." },
-                    "order_id": { "type": "string" },
-                    "payment_id": { "type": "string" },
-                    "confirmation": { "type": "string", "description": "Short code the wrap-up speaks back to the caller." },
-                    "charged": {
-                      "type": "object",
-                      "properties": {
-                        "brand": { "type": "string" },
-                        "last_4": { "type": "string" },
-                        "amount_cents": { "type": "number" }
-                      }
-                    }
-                  }
-                },
-                "example": { "ok": true, "status": "succeeded", "order_id": "ord_x", "payment_id": "pay_x", "confirmation": "2PJJZY", "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 } }
+                  "$ref": "#/components/schemas/IdentifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
               }
             }
           }
         }
       }
     },
-    "/payment_status": {
+    "/v1/create_checkout": {
       "post": {
-        "operationId": "payment_status",
-        "summary": "Check payment completion",
-        "description": "Whether the caller has completed payment, for example after send_link while the call is still going.",
-        "parameters": [
-          { "$ref": "#/components/parameters/CallerNumber" },
-          { "$ref": "#/components/parameters/Merchant" },
-          { "$ref": "#/components/parameters/CallId" }
-        ],
-        "responses": {
-          "200": {
-            "description": "The current payment state for this call.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string", "enum": ["succeeded", "pending"] }
-                  }
-                },
-                "example": { "status": "pending" }
-              }
-            }
+        "operationId": "createCheckout",
+        "summary": "Open a Checkout Session: resolve the amount, apply the merchant's payment policy, and return the transfer target when payment is required.",
+        "security": [
+          {
+            "bearerAuth": []
           }
-        }
-      }
-    },
-    "/send_link": {
-      "post": {
-        "operationId": "send_link",
-        "summary": "Text the caller a pay link",
-        "description": "Text the caller a secure pay link: first-time callers, or a caller who wants a different card. Only after the caller clearly says yes to the text. Card entry happens on a Ringup-hosted page; the number never touches the call.",
-        "parameters": [
-          { "$ref": "#/components/parameters/CallerNumber" },
-          { "$ref": "#/components/parameters/Merchant" },
-          { "$ref": "#/components/parameters/CallId" }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "amount_cents": { "type": "number", "description": "Order total in cents." }
+                "$ref": "#/components/schemas/CreateCheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCheckoutResponse"
                 }
-              },
-              "example": { "amount_cents": 1900 }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`merchant_not_found` No merchant with that id belongs to your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`amount_mismatch` The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`order_lookup_unsupported` This processor cannot resolve an order total by reference.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "`order_lookup_failed` The processor could not be reached to resolve the order total.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkout_sessions/{checkout_session_id}": {
+      "get": {
+        "operationId": "getCheckoutSession",
+        "summary": "Read a Checkout Session and its charge. A lookup, so a decline reads as 200 with a failed charge.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "checkout_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutSessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found` No route matches this path and method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/charge": {
+      "post": {
+        "operationId": "charge",
+        "summary": "Charge the saved card against an open Checkout Session. A decline is a 402 in the standard error envelope, not a 200 result.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChargeRequest"
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Confirmation the text was sent.",
+            "description": "Success.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": { "type": "boolean" },
-                    "sent_to": { "type": "string" },
-                    "link": { "type": "string" }
-                  }
-                },
-                "example": { "ok": true, "sent_to": "+14155550142", "link": "https://ringup.dev/pay" }
+                  "$ref": "#/components/schemas/ChargeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "`card_declined` The issuer declined the charge. `decline_code` carries the specific reason where the issuer gave one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`session_not_found` No checkout session with that id belongs to your account.\n\n`instrument_not_found` No saved card with that id belongs to this caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`processor_mismatch` That saved card cannot be charged at this merchant, because it lives in a different processor's wallet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "`session_expired` The checkout session passed its expiry and can no longer be paid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`merchant_not_connected` The merchant exists but has not finished connecting their payment processor, so no charge can settle.\n\n`merchant_credentials_invalid` The merchant's stored processor credentials were rejected, so nothing can settle.\n\n`needs_enrollment` The caller has no card on file usable at this merchant, so there is nothing to charge. Expected for a first-time caller at a per-merchant processor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "424": {
+            "description": "`processor_unavailable` The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`rate_limit` Too many requests in a short window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/send_link": {
+      "post": {
+        "operationId": "sendLink",
+        "summary": "Text the caller a pay link for an open Checkout Session. Repeat sends inside a short window return the link with `sent: false` rather than texting twice.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`session_not_found` No checkout session with that id belongs to your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`not_configured` A required backend dependency is not configured in this environment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cards": {
+      "post": {
+        "operationId": "createCard",
+        "summary": "Save a card for a caller from a processor token, with consent evidence.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCardResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "`card_save_failed` The processor rejected the card while saving it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`merchant_not_found` No merchant with that id belongs to your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`merchant_not_connected` The merchant exists but has not finished connecting their payment processor, so no charge can settle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/merchants": {
+      "post": {
+        "operationId": "createMerchant",
+        "summary": "Create a merchant and get the hosted onboarding URL its owner uses to connect a processor.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMerchantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateMerchantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/merchants/{merchant_id}": {
+      "get": {
+        "operationId": "getMerchant",
+        "summary": "Read a merchant's connection state and payment policy.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`merchant_not_found` No merchant with that id belongs to your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/merchants/{merchant_id}/credentials": {
+      "post": {
+        "operationId": "setMerchantCredentials",
+        "summary": "Attach processor credentials to a merchant. Encrypted at rest and emits merchant.connected.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachCredentialsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachCredentialsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`merchant_not_found` No merchant with that id belongs to your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/consumers": {
+      "post": {
+        "operationId": "upsertConsumer",
+        "summary": "Create or update a caller record, optionally with a saved card.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConsumerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateConsumerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`merchant_not_found` No merchant with that id belongs to your account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhook_endpoints": {
+      "post": {
+        "operationId": "createWebhookEndpoint",
+        "summary": "Register an HTTPS endpoint for signed events. The signing secret is returned once.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateWebhookEndpointResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.\n\n`invalid_events` `events` contains an unsupported event type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listWebhookEndpoints",
+        "summary": "List your registered webhook endpoints. Secrets are never returned again.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListWebhookEndpointsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/keys": {
+      "post": {
+        "operationId": "createKey",
+        "summary": "Mint an API key. The secret is returned once and stored only as a hash.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MintKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MintKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/keys/{api_key_id}": {
+      "delete": {
+        "operationId": "revokeKey",
+        "summary": "Revoke an API key.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "api_key_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`invalid_key` The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found` No route matches this path and method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
               }
             }
           }

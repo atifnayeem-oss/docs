@@ -1,104 +1,130 @@
 ---
 title: "Charge"
-description: "Charge a recognized caller's saved card off-session, settling on the merchant's own processor. Idempotent, and only true when the result says succeeded."
+description: "Charge the card the caller picked, against an open Checkout Session, off-session on the merchant's own processor. A decline is a 402, not a result."
 ---
 
-`charge` is the heart of the in-agent API path: a recognized caller with a saved card pays in one
-call, and nothing transfers. The caller is already known by phone number, so there is no Checkout
-Session to create and no link to text: you pass the amount, and Ringup charges the card
+`charge` runs one saved card against one open [Checkout Session](/concepts/checkout-session). The
+caller is already recognized and the session already resolved the amount, so a charge takes two
+values: which session, and which card the caller agreed to. Ringup charges it
 <Tooltip tip="A charge run against a card the caller saved earlier, with their consent, while they are not actively entering card details.">off-session</Tooltip>
 and settles the money on the merchant's own processor. Because the caller never reads a card aloud,
 no card data touches your agent.
 
+## The whole path
+
+<Steps>
+  <Step title="Recognize the caller at the greeting">
+    [`identify`](/concepts/identity) with `caller_phone` tells you who is on the line.
+  </Step>
+  <Step title="Open a session when the order is ready">
+    [`create_checkout`](/concepts/checkout-session) returns `checkout_session_id`, the resolved
+    `amount_cents`, and `cards`: the caller's cards chargeable at this merchant.
+  </Step>
+  <Step title="Offer a card and get a yes">
+    Read one card back by brand and last four with the amount. Charge only after the caller agrees.
+  </Step>
+  <Step title="Charge the card they picked">
+    Pass the session and that card's `instrument_id`.
+  </Step>
+</Steps>
+
 <CodeGroup>
 ```bash curl
-curl -X POST https://ringup.dev/api/tools/charge \
+curl -X POST https://api.ringup.dev/v1/charge \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
-  -H "X-Caller-Number: +14155550142" \
-  -H "X-Ringup-Merchant: tonys-pizza" \
-  -H "X-Call-Id: call_abc123" \
-  -d '{ "amount_cents": 8500, "description": "Front brake pads, 2022 Toyota Highlander" }'
+  -d '{ "checkout_session_id": "cs_x9f2", "instrument_id": "ins_4b7e" }'
 ```
 
 ```javascript Node
-const res = await fetch("https://ringup.dev/api/tools/charge", {
+const res = await fetch("https://api.ringup.dev/v1/charge", {
   method: "POST",
   headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
     "Content-Type": "application/json",
-    "X-Caller-Number": "+14155550142",
-    "X-Ringup-Merchant": "tonys-pizza",
-    "X-Call-Id": "call_abc123",
   },
   body: JSON.stringify({
-    amount_cents: 8500,
-    description: "Front brake pads, 2022 Toyota Highlander",
+    checkout_session_id: checkout.checkout_session_id,
+    instrument_id: checkout.cards[0].instrument_id,
   }),
 });
-const payment = await res.json();
+const charge = await res.json();
 ```
 
 ```python Python
 import requests
 
-payment = requests.post(
-    "https://ringup.dev/api/tools/charge",
-    headers={
-        "X-Caller-Number": "+14155550142",
-        "X-Ringup-Merchant": "tonys-pizza",
-        "X-Call-Id": "call_abc123",
+charge = requests.post(
+    "https://api.ringup.dev/v1/charge",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={
+        "checkout_session_id": checkout["checkout_session_id"],
+        "instrument_id": checkout["cards"][0]["instrument_id"],
     },
-    json={"amount_cents": 8500, "description": "Front brake pads, 2022 Toyota Highlander"},
 ).json()
 ```
 </CodeGroup>
 
 ```json Response
 {
-  "ok": true,
-  "status": "succeeded",
-  "payment_id": "pay_x",
-  "order_id": "ord_x",
-  "confirmation": "2PJJZY",
-  "charged": { "brand": "VISA", "last_4": "5858", "amount_cents": 8500 }
+  "status": "completed",
+  "amount_cents": 1900,
+  "currency": "USD",
+  "replay": false,
+  "charge_id": "chg_5m1p",
+  "checkout_session_id": "cs_x9f2",
+  "processor_payment_id": "pi_3Qx8",
+  "merchant_id": "tonys-pizza",
+  "order_id": "ord_7f21",
+  "platform_call_id": "call_abc123"
 }
 ```
 
-`amount_cents` is the only required field. `description` and `order_id` are optional, and
-`X-Call-Id` keys [idempotency](#idempotent-under-retries) so a retry within a call never
-double-charges. `status` is `succeeded`, `failed`, or `pending`; only `succeeded` moved money.
+## The card is never defaulted
 
-<Note>
-The tool surface above always answers `200` and puts the outcome in `status`, because a voice
-platform handles a non-`200` tool response poorly. Calling the REST API directly is different: a
-decline there is a `402` in the standard [error envelope](/api-reference/errors). Either way the
-reason and the sentence your agent can speak come back with it.
-</Note>
+`instrument_id` is required. Ringup will not pick a card for you, even when the caller has exactly
+one, and even though the session hands you `default_card_id`.
 
-## Only after the caller agrees, and only `succeeded` is true
+The reason is the conversation. The caller agreed out loud to a **specific** card, and a voice agent
+mishears. "Use my other one" that gets dropped, and an implicit default, is how the wrong card gets
+charged with a spoken yes on the record for a different one. Naming the card in the request makes
+your agent's choice explicit and auditable.
 
-Charge the card only after the caller verbally agrees to the amount. The result is ground truth:
-never tell the caller payment happened without a `succeeded` status and a `payment_id`. A `failed`
-status means nothing was charged, and `pending` means the money has not moved yet. Speak the
-`confirmation` code back only on `succeeded`.
+## The three statuses
+
+| `status` | What it means |
+|---|---|
+| `completed` | The money moved. This is the only status you announce. |
+| `created` | A charge record exists and the processor has not confirmed it yet. |
+| `failed` | Nothing was charged. |
+
+`created` says what **we** know: the charge exists on our side and the processor has not come back.
+It deliberately is not called `pending`, which would assert something about the processor's state
+nobody told us, and which reads to a caller like "stuck". Treat `created` as unfinished, not failed:
+read the outcome from the [webhook](/concepts/webhooks) or by
+[reading the session back](/concepts/checkout-session).
+
+Never tell the caller payment happened without a `completed` status.
+
+## A decline is a 402
+
+A declined card is an error, not a result. It comes back as `402` in the standard
+[error envelope](/api-reference/errors), carrying the decline code and a sentence your agent can
+speak, so an ordinary `if (!response.ok)` check catches it. It never arrives as a `200` with a sad
+status inside.
+
+## The confirmation number is the order id
+
+`order_id` is what the agent reads back. It is the **merchant's** own number, so the caller can
+quote it to the merchant and the merchant will find it. A Ringup id would be a number only Ringup
+can look up, which is no use to a caller standing at a counter.
 
 ## Idempotent under retries
 
-The charge is idempotent, keyed on the call and amount, so if the platform retries the tool call,
-the caller is charged once and the retry returns the original Payment. This is what makes it safe
-on platforms that auto-retry a function that does not answer fast enough.
-
-## With or without an order
-
-- **With `order_id`,** the Payment attaches to that order, so your system reconciles the two
-  directly.
-- **Without it,** Ringup creates a minimal order to hang the Payment on, and echoes its id back so
-  you still have something to match against.
-
-Whether or not you pass one, your server gets the same `checkout.completed`
-[webhook](/concepts/webhooks) as its out-of-band record. If the caller has no saved card yet, use
-[`send_link`](/concepts/send-link) instead; if you want Ringup to run the whole payment step for
-you, create a [Checkout Session](/concepts/checkout-session). Whether payment is required at all is
-the merchant's [policy](/concepts/payment-policy).
+`replay` is `true` when this exact charge already happened and you are looking at the original. A
+platform that auto-retries a slow tool call, a model that fires twice, a network retry: all of them
+return the first charge instead of taking the money again. This is a server guarantee, not a client
+convention.
 
 ## Next steps
 

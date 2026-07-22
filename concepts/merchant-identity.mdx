@@ -1,44 +1,43 @@
 ---
 title: "Merchant Identity"
-description: "The merchant is resolved server-side from the number the caller dialed, and never typed by the model."
+description: "The merchant is which business the caller reached. You name it with merchant_id when you create a Checkout Session, and it decides the policy, the processor, and the cards."
 ---
 
-The **merchant** is which business the caller reached. Ringup resolves it from the number the
-caller dialed, server-side, and applies that merchant's payment policy and its own processor. Like
-the caller, it never passes through the language model. Who is calling is a separate identity, see
-[Caller Identity](/concepts/identity).
+The **merchant** is which business the caller reached. You name it with `merchant_id` when you
+create a [Checkout Session](/concepts/checkout-session), and that one value decides three things:
+the [payment policy](/concepts/payment-policy) applied to the purchase, the processor the money
+settles on, and which of the caller's saved cards are chargeable. Who is calling is a separate
+identity, see [Caller Identity](/concepts/identity).
 
 ## The dialed number is the merchant key
 
-The number the caller dialed rides the `X-Ringup-Merchant` header, templated from the platform's
-dialed-number variable. The dialed number is the near-universal per-merchant key on multi-tenant
-voice platforms: one number per business, no per-agent configuration. Ringup maps it to the
-merchant server-side and applies that merchant's [payment policy](/concepts/payment-policy) and its
-own processor.
+On a multi-tenant voice platform the number the caller dialed is the near-universal per-merchant
+key: one number per business, no per-agent configuration. Resolve `merchant_id` from the dialed
+number your telephony already gives you, and one agent serves a whole fleet of merchants.
 
-A platform that prefers explicit tenant ids can send its own merchant identifier in the same header
-instead; both forms resolve server-side.
+`merchant_id` is the id Ringup issued when the merchant was created. If you run your own tenant
+ids, keep a map from dialed number to `merchant_id` on your side, where the mapping is yours to
+audit.
 
 ## Why the merchant comes from the call, not the model
 
-A model-generated `merchant_id` argument can be mistyped, hallucinated, or prompt-injected. A header
-set by the platform's template engine cannot. The tools take no merchant argument as the source of
-truth; there is nothing to spoof.
+Fill `merchant_id` from call metadata, in the code that assembles the request. A merchant id the
+model composes can be mistyped, hallucinated, or prompt-injected by a caller, and it is the value
+that chooses whose bank account the money lands in. It is not a value to leave to a sentence.
 
 <Note>
-This is what lets one agent serve a whole fleet of merchants: each business has its own number, and
-Ringup applies the right policy and processor per call with no per-agent configuration. A merchant
-who has not connected a processor simply resolves to a payment-free call. See
+A merchant that has not connected a processor is not an error. The session comes back with
+`payment_required: "none"`, so the payment layer stays inaudible and the call runs normally. See
 [Payment Policy](/concepts/payment-policy).
 </Note>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Payment Policy" icon="scale-balanced" href="/concepts/payment-policy">
-    What the resolved merchant decides for each order: required, optional, or none.
+  <Card title="Checkout Session" icon="receipt" href="/concepts/checkout-session">
+    Where merchant_id is passed, and what comes back because of it.
   </Card>
-  <Card title="Caller Identity" icon="user" href="/concepts/identity">
-    The other half of every call: who is paying.
+  <Card title="Payment Policy" icon="scale-balanced" href="/concepts/payment-policy">
+    What the merchant decides for each order: required, optional, or none.
   </Card>
 </CardGroup>

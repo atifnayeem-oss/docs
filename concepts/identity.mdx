@@ -1,30 +1,32 @@
 ---
 title: "Caller Identity"
-description: "The Caller is who is paying, recognized by phone number, resolved server-side and never typed by the model."
+description: "The Caller is who is paying, recognized by the phone number they called from. identify answers who someone is, never what they can pay with."
 ---
 
-The **Caller** is who is paying: a person and their saved cards, recognized by the phone number
-they are calling from. That number arrives at Ringup on a trusted header the platform templates in
-at call time, so it never passes through the language model. Which business they reached is a
-separate identity, see [Merchant Identity](/concepts/merchant-identity).
+The **Caller** is who is paying, recognized by the phone number they are calling from. `identify`
+answers one question: who is this person. It never answers what they can pay with. Which business
+they reached is a separate identity, see [Merchant Identity](/concepts/merchant-identity).
 
-## The caller record
+## Recognize a caller
 
-Ringup keeps a record of each caller: the person and their saved cards, keyed by phone number and
-shared across every merchant (a wallet, not one merchant's contact list). The number rides the
-`X-Caller-Number` header, templated from the platform's caller-ID variable. Call `identify` to look
-the caller up:
+Pass the caller's number in the body as `caller_phone`, in E.164:
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://ringup.dev/api/tools/identify \
-  -H "X-Caller-Number: +14155550142"
+curl -X POST https://api.ringup.dev/v1/identify \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{ "caller_phone": "+14155550142" }'
 ```
 
 ```javascript Node
-const res = await fetch("https://ringup.dev/api/tools/identify", {
+const res = await fetch("https://api.ringup.dev/v1/identify", {
   method: "POST",
-  headers: { "X-Caller-Number": "+14155550142" },
+  headers: {
+    "Authorization": "Bearer <YOUR_RINGUP_KEY>",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ caller_phone: "+14155550142" }),
 });
 const caller = await res.json();
 ```
@@ -33,8 +35,9 @@ const caller = await res.json();
 import requests
 
 caller = requests.post(
-    "https://ringup.dev/api/tools/identify",
-    headers={"X-Caller-Number": "+14155550142"},
+    "https://api.ringup.dev/v1/identify",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={"caller_phone": "+14155550142"},
 ).json()
 ```
 </CodeGroup>
@@ -42,36 +45,66 @@ caller = requests.post(
 ```json Response
 {
   "known": true,
-  "name": "Alex",
-  "card": { "brand": "VISA", "last_4": "5858", "exp_month": 7, "exp_year": 2028 }
+  "consumer": {
+    "id": "con_8t4d",
+    "first_name": "Alex",
+    "last_name": "Rivera",
+    "email": "alex@example.com"
+  }
 }
 ```
 
-A recognized caller is offered their saved card by name and last four, with no identity questions.
-An unknown caller is offered a texted pay link instead; once they pay, they become a recognized
-caller, known on every call after that, at any Ringup merchant. Recognition is automatic: you never
-manage a caller record, it just happens.
+`known` tells you whether Ringup has seen this person before. `consumer` carries the record when it
+has, and is `null` when it has not.
+
+Use `first_name` to greet the caller and to skip questions you already have answers to. `email` is
+for the merchant's own workflows, receipts and follow-ups; it is not something the agent reads
+aloud.
+
+## An unknown caller is not an error
+
+A first-time caller comes back as `200` with `known: false` and `consumer: null`. That is the
+ordinary first-call outcome, not a failure: it is how the majority of callers start. Branch on
+`known`, greet a stranger as a stranger, and take the order the same way. They become a recognized
+caller the first time they pay through a [texted link](/concepts/send-link).
+
+```json Response
+{ "known": false, "consumer": null }
+```
+
+## Why cards do not come back here
+
+Whether a saved card can actually be charged depends on which processor the merchant runs. A card
+saved at a merchant on one processor may have no charge handle at a merchant on another, and
+`identify` has no merchant: it takes a phone number and nothing else. Any card-shaped answer here
+would therefore be right for some merchants and wrong for others, and the wrong ones only surface
+at the charge, after the caller has already agreed to a card.
+
+So cards come from [`create_checkout`](/concepts/checkout-session), which knows the merchant and
+returns exactly the cards chargeable there. `identify` is the surface that grows with the
+**person**: name and email today, preferences and consent history later.
 
 ## Recognize at the start of the call
 
 `identify` needs only the caller's phone number, and that arrives the instant the call connects,
-before the caller has said a word. So call it at the **start** of the call, not just when payment
-begins. For a recognized caller it hands you their name and saved card up front, which you use to
-personalize the whole call: greet them by name, and skip re-asking for anything you already know
-(for example, never ask "what name should I put this under?" when `identify` already returned it).
+before the caller has said a word. So call it at the **start** of the call, not at the payment
+moment. For a returning caller it hands you their name up front, which you use to personalize the
+whole call: greet them by name, and never ask "what name should I put this under?" when the answer
+is already on your screen.
 
 Calling it early also moves the lookup off the payment moment, where a pause in the conversation is
-more noticeable than during the greeting.
+more noticeable than during a greeting.
 
-Some integrations wire recognition for you, so it happens without any tool call in your agent. On
-the others you invoke `identify` yourself, and invoking it at the greeting is what unlocks the
-personalized, no-repeat-questions experience.
+Some integrations wire recognition for you, so it happens with no tool call in your agent. On the
+others you invoke `identify` yourself, and invoking it at the greeting is what unlocks the
+personalized, no-repeat-questions call.
 
-## Why the caller comes from the call, not the model
+## Why the number comes from the call, not the model
 
-A model-generated `phone_number` argument can be mistyped, hallucinated, or prompt-injected by a
-hostile caller. A header set by the platform's template engine cannot. The tools accept no caller
-argument at all; there is nothing to spoof.
+`caller_phone` is yours to fill from the platform's caller-ID variable, the value the telephony
+layer resolved when the call connected. Template it in at call time. A number the model composes
+can be mistyped, misheard, or prompt-injected by a hostile caller, and a caller number is the whole
+identity: whoever owns it is offered that person's saved cards.
 
 <Warning>
 Dashboard and web test calls carry no real caller ID, so the platform's caller-ID template resolves
@@ -86,6 +119,7 @@ natively.
     The other half of every call: which business the caller reached.
   </Card>
   <Card title="Checkout Session" icon="receipt" href="/concepts/checkout-session">
-    Once you know the caller, this is the object every payment turns on.
+    Once you know the caller, this is the object every payment turns on, and where the caller's
+    chargeable cards come from.
   </Card>
 </CardGroup>

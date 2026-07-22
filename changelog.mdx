@@ -7,6 +7,65 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="2026-07-21" description="One name per concept, cards move to the session">
+## The session owns the cards, and every name is the same everywhere
+
+One release, five endpoints, and one rule behind all of it: one name per concept, one card shape
+everywhere, and every response echoes your own identifiers so reconciliation never needs a second
+call. Here is what to change.
+
+**`identify` no longer returns cards.** It takes `{ "caller_phone": "+1..." }` in the body (the
+field was `phone`, and the number never rides a header) and returns `{ known, consumer }`, where
+`consumer` is `{ id, first_name, last_name, email }` or `null`. Whether a saved card can be charged
+depends on the merchant's processor, and `identify` has no merchant, so any card it returned would
+be wrong for some merchant. An unknown caller is `known: false` at `200`, the ordinary first-call
+outcome. See [Caller Identity](/concepts/identity).
+
+**Cards now come from `create_checkout`,** which knows the merchant. `cards[]` holds
+`{ instrument_id, brand, last_four, expiry }`, newest first, filtered to what is chargeable at that
+merchant, and `default_card_id` names the newest. Empty means text a link. Read
+[Checkout Session](/concepts/checkout-session) before you offer a card out loud.
+
+**Renamed request fields on `create_checkout`:** `phone` is now `caller_phone`, `order_ref` is
+`order_id`, `closing_message` is `success_message`, `call_id` is `platform_call_id`, and
+`return_uri` is gone in favour of `return_to`. `line_items` and `screen` are removed. `order_id` is
+the amount authority: with it, the total is read from the merchant's own order and `amount_cents`
+is optional and never trusted over the order (a mismatch is `409 amount_mismatch`).
+
+**Renamed response fields on `create_checkout`:** `verdict` is now `payment_required` and
+`transfer_uri` is `transfer_to`. The response also carries `amount_source` (`"order"` or
+`"request"`), `expires_at`, and your `metadata` echoed back.
+
+**A merchant with no processor connected is no longer an error here.** It returns `201` with
+`payment_required: "none"`. Delete any `merchant_not_connected` branch you wrote around
+`create_checkout`. See [Payment policy](/concepts/payment-policy) for what `"none"` means and why
+you respond to both of its meanings the same way.
+
+**New canonical read: `GET /v1/checkout_sessions/{checkout_session_id}`.** The top-level `status` is
+now `session_status`, because the charge has a status of its own; `return_uri` is `return_to` and
+`processor_charge_ref` is `processor_payment_id`.
+`GET /v1/payment_status?checkout_session_id=...` still works and is deprecated.
+
+**`send_link` takes only `{ "checkout_session_id": "cs_..." }`.** Drop `phone`, `merchant_id` and
+`amount_cents`: they all live on the session, so a link can no longer carry a total nobody derived
+from an order or be texted to a number the session was not opened for. In the response, `url` is
+now `pay_url` and `mode` is `payment_required`. **Read `sent`:** it is `false` when a repeat send
+inside a short window returned the link without texting again, and an agent that ignores it tells
+the caller "I have texted you" when nothing went out.
+
+**`charge` responds with `status`, `replay`, `charge_id`, `processor_payment_id`, and your
+`merchant_id`, `order_id` and `platform_call_id`.** Statuses are `created`, `completed`, `failed`.
+`created` says what we know, that a charge record exists and the processor has not confirmed;
+`pending` would have asserted something about their state we were never told. The request is
+unchanged: `checkout_session_id` plus an explicit `instrument_id`, which is still never defaulted.
+
+**`checkout.failed` now fires on a decline,** not only on an expiry. A decline previously emitted
+nothing, which left the one failure you most needed to hear about silent. The payload carries
+`reason` (`"declined"` or `"expired"`) and `last_payment_error`, the same error object the `402`
+returned, so one parser handles both paths. Across every webhook payload, `call_id` is now
+`platform_call_id`. See [Webhooks](/concepts/webhooks).
+</Update>
+
 <Update label="July 2026" description="Declines return 402">
 ## A declined card is an error, not a result
 
@@ -16,9 +75,11 @@ ships under a new version. See the stability note in the [API introduction](/api
   `200` with a `failure` block, which meant an ordinary `if (!response.ok)` check read a declined
   payment as a success. **This is a breaking change within `/v1`**, made deliberately and before
   any integration depended on it.
-- `payment_status` is unchanged at `200`: it is a read, so it reports whatever the outcome was.
+- Reading a session back is unchanged at `200`: it is a read, so it reports whatever the outcome
+  was.
 - `decline_code` is Ringup's own vocabulary, identical across processors. `processor_code` carries
   the processor's raw value for tracing.
+</Update>
 
 <Update label="July 2026" description="Two integration modes">
 ## Hosted and in-agent API, on every platform

@@ -1,10 +1,10 @@
 ---
 title: "Webhooks"
-description: "Ringup posts a signed event to your server when a payment completes, so your system can mark the order paid."
+description: "Ringup posts a signed event to your server when a payment completes or fails, so your system can mark the order paid without waiting on the call."
 ---
 
-Ringup posts an event to your server when a Checkout Session is paid. This is how your system
-learns, out of band, that an order was paid, without waiting on the call. It is the same across
+Ringup posts an event to your server when a Checkout Session finishes, paid or not. This is how
+your system learns the outcome out of band, without waiting on the call. It is the same across
 every platform, so you write one handler.
 
 ## Register your endpoint
@@ -19,9 +19,10 @@ Every event has the same shape:
 
 ```jsonc
 {
-  "id": "evt_9f2",               // unique per event; use it to dedupe
+  "event_id": "evt_9f2",         // unique per event; use it to dedupe
   "type": "checkout.completed",  // see the catalog below
-  "created": "2026-07-07T18:05:12Z",
+  "environment": "test",         // "test" or "live"
+  "created_at": "2026-07-21T18:05:12Z",
   "data": { ... }                // shape depends on type
 }
 ```
@@ -30,63 +31,105 @@ Every event has the same shape:
 
 | Type | When it fires |
 |---|---|
-| `checkout.completed` | A Checkout Session was paid (on a saved card, or a first-time caller paid via the texted link). |
-| `checkout.failed` | The charge was declined or errored. |
+| `checkout.completed` | A Checkout Session was paid, on a saved card or through the texted link. |
+| `checkout.failed` | The charge was declined, or the session expired unpaid. |
 | `merchant.connected` | A merchant finished connecting their payment processor to Ringup. |
 
-The catalog is deliberately small. A first-time link payment is a `checkout.completed` with
-`method: "link"`, not a separate event.
+The catalog is deliberately small. A first-time link payment is a `checkout.completed` like any
+other, not a separate event.
 
 ## `checkout.completed`
 
-The one you build against. Its `data` is the completed Checkout Session with its **Payment**,
-and it carries everything you need to mark an order paid:
+The one you build against. Its `data` carries everything you need to mark an order paid:
 
 ```jsonc
 "data": {
-  "checkout_id": "cs_x9f2",      // the Checkout Session
-  "payment_id": "pay_abc",       // the Payment
-  "method": "saved_card",        // or "link"
+  "checkout_session_id": "cs_x9f2",
+  "charge_id": "chg_5m1p",
+  "status": "completed",
   "amount_cents": 1900,
   "currency": "USD",
-  "order_id": "sq_abc",          // the order id you passed, echoed; null if you passed none
-  "confirmation": "2PJJZY",
-  "caller": "+14155551234",      // the recognized caller's number
-  "merchant": "mch_x",
-  "card": { "brand": "VISA", "last_4": "5858" },
-  "call_id": "..."               // the platform call id, to match back to the call
+  "processor_payment_id": "pi_3Qx8",   // the id in the merchant's own processor
+  "merchant_id": "tonys-pizza",
+  "order_id": "ord_7f21",              // your order id, echoed; null if you passed none
+  "platform_call_id": "call_abc123",   // your platform's call id, to match back to the call
+  "card": { "brand": "VISA", "last_four": "5858" },  // null when no card was involved
+  "metadata": { "table": "12" }        // your own key/value pairs, echoed
 }
 ```
 
-Match on the `order_id` you passed (or the `call_id`), store the `payment_id`, and flip your
-order to paid. `checkout.failed` carries the same fields plus a `reason`.
+Match on the `order_id` you passed (or `platform_call_id`), store the `charge_id`, and flip your
+order to paid.
 
-## Statuses
+## `checkout.failed`
 
-A Payment moves through a small set of states:
+It fires on **a decline as well as an expiry**. A caller whose card is declined and who then hangs
+up is exactly the case your server most needs to hear about, so it is an event, not something you
+discover by polling.
 
-- **`succeeded`**: the charge settled. This is the only status that means money moved.
+```jsonc
+"data": {
+  "checkout_session_id": "cs_x9f2",
+  "charge_id": "chg_5m1p",             // null when the session expired with no attempt
+  "reason": "declined",                // "declined" | "expired"
+  "amount_cents": 1900,
+  "currency": "USD",
+  "merchant_id": "tonys-pizza",
+  "order_id": "ord_7f21",
+  "platform_call_id": "call_abc123",
+  "metadata": { "table": "12" },
+  "last_payment_error": {              // null when the session merely expired
+    "type": "processor_error",
+    "code": "card_declined",
+    "decline_code": "insufficient_funds",
+    "advice_code": "try_again_later",
+    "message": "Charge declined by the issuer.",
+    "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
+    "agent_action": "offer_different_card",
+    "doc_url": "https://docs.ringup.dev/api-reference/errors#card_declined",
+    "charge": "chg_5m1p"
+  }
+}
+```
+
+`reason` tells the two cases apart:
+
+- **`declined`.** A card was charged and the issuer said no. `charge_id` names the attempt, and
+  `last_payment_error` says why.
+- **`expired`.** The session lapsed unpaid. `charge_id` is `null` and so is `last_payment_error`,
+  because nothing was ever attempted and there is no error to report.
+
+`last_payment_error` is the **same error object** the `402` returned, so the parser you already
+wrote for a synchronous decline handles the asynchronous one unchanged. See
+[Errors](/api-reference/errors) for every field. It omits `request_id`: that identifies a request,
+and an event is not one.
+
+## Charge statuses
+
+A charge is in one of three states, and the same values appear on the
+[session](/concepts/checkout-session) and in the [charge](/concepts/charge) response:
+
+- **`completed`**: the charge settled. This is the only status that means money moved.
+- **`created`**: the charge record exists and the processor has not confirmed it yet.
 - **`failed`**: the charge was declined or errored; nothing was charged.
-- **`pending`**: a first-time caller was texted a link and has not paid yet. You see this only
-  if you poll a Checkout Session during a call; a pending Payment does not send a
-  `checkout.completed` webhook until it settles.
 
 ## Getting it right
 
 Three rules cover almost every webhook bug:
 
-1. **Verify the signature.** Each request carries a `Ringup-Signature` header, an HMAC of the
-   raw body plus a timestamp. Recompute it with your endpoint's signing secret and reject a
+1. **Verify the signature.** Each request carries a `Ringup-Signature` header, an HMAC of the raw
+   body plus the `Ringup-Timestamp`. Recompute it with your endpoint's signing secret and reject a
    mismatch or an old timestamp, so nobody can forge an event.
-2. **Dedupe on `id`.** Delivery is at-least-once: Ringup retries on any non-2xx response, so
-   the same event can arrive more than once. Treat a repeated `id` as a no-op.
-3. **Acknowledge fast.** Return `2xx` immediately and do your work asynchronously. Ringup
-   retries with backoff and parks a persistently failing endpoint after several attempts.
+2. **Dedupe on `event_id`.** Delivery is at-least-once: Ringup retries on any non-2xx response, so
+   the same event can arrive more than once. Treat a repeated `event_id` as a no-op.
+3. **Acknowledge fast.** Return `2xx` immediately and do your work asynchronously. Ringup retries
+   with backoff and parks a persistently failing endpoint after several attempts.
 
 <Note>
 **Signature scheme.** `Ringup-Signature` is an HMAC-SHA256 over the timestamp and the raw request
-body, signed with your endpoint's secret. When you register an endpoint the dashboard shows the
-exact recipe and a copy-paste verification snippet next to your signing secret.
+body, signed with your endpoint's secret, sent as `v1=<signature>`. When you register an endpoint
+the dashboard shows the exact recipe and a copy-paste verification snippet next to your signing
+secret.
 </Note>
 
 ## Next steps
@@ -96,6 +139,6 @@ exact recipe and a copy-paste verification snippet next to your signing secret.
     Trigger real events against the sandbox and watch them arrive.
   </Card>
   <Card title="API reference" icon="code" href="/api-reference/introduction">
-    Every field of every tool, with a live playground.
+    Every field of every endpoint, with a live playground.
   </Card>
 </CardGroup>

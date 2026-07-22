@@ -20,15 +20,24 @@ When you create a Checkout Session, `payment_required` comes back as one of:
 ## It is per purchase, not per merchant
 
 The same merchant can produce different values on different orders. A parts shop might make
-payment optional under $50 and required above it; only the amount changes the rule. That is why
-creating the session passes `amount_cents`, and why the answer cannot be cached across calls.
+payment optional under $50 and required above it; only the amount changes the rule. That is why the
+session resolves the amount before the verdict, and why the answer cannot be cached across calls.
 
 ## `none` is the graceful floor
 
-Unknown merchant, unconnected processor, a business that simply does not take phone payments:
-all of these resolve to `none`, and the payment layer becomes inaudible. This is a design
-guarantee, not an error path. It means the same agent configuration is safe to run in front of
-every merchant on your platform, connected or not, from day one.
+`none` has two possible meanings, and you never have to tell them apart:
+
+- **The merchant has no processor connected.** There is nothing to charge on. This is not an error:
+  creating a session for an unconnected merchant returns `201` with `payment_required: "none"`, and
+  `transfer_to` is `null`.
+- **The merchant's policy says this purchase does not need payment.** A business that takes payment
+  at pickup, or an order under a threshold that the merchant chose to let through.
+
+The correct response to either is the same: do not transfer, do not offer a card, carry on with the
+call and end it normally. That is why they share one value. Your agent branches on `payment_required`
+and needs no separate "is this merchant set up yet" check, which is what makes one agent
+configuration safe to run in front of every merchant on your platform, connected or not, from day
+one.
 
 <Note>
 Whoever runs the payment reads `payment_required` and branches on it, so your agent never hard-codes

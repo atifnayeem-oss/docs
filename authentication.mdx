@@ -21,25 +21,29 @@ kinds, and the same code works with either, so you promote by swapping the key:
 
 ## Pass it on every request
 
-Every Ringup call, `create_checkout`, `identify`, `charge`, and the rest, takes the key as a
+Every Ringup call, `identify`, `create_checkout`, `charge`, and the rest, takes the key as a
 Bearer token:
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.ringup.dev/v1/checkouts \
+curl -X POST https://api.ringup.dev/v1/create_checkout \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
-  -d '{ "amount_cents": 2500 }'
+  -d '{ "merchant_id": "tonys-pizza", "caller_phone": "+14155550142", "amount_cents": 2500 }'
 ```
 
 ```javascript Node
-const res = await fetch("https://api.ringup.dev/v1/checkouts", {
+const res = await fetch("https://api.ringup.dev/v1/create_checkout", {
   method: "POST",
   headers: {
     "Authorization": "Bearer <YOUR_RINGUP_KEY>",
     "Content-Type": "application/json",
   },
-  body: JSON.stringify({ amount_cents: 2500 }),
+  body: JSON.stringify({
+    merchant_id: "tonys-pizza",
+    caller_phone: "+14155550142",
+    amount_cents: 2500,
+  }),
 });
 ```
 
@@ -47,9 +51,13 @@ const res = await fetch("https://api.ringup.dev/v1/checkouts", {
 import requests
 
 res = requests.post(
-    "https://api.ringup.dev/v1/checkouts",
+    "https://api.ringup.dev/v1/create_checkout",
     headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
-    json={"amount_cents": 2500},
+    json={
+        "merchant_id": "tonys-pizza",
+        "caller_phone": "+14155550142",
+        "amount_cents": 2500,
+    },
 )
 ```
 </CodeGroup>

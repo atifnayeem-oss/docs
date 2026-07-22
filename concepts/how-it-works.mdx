@@ -29,13 +29,15 @@ nobody else does, and it is the product.
 ## The core principles
 
 **Phone number is the identity.** The caller is recognized by the number they are calling from,
-resolved from trusted call metadata, never typed by the model or spoken by the caller. No
+taken from trusted call metadata, never typed by the model or spoken by the caller. No
 logins, no account numbers, no passwords. See [Caller Identity](/concepts/identity) and [Merchant Identity](/concepts/merchant-identity).
 
 **Recognition happens at the start of the call.** The caller's number arrives the instant the
 call connects, so Ringup identifies them upfront, before payment. For a returning caller that
-hands the agent their name and saved card at the greeting, so the agent personalizes the whole
-call: it greets them by name and skips re-asking for anything recognition already provides. See
+hands the agent their name at the greeting, so the agent personalizes the whole call: it greets
+them by name and skips re-asking for anything recognition already provides. Which cards they can
+pay with comes later, from the [Checkout Session](/concepts/checkout-session), because that is
+where the merchant is known. See
 [Recognize at the start of the call](/concepts/identity).
 
 **First time by link, every time after by memory.** A caller Ringup does not recognize is texted
@@ -67,9 +69,9 @@ At a high level, the same flow runs on every platform:
 flowchart TD
     A[Caller dials your agent] --> B[Recognized by phone number]
     B --> C[Your agent takes the order]
-    C --> D[Ringup returns the merchant's policy for this order]
+    C --> D[Checkout Session: amount, policy, chargeable cards]
     D -->|none| E[No payment: end the call normally]
-    D -->|required or optional| F{Saved card on file?}
+    D -->|required or optional| F{Card chargeable at this merchant?}
     F -->|yes| G[Caller confirms, saved card is charged]
     F -->|no| H[Ringup texts a pay link, caller pays on their phone]
     G --> J{How the call ends}
@@ -93,11 +95,13 @@ an API-driven one. Both use the same tools, the same identity, and the same off-
   decline, text a first-time link, read the confirmation. You write no payment logic and set it up
   from the dashboard. Your agent transfers the call to a Ringup payment line (works on any platform,
   see [Checkout Session](/concepts/checkout-session)).
-- **In your agent (API).** Your agent stays on the call the whole time and calls Ringup's tools to
-  add payment: [`identify`](/concepts/identity) at the greeting, then [`charge`](/concepts/charge)
-  for a recognized caller with a saved card, or [`send_link`](/concepts/send-link) for a first-time
-  caller. Nothing transfers, and because a recognized caller never enters a card, no card data ever
-  touches your agent. The lighter, more flexible path.
+- **In your agent (API).** Your agent stays on the call the whole time and calls Ringup's endpoints
+  to add payment: [`identify`](/concepts/identity) at the greeting, then a
+  [Checkout Session](/concepts/checkout-session) when the order is ready, then
+  [`charge`](/concepts/charge) the card the caller picked, or
+  [`send_link`](/concepts/send-link) when the session offers none. Nothing transfers, and because a
+  recognized caller never enters a card, no card data ever touches your agent. The lighter, more
+  flexible path.
 
 Same payment underneath, same principles. Only the front door changes.
 

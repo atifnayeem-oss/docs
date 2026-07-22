@@ -63,93 +63,120 @@ the hosted path in production. The **Using Tools** tab is not affected and works
 </Tab>
 <Tab title="Using Tools">
 
-Keep the caller in your agent and add three ElevenLabs **webhook tools** pointed at Ringup, authed
-with your Ringup key. The caller's number rides `{{system__caller_id}}`, so the model never types
-identity, and nothing transfers.
+Keep the caller in your agent and add four ElevenLabs **webhook tools** pointed at Ringup, authed
+with your Ringup key. `caller_phone` is pinned to the `system__caller_id` dynamic variable and
+`merchant_id` to a per-merchant one, so the model never types either identity, and nothing
+transfers.
 
 <Steps>
   <Step title="Recognize the caller at the greeting">
-    Add a webhook tool `identify` and call it at the greeting, not at payment. It takes no arguments;
-    for a returning caller it returns their name and saved card, so your agent greets them by name
-    and knows a saved card is on file. See [Recognize at the start of the call](/concepts/identity).
+    Add a webhook tool `identify` and call it at the greeting, not at payment. For a returning
+    caller it returns their name, so your agent greets them by name and skips questions it already
+    has answers to. An unknown caller comes back `known: false`, which is an ordinary first call.
+    See [Recognize at the start of the call](/concepts/identity).
 
     ```jsonc
     {
       "type": "webhook",
       "name": "identify",
-      "description": "Recognize the caller at the greeting. Returns their name and whether a saved card is on file.",
+      "description": "Recognize the caller at the greeting. Returns their name if Ringup knows them.",
       "api_schema": {
         "url": "https://api.ringup.dev/v1/identify",
         "method": "POST",
-        "request_headers": {
-          "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-          "X-Caller-Number": "{{system__caller_id}}"
+        "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "caller_phone": { "type": "string", "dynamic_variable": "system__caller_id" }
+          },
+          "required": ["caller_phone"]
         }
       }
     }
     ```
   </Step>
-  <Step title="Charge the saved card at payment">
-    Add a webhook tool `charge`. When the order is confirmed and `identify` returned a saved card,
-    your agent calls it with the order total; Ringup charges the saved card off-session on the
-    merchant's own processor and returns the confirmation to read back. It respects the merchant's
-    payment policy server-side, so on an unconnected merchant it is a silent no-op.
+  <Step title="Open a Checkout Session when the order is confirmed">
+    Add a webhook tool `create_checkout`. It resolves the total, applies the merchant's payment
+    policy, and returns `cards`: the caller's cards chargeable at this merchant. If
+    `payment_required` is `none`, say nothing about payment and finish the call.
+
+    ```jsonc
+    {
+      "type": "webhook",
+      "name": "create_checkout",
+      "description": "Open a payment session for the confirmed order. Returns whether payment is required and which saved cards can be used.",
+      "api_schema": {
+        "url": "https://api.ringup.dev/v1/create_checkout",
+        "method": "POST",
+        "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
+        "request_body_schema": {
+          "type": "object",
+          "properties": {
+            "merchant_id":  { "type": "string", "dynamic_variable": "merchant_id" },
+            "caller_phone": { "type": "string", "dynamic_variable": "system__caller_id" },
+            "order_id":     { "type": "string", "description": "The merchant's order id, if you have one. Ringup reads the total from it." },
+            "amount_cents": { "type": "number", "description": "Order total in cents. Required only when there is no order_id." }
+          },
+          "required": ["merchant_id", "caller_phone"]
+        }
+      }
+    }
+    ```
+  </Step>
+  <Step title="Charge the card the caller picked">
+    Add a webhook tool `charge`. Read one card from `cards` back by brand and last four with the
+    amount, and call `charge` only after the caller agrees, with that card's `instrument_id`.
 
     ```jsonc
     {
       "type": "webhook",
       "name": "charge",
-      "description": "Charge the recognized caller's saved card for the confirmed order. Returns the confirmation code to read back.",
+      "description": "Charge the card the caller agreed to. Use the checkout_session_id and the instrument_id of the card you read back.",
       "api_schema": {
         "url": "https://api.ringup.dev/v1/charge",
         "method": "POST",
-        "request_headers": {
-          "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-          "X-Caller-Number": "{{system__caller_id}}"
-        },
+        "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
         "request_body_schema": {
           "type": "object",
           "properties": {
-            "amount_cents": { "type": "number", "description": "Order total in cents" },
-            "order_id":     { "type": "string", "description": "Your order id, if you have one" }
+            "checkout_session_id": { "type": "string", "description": "From create_checkout" },
+            "instrument_id":       { "type": "string", "description": "The card the caller agreed to, from the session's cards" }
           },
-          "required": ["amount_cents"]
+          "required": ["checkout_session_id", "instrument_id"]
         }
       }
     }
     ```
   </Step>
-  <Step title="Text a link for a first-time caller">
-    Add a webhook tool `send_link` for a caller with no saved card (or a declined charge). Ringup
-    texts a secure pay link and, when they pay, pushes the confirmation back into the live call (or
-    sends it by SMS if the call has ended).
+  <Step title="Text a link when there is no card to offer">
+    Add a webhook tool `send_link` for a session whose `cards` is empty (or after a declined
+    charge). Ringup texts a secure pay link and, when they pay, pushes the confirmation back into
+    the live call (or sends it by SMS if the call has ended).
 
     ```jsonc
     {
       "type": "webhook",
       "name": "send_link",
-      "description": "Text the caller a secure pay link for the order. Use when there is no saved card on file.",
+      "description": "Text the caller a secure pay link for this session. Use when the session returned no cards.",
       "api_schema": {
         "url": "https://api.ringup.dev/v1/send_link",
         "method": "POST",
-        "request_headers": {
-          "Authorization": "Bearer <YOUR_RINGUP_KEY>",
-          "X-Caller-Number": "{{system__caller_id}}"
-        },
+        "request_headers": { "Authorization": "Bearer <YOUR_RINGUP_KEY>" },
         "request_body_schema": {
           "type": "object",
           "properties": {
-            "amount_cents": { "type": "number", "description": "Order total in cents" }
+            "checkout_session_id": { "type": "string", "description": "From create_checkout" }
           },
-          "required": ["amount_cents"]
+          "required": ["checkout_session_id"]
         }
       }
     }
     ```
 
-    Then add one line to your prompt: *when the caller has confirmed the order, if identify returned
-    a saved card call `charge` with the order total and read back the confirmation code; otherwise
-    call `send_link` and tell them to check their text to pay.*
+    Then add one line to your prompt: *when the caller has confirmed the order, call
+    `create_checkout`; if it returns cards, read one back and call `charge` after they agree, then
+    read back the order id as the confirmation; if it returns none, call `send_link` and tell them
+    to check their text to pay.*
   </Step>
   <Step title="Add your webhook endpoint">
     In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy the

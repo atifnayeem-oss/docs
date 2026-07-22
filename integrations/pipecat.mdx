@@ -35,7 +35,8 @@ Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashb
 
 Call `identify` from your pipeline at the greeting, not at payment (a plain HTTP call, like the
 checkout call below). The caller's number is available the instant the call connects; for a
-returning caller `identify` returns their name and saved card, so your agent greets them by name.
+returning caller `identify` returns their name, so your agent greets them by name. The cards it
+can pay with come later, from the Checkout Session.
 See [Recognize at the start of the call](/concepts/identity).
 
 </Step>
@@ -48,11 +49,13 @@ transfer: finish the call normally. Otherwise transfer to the returned `transfer
 ```python
 async def create_checkout(params: FunctionCallParams):
     r = await http.post(
-        "https://api.ringup.dev/v1/checkouts",
+        "https://api.ringup.dev/v1/create_checkout",
         headers={"Authorization": f"Bearer {RINGUP_KEY}"},
         json={
-            "amount_cents": 2500,
-            "order_id": params.arguments.get("order_id"),          # optional
+            "merchant_id": merchant_id,
+            "caller_phone": caller_number,
+            "order_id": params.arguments.get("order_id"),          # the total is read from it
+            "platform_call_id": call_id,                           # optional
             "return_to": "sip:your-bridge@your-telephony",         # optional: bring the caller back
             "success_message": "You are all set, your order will be ready shortly.",  # optional
         },
@@ -62,9 +65,16 @@ async def create_checkout(params: FunctionCallParams):
 
 ```jsonc
 {
-  "id": "cs_x9f2",                                   // Checkout Session id; the correlation token
+  "checkout_session_id": "cs_x9f2",                  // the correlation token
   "payment_required": "required",                    // "required" | "optional" | "none"
-  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev"   // where to transfer; embeds the id
+  "amount_cents": 1900,                              // resolved from the order
+  "currency": "USD",
+  "amount_source": "order",                          // "order" | "request"
+  "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",  // null unless payment is required
+  "expires_at": "2026-07-21T18:35:12Z",
+  "cards": [],                                       // saved cards chargeable at this merchant
+  "default_card_id": null,
+  "metadata": null
 }
 ```
 
@@ -73,7 +83,7 @@ async def create_checkout(params: FunctionCallParams):
 
 Have the agent speak one short bridge line ("One moment, connecting you to secure payment"), then
 transfer the caller on your telephony. On a Twilio transport, redirect the call to TwiML that dials
-the Ringup SIP URI, carrying the Checkout Session `id`:
+the Ringup SIP URI, carrying the `checkout_session_id`:
 
 ```xml
 <Response>
@@ -114,84 +124,116 @@ confirmed. No transfer, no payment line.
 <Steps>
 <Step title="Recognize the caller at the greeting">
 
-Call `identify` at the greeting, not at payment. Pass the caller's number, available the instant the
-call connects; for a returning caller it returns their name and saved card, so your agent greets
-them by name and knows a saved card is on file. See
-[Recognize at the start of the call](/concepts/identity).
+Call `identify` at the greeting, not at payment. Pass `caller_phone`, available the instant the
+call connects. For a returning caller it returns their name, so your agent greets them by name and
+skips questions it already has answers to. An unknown caller comes back `known: false`, which is
+an ordinary first call. See [Recognize at the start of the call](/concepts/identity).
 
 <CodeGroup>
 ```bash curl
 curl -X POST https://api.ringup.dev/v1/identify \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
-  -H "X-Caller-Number: +14155550142"
+  -H "Content-Type: application/json" \
+  -d '{ "caller_phone": "+14155550142" }'
 ```
 
 ```python Python
-caller = (await http.post(
+caller = requests.post(
     "https://api.ringup.dev/v1/identify",
-    headers={
-        "Authorization": f"Bearer {RINGUP_KEY}",
-        "X-Caller-Number": caller_number,
-    },
-)).json()
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={"caller_phone": caller_number},
+).json()
+# caller["known"] tells you whether to greet by caller["consumer"]["first_name"]
 ```
 </CodeGroup>
 
 </Step>
-<Step title="Charge the saved card at payment">
+<Step title="Open a Checkout Session when the order is confirmed">
 
-When the order is confirmed and `identify` returned a saved card, `POST` to `charge` with the order
-total. Ringup charges the saved card off-session on the merchant's own processor and returns the
-confirmation to read back. It respects the merchant's payment policy server-side, so on an
-unconnected merchant it is a silent no-op.
+`POST` to `create_checkout` with the merchant and the caller. Ringup resolves the total (from the
+merchant's order when you pass `order_id`), applies the merchant's
+[payment policy](/concepts/payment-policy), and returns `cards`: the caller's cards chargeable at
+this merchant. On `payment_required: "none"` say nothing about payment and finish the call.
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.ringup.dev/v1/create_checkout \
+  -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_id": "tonys-pizza",
+    "caller_phone": "+14155550142",
+    "order_id": "ord_7f21"
+  }'
+```
+
+```python Python
+checkout = requests.post(
+    "https://api.ringup.dev/v1/create_checkout",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={
+        "merchant_id": merchant_id,
+        "caller_phone": caller_number,
+        "order_id": order_id,  # or amount_cents, when there is no order
+    },
+).json()
+# checkout["payment_required"] == "none" means say nothing about payment
+```
+</CodeGroup>
+
+</Step>
+<Step title="Charge the card the caller picked">
+
+Read one card from `cards` back by brand and last four with the amount. After the caller agrees,
+`POST` to `charge` with the session and that card's `instrument_id`. Ringup charges it off-session
+on the merchant's own processor. A decline comes back as a `402` in the standard
+[error envelope](/api-reference/errors), carrying the sentence your agent can speak.
 
 <CodeGroup>
 ```bash curl
 curl -X POST https://api.ringup.dev/v1/charge \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
-  -H "X-Caller-Number: +14155550142" \
   -H "Content-Type: application/json" \
-  -d '{ "amount_cents": 2500, "order_id": "sq_abc" }'
+  -d '{ "checkout_session_id": "cs_x9f2", "instrument_id": "ins_4b7e" }'
 ```
 
 ```python Python
-async def charge(params: FunctionCallParams):
-    r = await http.post(
-        "https://api.ringup.dev/v1/charge",
-        headers={
-            "Authorization": f"Bearer {RINGUP_KEY}",
-            "X-Caller-Number": caller_number,
-        },
-        json={"amount_cents": 2500, "order_id": params.arguments.get("order_id")},
-    )
-    await params.result_callback(r.json())  # read confirmation back only when status == "succeeded"
+res = requests.post(
+    "https://api.ringup.dev/v1/charge",
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={
+        "checkout_session_id": checkout["checkout_session_id"],
+        "instrument_id": card["instrument_id"],  # the card the caller agreed to
+    },
+)
+# a decline is a 402: speak res.json()["error"]["agent_message"]
+charge = res.json()
+# read charge["order_id"] back only when charge["status"] == "completed"
 ```
 </CodeGroup>
 
 </Step>
-<Step title="Text a link for a first-time caller">
+<Step title="Text a link when there is no card to offer">
 
-If `identify` returned no saved card (or the charge declined), `POST` to `send_link`. Ringup texts a
-secure pay link and, when they pay, delivers the confirmation. See [Send Link](/concepts/send-link).
+When `cards` is empty (or the charge declined), `POST` to `send_link`. The session is the only
+input, and Ringup texts a secure pay link. Check `sent`: `false` means a duplicate send returned the
+same link without texting again. See [Send Link](/concepts/send-link).
 
 <CodeGroup>
 ```bash curl
 curl -X POST https://api.ringup.dev/v1/send_link \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
-  -H "X-Caller-Number: +14155550142" \
   -H "Content-Type: application/json" \
-  -d '{ "amount_cents": 2500 }'
+  -d '{ "checkout_session_id": "cs_x9f2" }'
 ```
 
 ```python Python
-await http.post(
+link = requests.post(
     "https://api.ringup.dev/v1/send_link",
-    headers={
-        "Authorization": f"Bearer {RINGUP_KEY}",
-        "X-Caller-Number": caller_number,
-    },
-    json={"amount_cents": 2500},
-)
+    headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
+    json={"checkout_session_id": checkout["checkout_session_id"]},
+).json()
+# link["sent"] is False on a duplicate send: no new text went out, so do not promise one
 ```
 </CodeGroup>
 

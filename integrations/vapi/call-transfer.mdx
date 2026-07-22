@@ -66,8 +66,9 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
 
 <Steps>
   <Step title="Recognize the caller at the greeting">
-    Register `identify` as an apiRequest tool and call it at the greeting. It takes no inputs;
-    for a returning caller it returns their name and saved card, so your agent greets them by
+    Register `identify` as an apiRequest tool and call it at the greeting, with `caller_phone`
+    pinned to Vapi's caller-number variable as a static parameter so the model never types it.
+    For a returning caller it returns their name, so your agent greets them by
     name. For an unknown caller it returns `known: false` and your agent continues with no
     name: never invent, guess, or reuse one, and never claim to recognize a caller `identify`
     did not return. See [Recognize at the start of the call](/concepts/identity).
@@ -82,7 +83,7 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
       "type": "function",
       "async": true,
       "server": {
-        "url": "https://api.ringup.dev/v1/integrations/vapi/transfer",
+        "url": "https://ringup.dev/api/transfer-destination",
         "secret": "<YOUR_RINGUP_KEY>"          // sent to Ringup as x-vapi-secret
       },
       "function": {
@@ -108,7 +109,7 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
     You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
     In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy
     the signing secret. Your server verifies the signature and handles `checkout.completed`
-    (`payment_id`, your `order_id`, the confirmation). See [Webhooks](/concepts/webhooks).
+    (`charge_id`, your `order_id`, the card). See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Add the Connect button to your merchant dashboard">
     Ringup call transfer is only initiated for merchants who have connected their own payment processor. Embed the
