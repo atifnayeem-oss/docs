@@ -4,13 +4,13 @@ description: "The REST API behind both integration modes: recognize a caller, op
 ---
 
 Ringup has two integration modes, and the endpoints below power both. **In your agent** you keep
-the caller in your own agent: call [`identify`](/concepts/identity) at the greeting, open a
-[Checkout Session](/concepts/checkout-session) when the order is ready, then
-[`charge`](/concepts/charge) the card the caller picked or [`send_link`](/concepts/send-link) when
-the session offers none. Nothing transfers. **Hosted** creates the same Checkout Session and
-transfers the call to Ringup's payment line, which runs the payment and posts you a webhook. Pick
-the mode that fits your agent; the same identity and the same off-session charge sit underneath
-both.
+the caller in your own agent: call [`identify`](/concepts/identity) at the greeting,
+[`create_checkout`](/concepts/checkout-session) when the order is ready, then
+[`charge`](/concepts/charge) the card the caller picked, or [`send_link`](/concepts/send-link)
+when the session offers none. Nothing transfers. **Hosted** opens the same
+[Checkout Session](/concepts/checkout-session) and transfers the call to Ringup's payment line,
+which runs the payment and posts you a webhook. Pick the mode that fits your agent; the same
+identity and the same off-session charge sit underneath both.
 
 <Note>
 **Stability.** The request and response shapes on this page are stable. The API is versioned in
