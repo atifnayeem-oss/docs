@@ -40,9 +40,9 @@ and an endpoint that is not idempotent will double-fulfil an order eventually ra
 
 | Event | Fires when |
 |---|---|
-| [`checkout.completed`](#checkoutcompleted) | A charge against a Checkout Session succeeded. The money moved. |
-| [`checkout.failed`](#checkoutfailed) | A charge was declined, or the session expired without payment. `reason` tells you which, and `last_payment_error` carries the same error object the 402 returned. |
-| [`merchant.connected`](#merchantconnected) | A merchant finished connecting their payment processor, so their calls can now take payment. |
+| [`checkout.completed`](#checkout-completed) | A charge against a Checkout Session succeeded. The money moved. |
+| [`checkout.failed`](#checkout-failed) | A charge was declined, or the session expired without payment. `reason` tells you which, and `last_payment_error` carries the same error object the 402 returned. |
+| [`merchant.connected`](#merchant-connected) | A merchant finished connecting their payment processor, so their calls can now take payment. |
 
 ## checkout.completed
 
