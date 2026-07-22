@@ -99,7 +99,7 @@ reveal something it was never sent. The specific reason still reaches your logs 
 
 ## Error types
 
-| `type` | What it means |
+| Error type | What it means |
 |---|---|
 | `invalid_request_error` | The request is malformed, or names something that does not exist. Fix the request; retrying it unchanged will fail the same way. |
 | `authentication_error` | The API key is missing, malformed, or revoked. Check the `Authorization` header. |
@@ -108,16 +108,6 @@ reveal something it was never sent. The specific reason still reaches your logs 
 | `idempotency_error` | An idempotency key was reused with different parameters. |
 | `rate_limit_error` | Too many requests. Back off and retry. |
 | `api_error` | A fault on Ringup's side. Safe to retry. |
-
-## Declined payments are errors
-
-A decline returns **`402`** with the same error envelope as everything else, carrying
-`decline_code`, `advice_code` and `processor_code`. It is not a `200` with a status field,
-so the ordinary `if (!response.ok)` check catches a declined payment rather than reading it as a
-success.
-
-Reading a payment *afterwards* is different: `GET /v1/checkout_sessions/{id}` is a lookup and returns `200` with
-whatever the outcome was.
 
 ## Error codes
 
