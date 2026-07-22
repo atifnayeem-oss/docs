@@ -695,6 +695,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/IdentifyRequest"
+              },
+              "example": {
+                "caller_phone": "+14155550142"
               }
             }
           }
@@ -706,6 +709,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IdentifyResponse"
+                },
+                "example": {
+                  "known": true,
+                  "consumer": {
+                    "id": "con_c0325fbd",
+                    "first_name": "Dana",
+                    "last_name": "Whitfield",
+                    "email": "dana@example.com"
+                  }
                 }
               }
             }
@@ -716,6 +728,43 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_json": {
+                    "summary": "The request body is not valid JSON.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_json",
+                        "audience": "developer",
+                        "message": "The request body is not valid JSON.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_json",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "missing_required_fields": {
+                    "summary": "A required parameter is missing.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "missing_required_fields",
+                        "audience": "developer",
+                        "message": "A required parameter is missing.",
+                        "param": "caller_phone",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#missing_required_fields",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -726,6 +775,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -749,6 +817,18 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateCheckoutRequest"
+              },
+              "example": {
+                "merchant_id": "mch_4f2c9a1b7e3d",
+                "caller_phone": "+14155550142",
+                "order_id": "8QK4M2XJ",
+                "platform_call_id": "call_7c2a91e4",
+                "return_to": "https://example.com/calls/7c2a91e4",
+                "success_message": "You're all set. Your order will be ready in about ten minutes.",
+                "failure_message": "That card did not go through. I can text you a link instead.",
+                "metadata": {
+                  "ticket": "4821"
+                }
               }
             }
           }
@@ -760,6 +840,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateCheckoutResponse"
+                },
+                "example": {
+                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "payment_required": "required",
+                  "amount_cents": 1650,
+                  "currency": "USD",
+                  "amount_source": "order",
+                  "transfer_to": "sip:cs_453b5401286d0f80@transfer.ringup.dev",
+                  "expires_at": "2026-07-21T18:34:12.000Z",
+                  "cards": [
+                    {
+                      "instrument_id": "ins_9d21c7",
+                      "brand": "VISA",
+                      "last_four": "5858",
+                      "expiry": "07/2028"
+                    }
+                  ],
+                  "default_card_id": "ins_9d21c7",
+                  "metadata": {
+                    "ticket": "4821"
+                  }
                 }
               }
             }
@@ -770,6 +871,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_json": {
+                    "summary": "The request body is not valid JSON.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_json",
+                        "audience": "developer",
+                        "message": "The request body is not valid JSON.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_json",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "missing_required_fields": {
+                    "summary": "A required parameter is missing.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "missing_required_fields",
+                        "audience": "developer",
+                        "message": "A required parameter is missing.",
+                        "param": "caller_phone",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#missing_required_fields",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "invalid_value": {
+                    "summary": "A parameter was present but its value is not acceptable.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_value",
+                        "audience": "developer",
+                        "message": "A parameter was present but its value is not acceptable.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_value",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -780,6 +935,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -790,6 +964,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "merchant_not_found": {
+                    "summary": "No merchant with that id belongs to your account.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "merchant_not_found",
+                        "audience": "developer",
+                        "message": "No merchant with that id belongs to your account.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#merchant_not_found",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -800,6 +993,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "amount_mismatch": {
+                    "summary": "The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "amount_mismatch",
+                        "audience": "developer",
+                        "message": "The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#amount_mismatch",
+                        "order_amount_cents": 1650,
+                        "provided_amount_cents": 1595,
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -810,6 +1024,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "order_lookup_unsupported": {
+                    "summary": "This processor cannot resolve an order total by reference.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "order_lookup_unsupported",
+                        "audience": "developer",
+                        "message": "This processor cannot resolve an order total by reference.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#order_lookup_unsupported",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -820,6 +1053,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "order_lookup_failed": {
+                    "summary": "The processor could not be reached to resolve the order total.",
+                    "value": {
+                      "error": {
+                        "type": "processor_error",
+                        "code": "order_lookup_failed",
+                        "audience": "caller",
+                        "message": "The processor could not be reached to resolve the order total.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "display_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#order_lookup_failed",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -854,6 +1106,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CheckoutSessionResponse"
+                },
+                "example": {
+                  "session_status": "complete",
+                  "payment_required": "required",
+                  "amount_cents": 1650,
+                  "currency": "USD",
+                  "return_to": "https://example.com/calls/7c2a91e4",
+                  "charge": {
+                    "charge_id": "chg_77386e2f",
+                    "status": "completed",
+                    "amount_cents": 1650,
+                    "processor_payment_id": "pay_9J2mQ7bK4dR"
+                  },
+                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "merchant_id": "mch_4f2c9a1b7e3d",
+                  "order_id": "8QK4M2XJ",
+                  "platform_call_id": "call_7c2a91e4",
+                  "metadata": {
+                    "ticket": "4821"
+                  }
                 }
               }
             }
@@ -864,6 +1136,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -874,6 +1165,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "not_found": {
+                    "summary": "No route matches this path and method.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "not_found",
+                        "audience": "developer",
+                        "message": "No route matches this path and method.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#not_found",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -897,6 +1207,10 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ChargeRequest"
+              },
+              "example": {
+                "checkout_session_id": "cs_453b5401286d0f80",
+                "instrument_id": "ins_9d21c7"
               }
             }
           }
@@ -908,6 +1222,18 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChargeResponse"
+                },
+                "example": {
+                  "status": "completed",
+                  "amount_cents": 1650,
+                  "currency": "USD",
+                  "replay": false,
+                  "charge_id": "chg_77386e2f",
+                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "processor_payment_id": "pay_9J2mQ7bK4dR",
+                  "merchant_id": "mch_4f2c9a1b7e3d",
+                  "order_id": "8QK4M2XJ",
+                  "platform_call_id": "call_7c2a91e4"
                 }
               }
             }
@@ -918,6 +1244,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_json": {
+                    "summary": "The request body is not valid JSON.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_json",
+                        "audience": "developer",
+                        "message": "The request body is not valid JSON.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_json",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "missing_required_fields": {
+                    "summary": "A required parameter is missing.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "missing_required_fields",
+                        "audience": "developer",
+                        "message": "A required parameter is missing.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#missing_required_fields",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -928,6 +1290,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -938,6 +1319,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "card_declined": {
+                    "summary": "The issuer declined the charge. `decline_code` carries the specific reason where the issuer gave one.",
+                    "value": {
+                      "error": {
+                        "type": "card_error",
+                        "code": "card_declined",
+                        "audience": "caller",
+                        "message": "The issuer declined the charge. `decline_code` carries the specific reason where the issuer gave one.",
+                        "decline_code": "insufficient_funds",
+                        "advice_code": "try_again_later",
+                        "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
+                        "display_message": "That card was declined for insufficient funds. Try another card.",
+                        "agent_action": "offer_different_card",
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#card_declined",
+                        "charge": "chg_77386e2f",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -948,6 +1350,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "session_not_found": {
+                    "summary": "No checkout session with that id belongs to your account.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "session_not_found",
+                        "audience": "developer",
+                        "message": "No checkout session with that id belongs to your account.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#session_not_found",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "instrument_not_found": {
+                    "summary": "No saved card with that id belongs to this caller.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "instrument_not_found",
+                        "audience": "caller",
+                        "message": "No saved card with that id belongs to this caller.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": "That card could not be processed. Would you like to try a different card?",
+                        "display_message": "That card could not be processed. Would you like to try a different card?",
+                        "agent_action": "offer_different_card",
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#instrument_not_found",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -958,6 +1396,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "processor_mismatch": {
+                    "summary": "That saved card cannot be charged at this merchant, because it lives in a different processor's wallet.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "processor_mismatch",
+                        "audience": "caller",
+                        "message": "That saved card cannot be charged at this merchant, because it lives in a different processor's wallet.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": "I can text you a secure link to pay instead. Would that work?",
+                        "display_message": "I can text you a secure link to pay instead. Would that work?",
+                        "agent_action": "send_link",
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#processor_mismatch",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -968,6 +1425,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "session_expired": {
+                    "summary": "The checkout session passed its expiry and can no longer be paid.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "session_expired",
+                        "audience": "developer",
+                        "message": "The checkout session passed its expiry and can no longer be paid.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#session_expired",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -978,6 +1454,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "merchant_not_connected": {
+                    "summary": "The merchant exists but has not finished connecting their payment processor, so no charge can settle.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "merchant_not_connected",
+                        "audience": "developer",
+                        "message": "The merchant exists but has not finished connecting their payment processor, so no charge can settle.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#merchant_not_connected",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "merchant_credentials_invalid": {
+                    "summary": "The merchant's stored processor credentials were rejected, so nothing can settle.",
+                    "value": {
+                      "error": {
+                        "type": "processor_error",
+                        "code": "merchant_credentials_invalid",
+                        "audience": "caller",
+                        "message": "The merchant's stored processor credentials were rejected, so nothing can settle.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": "I'm not able to take payment on this line right now.",
+                        "display_message": "This business cannot take payment right now.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#merchant_credentials_invalid",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "needs_enrollment": {
+                    "summary": "The caller has no card on file usable at this merchant, so there is nothing to charge. Expected for a first-time caller at a per-merchant processor.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "needs_enrollment",
+                        "audience": "caller",
+                        "message": "The caller has no card on file usable at this merchant, so there is nothing to charge. Expected for a first-time caller at a per-merchant processor.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": "I can text you a secure link to pay instead. Would that work?",
+                        "display_message": "I can text you a secure link to pay instead. Would that work?",
+                        "agent_action": "send_link",
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#needs_enrollment",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -988,6 +1517,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "processor_unavailable": {
+                    "summary": "The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.",
+                    "value": {
+                      "error": {
+                        "type": "processor_error",
+                        "code": "processor_unavailable",
+                        "audience": "caller",
+                        "message": "The merchant's payment processor is unreachable or returned a server error. Not a Ringup outage.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I can text you a secure link to pay instead. Would that work?",
+                        "display_message": "We could not reach the payment system just now. Please try again in a moment.",
+                        "agent_action": "send_link",
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#processor_unavailable",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -998,6 +1546,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "rate_limit": {
+                    "summary": "Too many requests in a short window.",
+                    "value": {
+                      "error": {
+                        "type": "rate_limit_error",
+                        "code": "rate_limit",
+                        "audience": "caller",
+                        "message": "Too many requests in a short window.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "display_message": "Too many attempts just now. Please wait a moment and try again.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#rate_limit",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1021,6 +1588,9 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SendLinkRequest"
+              },
+              "example": {
+                "checkout_session_id": "cs_453b5401286d0f80"
               }
             }
           }
@@ -1032,6 +1602,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SendLinkResponse"
+                },
+                "example": {
+                  "sent": true,
+                  "pay_url": "https://ringup.dev/pay/link/?t=eyJhbGciOi...",
+                  "short_url": "https://ringup.dev/l/k7m2xq",
+                  "payment_required": "required",
+                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "merchant_id": "mch_4f2c9a1b7e3d",
+                  "order_id": "8QK4M2XJ",
+                  "platform_call_id": "call_7c2a91e4"
                 }
               }
             }
@@ -1042,6 +1622,43 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_json": {
+                    "summary": "The request body is not valid JSON.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_json",
+                        "audience": "developer",
+                        "message": "The request body is not valid JSON.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_json",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "missing_required_fields": {
+                    "summary": "A required parameter is missing.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "missing_required_fields",
+                        "audience": "developer",
+                        "message": "A required parameter is missing.",
+                        "param": "checkout_session_id",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#missing_required_fields",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1052,6 +1669,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1062,6 +1698,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "session_not_found": {
+                    "summary": "No checkout session with that id belongs to your account.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "session_not_found",
+                        "audience": "developer",
+                        "message": "No checkout session with that id belongs to your account.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#session_not_found",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1072,6 +1727,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "not_configured": {
+                    "summary": "A required backend dependency is not configured in this environment.",
+                    "value": {
+                      "error": {
+                        "type": "api_error",
+                        "code": "not_configured",
+                        "audience": "caller",
+                        "message": "A required backend dependency is not configured in this environment.",
+                        "advice_code": "try_again_later",
+                        "agent_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "display_message": "I'm having trouble taking payment right now. Let me get someone to help you.",
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#not_configured",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1095,6 +1769,13 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateWebhookEndpointRequest"
+              },
+              "example": {
+                "url": "https://example.com/webhooks/ringup",
+                "events": [
+                  "checkout.completed",
+                  "checkout.failed"
+                ]
               }
             }
           }
@@ -1106,16 +1787,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateWebhookEndpointResponse"
+                },
+                "example": {
+                  "webhook_endpoint_id": "wh_2b6f14ac",
+                  "url": "https://example.com/webhooks/ringup",
+                  "events": [
+                    "checkout.completed",
+                    "checkout.failed"
+                  ],
+                  "signing_secret": "whsec_2f8c41d7a95b0e63c7d40a1b8e52f96d"
                 }
               }
             }
           },
           "400": {
-            "description": "`invalid_json` The request body is not valid JSON.\n\n`missing_required_fields` A required parameter is missing.\n\n`invalid_value` A parameter was present but its value is not acceptable.\n\n`invalid_events` `events` contains an unsupported event type.",
+            "description": "`invalid_json` The request body is not valid JSON.\n\n`invalid_url` The webhook URL is missing or not a valid https URL.\n\n`invalid_events` `events` contains an unsupported event type.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_json": {
+                    "summary": "The request body is not valid JSON.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_json",
+                        "audience": "developer",
+                        "message": "The request body is not valid JSON.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_json",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "invalid_url": {
+                    "summary": "The webhook URL is missing or not a valid https URL.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_url",
+                        "audience": "developer",
+                        "message": "The webhook URL is missing or not a valid https URL.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_url",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  },
+                  "invalid_events": {
+                    "summary": "`events` contains an unsupported event type.",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request_error",
+                        "code": "invalid_events",
+                        "audience": "developer",
+                        "message": "`events` contains an unsupported event type.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_events",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1126,6 +1869,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1148,6 +1910,19 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListWebhookEndpointsResponse"
+                },
+                "example": {
+                  "webhook_endpoints": [
+                    {
+                      "webhook_endpoint_id": "wh_2b6f14ac",
+                      "url": "https://example.com/webhooks/ringup",
+                      "events": [
+                        "checkout.completed",
+                        "checkout.failed"
+                      ],
+                      "created_at": "2026-07-20T15:02:44.000Z"
+                    }
+                  ]
                 }
               }
             }
@@ -1158,6 +1933,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorBody"
+                },
+                "examples": {
+                  "invalid_key": {
+                    "summary": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                    "value": {
+                      "error": {
+                        "type": "authentication_error",
+                        "code": "invalid_key",
+                        "audience": "developer",
+                        "message": "The API key is missing, malformed, revoked, or does not match the mode of the resource.",
+                        "advice_code": "do_not_try_again",
+                        "agent_message": null,
+                        "display_message": null,
+                        "agent_action": null,
+                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#invalid_key",
+                        "request_id": "req_8f3c1d2ab4e9"
+                      }
+                    }
+                  }
                 }
               }
             }

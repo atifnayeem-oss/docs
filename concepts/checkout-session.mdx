@@ -73,7 +73,7 @@ checkout = requests.post(
   "transfer_to": "sip:cs_x9f2@transfer.ringup.dev",
   "expires_at": "2026-07-21T18:35:12Z",
   "cards": [
-    { "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/28" }
+    { "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/2028" }
   ],
   "default_card_id": "ins_4b7e",
   "metadata": null
@@ -114,7 +114,7 @@ quietly charging one of the two. The response says where the number came from:
 first. Each entry is the same shape everywhere a card appears:
 
 ```json
-{ "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/28" }
+{ "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/2028" }
 ```
 
 Offer them by brand and last four, then pass the chosen `instrument_id` to
