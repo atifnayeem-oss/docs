@@ -118,7 +118,7 @@
         "type": "object"
       },
       "Audience": {
-        "description": "WHO an error is for. The envelope was built for the payment moment, where an agent must say something, and every other error was then forced through the same speech fields: a malformed request would tell a caller \"I'm having trouble taking payment\", about a bug the caller has no part in, and then escalate a call that had nothing wrong with it (Atif, 2026-07-21).\n\n`developer` errors carry NO speakable copy. Not a neutral filler sentence: null. A filler invites an agent to mention payment when nothing about payment has failed.",
+        "description": "Who an error is for.\n\n`caller` errors are things the person on the phone is living through, so they carry copy your agent can speak. `developer` errors are your integration's own bugs, and carry NO speakable copy at all: the fields are null rather than a neutral filler, because a filler sentence invites an agent to raise payment when nothing about payment has failed.",
         "enum": [
           "developer",
           "caller"
@@ -190,7 +190,7 @@
         "type": "object"
       },
       "ChargeStatus": {
-        "description": "`created` is deliberate: it says what WE know, that a charge record exists and the processor has not confirmed. `pending` would assert something about their state we were never told, and reads as \"stuck\" (Atif, 2026-07-21).",
+        "description": "Where a charge stands.\n\n`created` means the charge record exists and the processor has not confirmed an outcome. `completed` and `failed` are settled. A charge left `created` is resolved for you, and the result arrives on the webhook.",
         "enum": [
           "created",
           "completed",
@@ -527,7 +527,7 @@
       },
       "IdentifyRequest": {
         "additionalProperties": false,
-        "description": "R53: the wire contracts, agreed with Atif field by field before implementation.\n\nOne name per concept. One card shape everywhere. Every response echoes the developer's own identifiers so reconciliation never needs a second call.",
+        "description": "The wire contracts.\n\nOne name per concept. One card shape everywhere. Every response echoes your own identifiers, so reconciling a payment never needs a second call.",
         "properties": {
           "caller_phone": {
             "description": "E.164. The body is the ONLY place this lives: a header carried no cryptographic guarantee (it is unsigned, so it is safer only against the model, not against a caller), and one value in two places is an ambiguity every consumer has to reason about.",
