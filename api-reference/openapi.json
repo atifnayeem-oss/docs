@@ -1795,7 +1795,7 @@
                     "checkout.completed",
                     "checkout.failed"
                   ],
-                  "signing_secret": "whsec_2f8c41d7a95b0e63c7d40a1b8e52f96d"
+                  "signing_secret": "whsec_example_not_a_real_secret"
                 }
               }
             }
