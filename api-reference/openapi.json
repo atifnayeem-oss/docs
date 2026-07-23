@@ -20,7 +20,7 @@
     },
     "schemas": {
       "AdviceCode": {
-        "description": "R38 `advice_code` — OUR guidance to the DEVELOPER on what to do with this decline programmatically. Distinct from `agent_action`, which drives the CONVERSATION. A decline can be \"don't retry this card\" (advice) while still being \"offer a different card\" (agent action).\n\nLayering note: Stripe IS the processor, so their raw layer is the card network (`network_decline_code`). Ringup sits ON TOP of processors, so our raw layer is the processor (`processor_code`). Same two-layer shape, correct floor for where we sit. We never see the network, so we deliberately do NOT ship empty network_* fields.",
+        "description": "`advice_code` is our guidance to the developer on what to do with this decline programmatically. It is distinct from `agent_action`, which drives the conversation. A decline can be \"do not retry this card\" (advice) while still being \"offer a different card\" (agent action).",
         "enum": [
           "try_again_later",
           "do_not_try_again",
@@ -305,6 +305,11 @@
             "type": "string"
           },
           "merchant_id": {
+            "description": "The merchant, when the caller knows it (a developer integrating over REST).",
+            "type": "string"
+          },
+          "merchant_number": {
+            "description": "The merchant's own dialed number, when the caller knows the CALL but not the merchant (the transfer tool). Resolved to a merchant within the authed vendor; an unregistered number is an inaudible `none`, not an error (R13c-ii).",
             "type": "string"
           },
           "metadata": {
@@ -332,7 +337,6 @@
           }
         },
         "required": [
-          "merchant_id",
           "caller_phone"
         ],
         "type": "object"
@@ -340,6 +344,10 @@
       "CreateCheckoutResponse": {
         "additionalProperties": false,
         "properties": {
+          "agent_message": {
+            "description": "The one line a voice agent should say for this outcome, so the transfer tool never invents copy: \"no payment is needed\", \"transferring you now\", or \"payment is unavailable\" all come from here (R13c-ii). Errors carry the same field under `error.agent_message`.",
+            "type": "string"
+          },
           "amount_cents": {
             "description": "What we RESOLVED. Under the order model the total is derived, so we must return it.",
             "type": "number"
@@ -372,6 +380,10 @@
             ]
           },
           "expires_at": {
+            "type": "string"
+          },
+          "merchant_id": {
+            "description": "The merchant this resolved to, echoed back. Useful when the caller passed a `merchant_number` and wants to know which merchant it matched; empty string when no merchant resolved (an inaudible `none`, R13c-ii).",
             "type": "string"
           },
           "metadata": {

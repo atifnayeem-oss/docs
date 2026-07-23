@@ -26,6 +26,8 @@ Square requests only what Ringup needs to recognize callers and settle on the me
 <ParamField path="MERCHANT_PROFILE_READ">Read the business profile (name, locations).</ParamField>
 <ParamField path="PAYMENTS_WRITE">Take payments on the merchant's account.</ParamField>
 <ParamField path="PAYMENTS_WRITE_SHARED_ONFILE">Charge a caller's saved card across the merchants on your app (the recognition primitive).</ParamField>
+<ParamField path="PAYMENTS_READ">Verify a charge on the recovery path (double-charge guard).</ParamField>
+<ParamField path="ORDERS_READ">Read the order total for the order-id flow.</ParamField>
 <ParamField path="ORDERS_WRITE">Attach payment to the order.</ParamField>
 <ParamField path="CUSTOMERS_READ, CUSTOMERS_WRITE">Recognize the caller and keep their card on file.</ParamField>
 
