@@ -1,0 +1,140 @@
+---
+title: "Complete a transferred payment"
+description: "The checkout token is a session-scoped credential. Present it to read the session, offer a saved card, text a link, and charge, all for one payment, with no account key on the line that took the transfer."
+---
+
+When payment runs by [transfer](/concepts/checkout-session), the call leaves your order agent and
+arrives on a payment line. That line does not hold your account key, and it should not need one: it
+was handed a **checkout token**, and the token is all the authorization it needs to finish that one
+payment.
+
+The token is a **session-scoped credential**. Possession of a valid, unexpired token authorizes
+acting on exactly the one session it names, whatever account owns that session. It behaves like a
+scoped, single-use secret: short-lived, tied to one object, and safe to hand to the part of the
+system that completes the payment, without giving it any wider access.
+
+<Note>
+Ringup's own hosted payment line is built on nothing but this. It reads the session, offers the
+card, sends the link, and charges using the token, exactly the four calls below. Any developer can
+build the same line the same way.
+</Note>
+
+## What you receive
+
+`create_checkout` returns the token inside `transfer_to` (a SIP URI whose user part is the token),
+and the token carries the checkout session id as its `k` claim. The line that takes the transfer
+reads the token off the leg, decodes the `k` claim to get the session id, and presents the token as
+a bearer credential:
+
+```bash
+Authorization: Bearer <CHECKOUT_TOKEN>
+```
+
+That credential is accepted on exactly four operations, each pinned to the token's own session. It
+can touch no other session and cannot create, list, or read anything else.
+
+<Steps>
+<Step title="Read the session">
+Get the amount, the caller's name if known, the transfer-back destination, and the cards that are
+chargeable at this merchant. Everything you need to decide what to say next.
+</Step>
+<Step title="Offer the saved card, or text a link">
+If `cards` is non-empty, offer the newest one and [charge](/concepts/charge) it. If it is empty,
+[send a link](/concepts/send-link): a first-time caller pays on the web and the card is saved for
+next time.
+</Step>
+<Step title="Confirm">
+The session read also carries the charge status, so you learn the outcome from the same object.
+Your server still receives a `checkout.succeeded` [webhook](/concepts/webhooks).
+</Step>
+</Steps>
+
+## Read the session
+
+```bash
+curl https://api.ringup.dev/v1/checkout_sessions/cs_7f21ab \
+  -H "Authorization: Bearer <CHECKOUT_TOKEN>"
+```
+
+```json Response
+{
+  "session_status": "open",
+  "payment_required": "required",
+  "amount_cents": 1850,
+  "currency": "USD",
+  "caller_first_name": "Sam",
+  "cards": [
+    { "instrument_id": "inst_a1", "brand": "visa", "last_four": "5858", "expiry": "2029-01" }
+  ],
+  "default_card_id": "inst_a1",
+  "return_to": "sip:agent@your-number",
+  "charge": null
+}
+```
+
+`caller_first_name` lets you greet a returning caller by name even before you know whether they have
+a card. `cards` are already narrowed to what is chargeable at this merchant, so the newest card is
+safe to offer as is.
+
+## Charge the saved card
+
+```bash
+curl -X POST https://api.ringup.dev/v1/charge \
+  -H "Authorization: Bearer <CHECKOUT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{ "instrument_id": "inst_a1" }'
+```
+
+The token pins the charge to its session, so you do not pass a session id: the amount, merchant, and
+caller all come from the session the token names.
+
+## Text a link for a first-time caller
+
+```bash
+curl -X POST https://api.ringup.dev/v1/send_link \
+  -H "Authorization: Bearer <CHECKOUT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The caller taps the link and pays on the [pay page](/concepts/send-link), which enrolls and charges
+the card with the same token. In test mode the card to type is `4111 1111 1111 1111`. Hold the call
+if you like: the payment lands as a webhook whether the caller pays now or after they hang up.
+
+## Read the call stitch
+
+Every step above is recorded on the session's own timeline, so when something does not go as
+expected you read one place instead of stitching logs together. Append your own events too:
+
+<CodeGroup>
+```bash Read
+curl https://api.ringup.dev/v1/checkout_sessions/cs_7f21ab/events \
+  -H "Authorization: Bearer <CHECKOUT_TOKEN>"
+```
+
+```bash Append
+curl -X POST https://api.ringup.dev/v1/checkout_sessions/cs_7f21ab/events \
+  -H "Authorization: Bearer <CHECKOUT_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{ "event": "greeting.spoken", "detail": { "recognized": true } }'
+```
+</CodeGroup>
+
+## Scope and lifetime
+
+<Warning>
+The token authorizes completing **one** payment, and only for its short lifetime (30 minutes). It
+belongs to the payment line that took the transfer, not in a log, a URL you share, or client-side
+storage beyond the pay page it was minted for.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Send a link" icon="link" href="/concepts/send-link">
+    The first-time-caller path, and how the pay page settles it.
+  </Card>
+  <Card title="Charge" icon="credit-card" href="/concepts/charge">
+    The recognized-caller path: run a saved card directly.
+  </Card>
+</CardGroup>

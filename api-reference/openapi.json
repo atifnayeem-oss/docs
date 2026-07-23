@@ -204,6 +204,20 @@
           "amount_cents": {
             "type": "number"
           },
+          "caller_first_name": {
+            "description": "The caller's first name when they are a known person, so a payment line can greet them the same way the pay page does. Null for a genuinely unknown caller. Identity only: whether a card exists is a separate question answered by `cards`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cards": {
+            "description": "Cards chargeable AT THIS MERCHANT, newest first, the same shape create_checkout returns. Present so a payment line holding only the checkout token can offer the saved card from this read. Empty when no payment is required or the session is already settled or expired.",
+            "items": {
+              "$ref": "#/components/schemas/SavedCard"
+            },
+            "type": "array"
+          },
           "charge": {
             "anyOf": [
               {
@@ -237,6 +251,12 @@
           },
           "currency": {
             "type": "string"
+          },
+          "default_card_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "merchant_id": {
             "type": "string"

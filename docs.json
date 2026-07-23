@@ -38,6 +38,7 @@
               "concepts/identity",
               "concepts/merchant-identity",
               "concepts/checkout-session",
+              "concepts/complete-transfer",
               "concepts/payment-policy",
               "concepts/send-link",
               "concepts/charge",
