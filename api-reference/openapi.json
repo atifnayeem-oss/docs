@@ -875,6 +875,8 @@
                 },
                 "example": {
                   "checkout_session_id": "cs_453b5401286d0f80",
+                  "merchant_id": "mch_4f2c9a1b7e3d",
+                  "agent_message": "Payment is ready. Transferring the caller now.",
                   "payment_required": "required",
                   "amount_cents": 1650,
                   "currency": "USD",
