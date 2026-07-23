@@ -101,25 +101,6 @@ The caller taps the link and pays on the [pay page](/concepts/send-link), which 
 the card with the same token. In test mode the card to type is `4111 1111 1111 1111`. Hold the call
 if you like: the payment lands as a webhook whether the caller pays now or after they hang up.
 
-## Read the call stitch
-
-Every step above is recorded on the session's own timeline, so when something does not go as
-expected you read one place instead of stitching logs together. Append your own events too:
-
-<CodeGroup>
-```bash Read
-curl https://api.ringup.dev/v1/checkout_sessions/cs_7f21ab/events \
-  -H "Authorization: Bearer <CHECKOUT_TOKEN>"
-```
-
-```bash Append
-curl -X POST https://api.ringup.dev/v1/checkout_sessions/cs_7f21ab/events \
-  -H "Authorization: Bearer <CHECKOUT_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{ "event": "greeting.spoken", "detail": { "recognized": true } }'
-```
-</CodeGroup>
-
 ## Scope and lifetime
 
 <Warning>
