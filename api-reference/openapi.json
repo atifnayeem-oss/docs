@@ -204,6 +204,13 @@
           "amount_cents": {
             "type": "number"
           },
+          "business_name": {
+            "description": "The merchant's own business name for the pay page header, or null (neutral fallback).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "caller_first_name": {
             "description": "The caller's first name when they are a known person, so a payment line can greet them the same way the pay page does. Null for a genuinely unknown caller. Identity only: whether a card exists is a separate question answered by `cards`.",
             "type": [
@@ -258,6 +265,20 @@
               "null"
             ]
           },
+          "environment": {
+            "description": "The environment this session belongs to: the mode of the checkout token used to read it (`test` or `live`). It is the single source of truth for a hosted page, which renders its config in this environment rather than re-deriving it, so `business_name` and `tokenization` below are always computed here and cannot drift to the wrong environment.",
+            "enum": [
+              "test",
+              "live"
+            ],
+            "type": "string"
+          },
+          "failure_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "merchant_id": {
             "type": "string"
           },
@@ -289,6 +310,13 @@
               "null"
             ]
           },
+          "processor": {
+            "description": "The merchant's processor (`square`, `clover`, …), so the pay page builds the right card source without a separate lookup. Null if the merchant is gone.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "return_to": {
             "type": [
               "string",
@@ -303,6 +331,52 @@
               "expired"
             ],
             "type": "string"
+          },
+          "success_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tokenization": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "environment": {
+                    "enum": [
+                      "sandbox",
+                      "production"
+                    ],
+                    "type": "string"
+                  },
+                  "location_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "processor": {
+                    "type": "string"
+                  },
+                  "public_key": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The browser-side, PUBLISHABLE tokenization key for this merchant (Square app id + seller location, or Clover PAKMS public key), computed in `environment`. Null when the processor needs none or the config is incomplete. Same shape as the merchant status endpoint."
+          },
+          "voice": {
+            "description": "The payment line reads these three from this session read, not the checkout token. `voice` is the merchant's matched TTS descriptor (or null for the default voice); `success_message`/`failure_message` are the developer's create_checkout closing lines, spoken by the line at charge success / decline. All null when unset.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "type": "object"
@@ -1139,6 +1213,18 @@
                   "cards": [],
                   "default_card_id": null,
                   "caller_first_name": "Dana",
+                  "environment": "live",
+                  "processor": "square",
+                  "business_name": "Blue Bottle Coffee",
+                  "voice": "elevenlabs/eleven_turbo_v2_5:nPczCjzI2devNBz1zQrb",
+                  "success_message": "You are all set, thanks for calling!",
+                  "failure_message": "That card did not go through, I will text you a link.",
+                  "tokenization": {
+                    "processor": "square",
+                    "public_key": "sq0idp-aB3xY7kLmN2pQ9rS",
+                    "location_id": "L7Hns8P2M4Q1R",
+                    "environment": "production"
+                  },
                   "checkout_session_id": "cs_453b5401286d0f80",
                   "merchant_id": "mch_4f2c9a1b7e3d",
                   "order_id": "8QK4M2XJ",
