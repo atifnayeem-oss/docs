@@ -137,8 +137,8 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Get access",
-      "href": "https://ringup.dev/#access"
+      "label": "Log in",
+      "href": "https://ringup.dev/login/"
     }
   },
   "footer": {
