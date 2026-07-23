@@ -851,7 +851,7 @@
                 "$ref": "#/components/schemas/CreateCheckoutRequest"
               },
               "example": {
-                "merchant_id": "mch_4f2c9a1b7e3d",
+                "merchant_number": "+14155550100",
                 "caller_phone": "+14155550142",
                 "order_id": "8QK4M2XJ",
                 "platform_call_id": "call_7c2a91e4",
@@ -1130,10 +1130,13 @@
                   "return_to": "https://example.com/calls/7c2a91e4",
                   "charge": {
                     "charge_id": "chg_77386e2f",
-                    "status": "completed",
+                    "status": "succeeded",
                     "amount_cents": 1650,
                     "processor_payment_id": "pay_9J2mQ7bK4dR"
                   },
+                  "cards": [],
+                  "default_card_id": null,
+                  "caller_first_name": "Dana",
                   "checkout_session_id": "cs_453b5401286d0f80",
                   "merchant_id": "mch_4f2c9a1b7e3d",
                   "order_id": "8QK4M2XJ",
@@ -1239,7 +1242,7 @@
                   "$ref": "#/components/schemas/ChargeResponse"
                 },
                 "example": {
-                  "status": "completed",
+                  "status": "succeeded",
                   "amount_cents": 1650,
                   "currency": "USD",
                   "replay": false,
