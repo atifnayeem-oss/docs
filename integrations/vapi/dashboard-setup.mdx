@@ -1,9 +1,11 @@
 ---
 title: "Dashboard setup"
-description: "Add Ringup to a Vapi agent from the dashboard. No code: connect Vapi once, pick your agent, paste one prompt line, test, go live."
+description: "Add Ringup to a Vapi agent from the dashboard. No code: you wire it in Test first on a copy of your agent, then repeat in Live on your real agent."
 ---
 
-Add pay-by-phone to a Vapi agent in a few clicks. You connect Vapi once, pick the agent that takes payments, and Ringup attaches the payment tool and hands you one prompt line to paste. No payment code.
+Add pay-by-phone to a Vapi agent in a few clicks. Ringup attaches one payment tool and hands you one prompt line to paste. No payment code.
+
+You do this **twice**: in **Test** first, on a copy of your agent, then in **Live** on your real agent. Working on a copy keeps your production agent untouched while you test.
 
 ## Before you start
 
@@ -19,13 +21,25 @@ Add pay-by-phone to a Vapi agent in a few clicks. You connect Vapi once, pick th
   </Step>
 </Steps>
 
-## Connect and wire your agent
+<Warning>
+  Test wires a **copy** of your agent. You duplicate it in Step 1 below, so your production agent stays untouched until you deliberately go live.
+</Warning>
 
-Three steps in the dashboard, shown across the top of the page: **Connect your platform**, **Choose the agent**, **Add the prompt line**.
+## Set it up in Test
+
+Make sure the dashboard is in **Test** mode (top-right toggle).
 
 <Steps>
+  <Step title="Duplicate your agent">
+    In Vapi, duplicate your live agent and name the copy something like **Agent (Ringup test)**. You will wire this copy, not your production agent.
+
+    <Frame caption="Vapi: duplicate your agent and name the copy Agent (Ringup test).">
+      <img src="/images/vapi/04-duplicate-agent.png" alt="Duplicate the Vapi agent for testing" />
+    </Frame>
+  </Step>
+
   <Step title="Connect your platform">
-    Open **Voice integrations**, choose **Vapi**, and paste your **Private API key**. Ringup lists your agents to check the key, then creates one payment tool on your account.
+    In the Ringup dashboard, open **Voice integrations**, choose **Vapi**, and paste your **Private API key**. Ringup lists your agents to check the key, then creates one payment tool on your account.
 
     Then pick what your agent sends at hand-off:
     - **The order id** it creates in the point of sale. The total is read from that order, so tax and modifiers are always right and the payment lands on the real ticket.
@@ -38,15 +52,15 @@ Three steps in the dashboard, shown across the top of the page: **Connect your p
   </Step>
 
   <Step title="Choose the agent">
-    Find the agent that takes orders and click **Add payment**. Ringup attaches one tool to it and changes nothing else.
+    Pick your **test copy** and click **Add payment**. Ringup attaches one tool to it and changes nothing else.
 
-    <Frame caption="Pick the order-taking agent and click Add payment.">
+    <Frame caption="Pick the test copy and click Add payment.">
       <img src="/images/vapi/02-pick-agent.png" alt="Choose the agent and add payment" />
     </Frame>
   </Step>
 
   <Step title="Add the prompt line">
-    Copy the one **system prompt** line Ringup shows and paste it into that agent's system prompt in Vapi. That is the whole change on your side.
+    Copy the one **system prompt** line Ringup shows and paste it into the test copy's system prompt in Vapi. That is the whole change on your side.
 
     <Frame caption="Copy the prompt line into your Vapi agent's system prompt.">
       <img src="/images/vapi/03-prompt-line.png" alt="Paste the Ringup prompt line into the Vapi agent" />
@@ -56,31 +70,24 @@ Three steps in the dashboard, shown across the top of the page: **Connect your p
       Do not add the tool by hand in Vapi. Ringup attaches it with the right server URL and secret. A hand-made tool is not bound to your account and will fail at call time.
     </Warning>
   </Step>
+
+  <Step title="Place a test call">
+    Call the test copy and place an order. Pay with the test card, **Visa ending 5858**; a first-time caller is texted a link and enters `4111 1111 1111 1111`. No real money moves. Watch it land in **Logs**.
+  </Step>
 </Steps>
 
-## Test, then go live
-
-<Tip>
-  In test mode, duplicate your live agent in Vapi first and connect the copy, for example name it **Agent (Ringup test)**. Your production agent stays untouched while you test, and you flip the copy live only when you are happy.
-</Tip>
+## Go live
 
 <Steps>
-  <Step title="Duplicate your agent for testing">
-    In Vapi, duplicate your live agent and rename it, for example **Agent (Ringup test)**. Connect this copy in Ringup while your **Test** environment is selected.
+  <Step title="Wire your real agent">
+    Switch the dashboard to **Live** and run **Connect your platform, Choose the agent, Add the prompt line** again, this time on your **production** agent. No copy this time.
 
-    <Frame caption="Vapi: duplicate your agent and name the copy Agent (Ringup test).">
-      <img src="/images/vapi/04-duplicate-agent.png" alt="Duplicate the Vapi agent for testing" />
-    </Frame>
-  </Step>
-  <Step title="Place a test call">
-    Call the test agent and place an order. Pay with the test card, **Visa ending 5858**; a first-time caller is texted a link and enters `4111 1111 1111 1111`. No real money moves. Watch it land in **Logs**.
-  </Step>
-  <Step title="Go live">
-    Switch the environment to **Live** and connect your production agent the same way. Live calls now take real payments.
-
-    <Frame caption="Switch to Live and connect your production agent.">
+    <Frame caption="Switch to Live and wire your production agent the same way.">
       <img src="/images/vapi/05-go-live.png" alt="Go live" />
     </Frame>
+  </Step>
+  <Step title="Let your merchants connect">
+    Real calls take payment only for merchants who have connected their own processor. Embed the one-line Connect button so each merchant self-connects Square or Clover. Until a merchant connects, the payment layer stays inaudible on their calls, so going live first is safe. See [Merchant integrations](/payment-providers/overview).
   </Step>
 </Steps>
 
