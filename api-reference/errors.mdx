@@ -1,6 +1,6 @@
 ---
 title: "Errors"
-description: "The error envelope every Ringup endpoint returns, its attributes, and the seven error types."
+description: "The error envelope every Ringup endpoint returns, its attributes, and the eight error types."
 ---
 
 **One envelope, every endpoint.** The same object comes back from every call, so you write one
@@ -10,14 +10,14 @@ parser. A declined charge is no exception: it arrives as a `402` in this same sh
 ```json
 {
   "error": {
-    "type": "processor_error",
+    "type": "card_error",
     "code": "card_declined",
     "audience": "caller",
     "decline_code": "insufficient_funds",
     "advice_code": "try_again_later",
     "message": "Charge declined by the issuer.",
     "agent_message": "That card was declined for insufficient funds. Would you like to try a different card?",
-    "display_message": "That card was declined for insufficient funds.",
+    "display_message": "That card was declined for insufficient funds. Try another card.",
     "agent_action": "offer_different_card",
     "doc_url": "https://docs.ringup.dev/api-reference/error-codes#card_declined",
     "charge": "chg_77386e2f",
@@ -79,7 +79,7 @@ parser. A declined charge is no exception: it arrives as a `402` in this same sh
 
 ## Error types
 
-Branch on `type` first. It is seven values and it changes rarely; `code` refines within it.
+Branch on `type` first. It is eight values and it changes rarely; `code` refines within it.
 
 <ResponseField name="invalid_request_error" type="error type">
   The request is malformed, or names something that does not exist. Fix the request; retrying it unchanged will fail the same way.

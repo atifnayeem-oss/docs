@@ -15,14 +15,22 @@ Drop this one line wherever your merchants manage their account. It renders a **
 ```
 
 <Warning>
-`data-ringup-key` is your **publishable** key, from **Connections** in your dashboard. It is meant
-to be visible in your page and can do exactly one thing: start a merchant connection. It creates no
-merchant, moves no money, and reads nothing back. Never put your secret key (`rk_...`) here.
+`data-ringup-key` is your **publishable** key (`pk_...`), from **Merchant integrations** in your
+dashboard. It is meant to be visible in your page and can do exactly one thing: start a merchant
+connection. It creates no merchant, moves no money, and reads nothing back. Never put your secret
+key (`rk_...`) here.
 </Warning>
 
-Optional attributes: `data-ringup-label` (button text), `data-ringup-variant` (`filled` default, or `outline`), `data-ringup-return` (URL to send the merchant back to), `data-ringup-reference` (your own id for this merchant, echoed back on `merchant.connected`).
+Optional attributes:
 
-Prefer to send a link instead? Create one per merchant in your dashboard, under **Connections** > **Onboard a merchant**. It is single use and expires in ten minutes.
+<ParamField path="data-ringup-phone">The platform number that answers this merchant's calls (the Vapi DID), so Ringup maps the connected merchant to it.</ParamField>
+<ParamField path="data-ringup-reference">Your own id for this merchant (e.g. `restaurant-4821`), stored and echoed back on `merchant.connected`.</ParamField>
+<ParamField path="data-ringup-return">URL to send the merchant back to after they connect.</ParamField>
+<ParamField path="data-ringup-label">Button text. Defaults to "Connect Pay by Phone".</ParamField>
+<ParamField path="data-ringup-variant">`filled` (default) or `outline` to match a light dashboard.</ParamField>
+<ParamField path="data-ringup-base">Override the Ringup base URL. Defaults to `https://ringup.dev`.</ParamField>
+
+Prefer to send a link instead? Create one per merchant in your dashboard, under **Merchant integrations**. It is single use and expires in ten minutes.
 
 ## What the merchant sees
 
