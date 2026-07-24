@@ -28,8 +28,7 @@
               "index",
               "quickstart",
               "authentication",
-              "concepts/how-it-works",
-              "concepts/testing"
+              "concepts/how-it-works"
             ]
           },
           {
@@ -51,24 +50,17 @@
               {
                 "group": "Vapi",
                 "pages": [
-                  "integrations/vapi/call-transfer",
-                  "integrations/vapi/testing"
+                  "integrations/vapi/dashboard-setup"
                 ]
-              },
-              "integrations/retell",
-              "integrations/elevenlabs",
-              "integrations/deepgram",
-              "integrations/twilio-conversationrelay",
-              "integrations/livekit",
-              "integrations/openai-realtime",
-              "integrations/pipecat"
+              }
             ]
           },
           {
-            "group": "Payment providers",
+            "group": "Merchant integrations",
             "pages": [
               "payment-providers/overview",
-              "payment-providers/square"
+              "payment-providers/square",
+              "payment-providers/clover"
             ]
           }
         ]
@@ -149,11 +141,11 @@
   "redirects": [
     {
       "source": "/integrations/vapi",
-      "destination": "/integrations/vapi/call-transfer"
+      "destination": "/integrations/vapi/dashboard-setup"
     },
     {
       "source": "/integrations/vapi/native",
-      "destination": "/integrations/vapi/call-transfer"
+      "destination": "/integrations/vapi/dashboard-setup"
     },
     {
       "source": "/concepts/call-transfer",
@@ -166,6 +158,14 @@
     {
       "source": "/integrations/retell/call-transfer",
       "destination": "/integrations/retell"
+    },
+    {
+      "source": "/integrations/vapi/call-transfer",
+      "destination": "/integrations/vapi/dashboard-setup"
+    },
+    {
+      "source": "/integrations/vapi/testing",
+      "destination": "/integrations/vapi/dashboard-setup"
     }
   ]
 }

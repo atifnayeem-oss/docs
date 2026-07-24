@@ -1,0 +1,110 @@
+---
+title: "Dashboard setup"
+description: "Add Ringup to a Vapi agent from the dashboard. No code: connect Vapi once, pick your agent, paste one prompt line, test, go live."
+---
+
+Add pay-by-phone to a Vapi agent in a few clicks. You connect Vapi once, pick the agent that takes payments, and Ringup attaches the payment tool and hands you one prompt line to paste. No payment code.
+
+## Before you start
+
+<Steps>
+  <Step title="A Vapi agent with a SIP-capable number">
+    Vapi-native and SIP trunk (BYOC) numbers can transfer to the payment line. A number imported from a telephony provider cannot.
+  </Step>
+  <Step title="Your Vapi API key">
+    Vapi dashboard, **Org settings, then API Keys**.
+  </Step>
+  <Step title="Your Ringup account">
+    Sign in at [ringup.dev/dashboard](https://ringup.dev/dashboard).
+  </Step>
+</Steps>
+
+## Connect and wire your agent
+
+Three steps in the dashboard, shown across the top of the page: **Connect your platform**, **Choose the agent**, **Add the prompt line**.
+
+<Steps>
+  <Step title="Connect your platform">
+    Open **Voice integrations**, choose **Vapi**, and paste your **Private API key**. Ringup lists your agents to check the key, then creates one payment tool on your account.
+
+    Then pick what your agent sends at hand-off:
+    - **The order id** it creates in the point of sale. The total is read from that order, so tax and modifiers are always right and the payment lands on the real ticket.
+    - **The total** it works out itself. For agents with no point-of-sale order.
+    - **Both**, for a mixed fleet. Each call sends whichever it has; when an order id is present it wins.
+
+    <Frame caption="Voice integrations: choose Vapi, paste your key, pick what the agent sends.">
+      <img src="/images/vapi/01-connect-vapi.png" alt="Connect Vapi and choose the order model" />
+    </Frame>
+  </Step>
+
+  <Step title="Choose the agent">
+    Find the agent that takes orders and click **Add payment**. Ringup attaches one tool to it and changes nothing else.
+
+    <Frame caption="Pick the order-taking agent and click Add payment.">
+      <img src="/images/vapi/02-pick-agent.png" alt="Choose the agent and add payment" />
+    </Frame>
+  </Step>
+
+  <Step title="Add the prompt line">
+    Copy the one **system prompt** line Ringup shows and paste it into that agent's system prompt in Vapi. That is the whole change on your side.
+
+    <Frame caption="Copy the prompt line into your Vapi agent's system prompt.">
+      <img src="/images/vapi/03-prompt-line.png" alt="Paste the Ringup prompt line into the Vapi agent" />
+    </Frame>
+
+    <Warning>
+      Do not add the tool by hand in Vapi. Ringup attaches it with the right server URL and secret. A hand-made tool is not bound to your account and will fail at call time.
+    </Warning>
+  </Step>
+</Steps>
+
+## Test, then go live
+
+<Tip>
+  In test mode, duplicate your live agent in Vapi first and connect the copy, for example name it **Agent (Ringup test)**. Your production agent stays untouched while you test, and you flip the copy live only when you are happy.
+</Tip>
+
+<Steps>
+  <Step title="Duplicate your agent for testing">
+    In Vapi, duplicate your live agent and rename it, for example **Agent (Ringup test)**. Connect this copy in Ringup while your **Test** environment is selected.
+
+    <Frame caption="Vapi: duplicate your agent and name the copy Agent (Ringup test).">
+      <img src="/images/vapi/04-duplicate-agent.png" alt="Duplicate the Vapi agent for testing" />
+    </Frame>
+  </Step>
+  <Step title="Place a test call">
+    Call the test agent and place an order. Pay with the test card, **Visa ending 5858**; a first-time caller is texted a link and enters `4111 1111 1111 1111`. No real money moves. Watch it land in **Logs**.
+  </Step>
+  <Step title="Go live">
+    Switch the environment to **Live** and connect your production agent the same way. Live calls now take real payments.
+
+    <Frame caption="Switch to Live and connect your production agent.">
+      <img src="/images/vapi/05-go-live.png" alt="Go live" />
+    </Frame>
+  </Step>
+</Steps>
+
+## What Ringup guarantees during the transfer
+
+<Check>
+**The hand-off is never silent.** Before the leg switches, Ringup speaks a heads-up in your agent's turn ("Just a sec, connecting you to our secure payment line now") and holds the transfer until the sentence finishes.
+</Check>
+
+<Check>
+**A dropped session reference cannot strand a payment.** The Checkout Session rides the transfer two ways at once: in the transfer itself and in a short-lived server-side record keyed to the caller's number. If either carrier fails, the other completes the payment.
+</Check>
+
+<Check>
+**The confirmation is pushed, not polled.** The moment a payment settles, whether by saved card on the call or a texted link paid mid-call, the payment line announces it instantly.
+</Check>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Merchant integrations" icon="store" href="/payment-providers/overview">
+    How your merchants connect Square or Clover so calls can take payment.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
+    Reconcile every payment from one signed event on your server.
+  </Card>
+</CardGroup>

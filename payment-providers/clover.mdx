@@ -1,0 +1,38 @@
+---
+title: "Clover"
+description: "A Clover merchant connects by pasting three values from their Clover dashboard: the public token, the private token, and their Merchant ID."
+---
+
+Clover is one of the processors on Ringup's hosted connect page (reached from the generic Connect button, see [Merchant integrations](/payment-providers/overview)). A Clover merchant pastes three values from their own Clover dashboard: the public token, the private token, and their Merchant ID. You embed nothing Clover-specific, and no card data passes through your systems.
+
+## What the merchant does
+
+<Steps>
+  <Step title="They open your Connect button and pick Clover">
+    It lands on Ringup's hosted connect page. They choose **Clover** and paste three values from their Clover dashboard: public token, private token, and Merchant ID.
+  </Step>
+  <Step title="They copy the two tokens from Clover">
+    In their Clover dashboard: **Settings, then All settings, then Ecommerce, then Ecommerce API tokens**. They copy the **Public token** and the **Private token**. Clover reveals the private token once, so they grab it right away.
+  </Step>
+  <Step title="They copy their Merchant ID">
+    The 13-character code in their Clover dashboard URL (`.../m/XXXXXXXXXXXXX/...`), or under **Settings, then Business information**.
+  </Step>
+  <Step title="They paste and connect">
+    They paste all three into the Ringup connect page and click **Connect**. Ringup verifies the token against Clover and the merchant is live. Ringup fires `merchant.connected` (carrying `merchant_id`) so you can reflect it in your own UI.
+
+    <Frame caption="Ringup connect page: paste the two tokens and the Merchant ID.">
+      <img src="/images/merchant/clover-02-connect-form.png" alt="Ringup Clover connect form" />
+    </Frame>
+  </Step>
+</Steps>
+
+<Note>
+The public token creates one-time card tokens in the browser; the private token settles the charge on the merchant's Clover account. Both stay server-side at Ringup after connect. The card number never touches your systems or the merchant's dashboard.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Square" href="/payment-providers/square">The one-click OAuth path for Square merchants.</Card>
+  <Card title="Webhooks" href="/concepts/webhooks">Handle `merchant.connected` and payment events.</Card>
+</CardGroup>

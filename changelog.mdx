@@ -7,6 +7,26 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="2026-07-23" description="Vapi setup moves to the dashboard, Clover goes live, and the dashboard gains Logs">
+## Add Vapi from the dashboard, no code
+
+Wiring a Vapi agent is now a dashboard flow: connect Vapi once, pick your agent, and paste the one prompt line Ringup gives you. Ringup attaches the payment tool with the right server URL and secret, so there is no tool JSON to hand-write. See [Dashboard setup](/integrations/vapi/dashboard-setup).
+
+**Test-mode tip:** duplicate your live agent in Vapi and connect the copy (for example **Agent (Ringup test)**), so your production agent is untouched while you test.
+
+## Clover merchants can connect
+
+**Clover** is now a live processor on the hosted connect page. A Clover merchant pastes their public token, private token, and Merchant ID from their Clover dashboard, and Ringup settles on their Clover account. See [Clover](/payment-providers/clover). Square's one-click OAuth is unchanged.
+
+## Per-vendor Logs in the dashboard
+
+The dashboard has a **Logs** tab: every call grouped into one row and tagged by how far the payment got (reach, line, charge), scoped to your account. It is the fastest way to see a call land as paid or spot where one failed.
+
+## Docs reorganized
+
+Integration guides are now under **Voice integrations**, and processor guides under **Merchant integrations**, each with a page per supported option.
+</Update>
+
 <Update label="2026-07-22" description="Infrastructure trouble is returned, and the charge statuses are renamed">
 ## A charge no longer says "fine" when we do not know
 

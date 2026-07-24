@@ -1,5 +1,5 @@
 ---
-title: "Payment providers"
+title: "Merchant integrations"
 description: "Ringup settles on the merchant's own payment processor. You embed one generic button; the merchant picks and connects their processor on a Ringup-hosted page."
 ---
 
@@ -26,11 +26,21 @@ Prefer to send a link instead? Create one per merchant in your dashboard, under 
 
 ## What the merchant sees
 
-The hosted page lists the processors Ringup supports and lets the merchant connect theirs:
+First the merchant chooses **when payment is taken**: on every call, only over an amount, or offered but never required. They can also set what your agent says after a payment succeeds or fails.
+
+<Frame caption="The merchant sets the payment policy on the hosted page.">
+  <img src="/images/merchant/policy.png" alt="When should we take payment" />
+</Frame>
+
+Then they pick their processor. Square and Clover are live; the rest can be requested.
+
+<Frame caption="The hosted page lists supported processors. Square and Clover connect now.">
+  <img src="/images/merchant/provider-grid.png" alt="Connect your payment provider" />
+</Frame>
 
 <CardGroup cols={2}>
-  <Card title="Square" icon="square">Live now. One-click OAuth (details on the Square page).</Card>
-  <Card title="Clover" icon="clock">Next: verified in sandbox, connect flow rolling out. More processors follow as each adapter ships.</Card>
+  <Card title="Square" icon="square" href="/payment-providers/square">One-click OAuth. What the merchant does.</Card>
+  <Card title="Clover" icon="clover" href="/payment-providers/clover">Paste tokens from the Clover dashboard. What the merchant does.</Card>
 </CardGroup>
 
 ## How it fits your integration
@@ -42,6 +52,6 @@ Connecting is the **merchant's** step, and it happens whenever they are ready, a
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Square" href="/payment-providers/square">The one-click OAuth option.</Card>
-  <Card title="Webhooks" href="/concepts/webhooks">Handle `merchant.connected`.</Card>
+  <Card title="Square" href="/payment-providers/square">One-click OAuth. What the merchant does.</Card>
+  <Card title="Clover" href="/payment-providers/clover">Token paste. What the merchant does.</Card>
 </CardGroup>
