@@ -71,8 +71,12 @@ Make sure the dashboard is in **Test** mode (top-right toggle).
     </Warning>
   </Step>
 
+  <Step title="Connect a test merchant">
+    The call can only take payment for a merchant that has connected a processor, so connect one in **Test** before you call. In the dashboard, open **Merchant integrations**, create a one-time connect link (single use, expires in ten minutes), open it, and connect a **sandbox** Square or Clover account. Without this, the payment layer stays inaudible and the test call has nothing to charge. See [Merchant integrations](/payment-providers/overview).
+  </Step>
+
   <Step title="Place a test call">
-    Call the test copy and place an order. Pay with the test card, **Visa ending 5858**; a first-time caller is texted a link and enters `4111 1111 1111 1111`. No real money moves. Watch it land in **Logs**.
+    Call the test copy and place an order. It charges the sandbox merchant you just connected. Pay with the test card, **Visa ending 5858**; a first-time caller is texted a link and enters `4111 1111 1111 1111`. No real money moves. Watch it land in **Logs**.
   </Step>
 </Steps>
 
