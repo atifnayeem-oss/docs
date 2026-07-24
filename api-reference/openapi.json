@@ -562,7 +562,6 @@
           "session_create_failed",
           "session_missing_consumer",
           "missing_checkout_session_id",
-          "amount_mismatch",
           "order_lookup_failed",
           "order_lookup_unsupported",
           "instrument_not_found",
@@ -1070,37 +1069,6 @@
                         "display_message": null,
                         "agent_action": null,
                         "doc_url": "https://docs.ringup.dev/api-reference/error-codes#merchant_not_found",
-                        "request_id": "req_8f3c1d2ab4e9"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "`amount_mismatch` The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorBody"
-                },
-                "examples": {
-                  "amount_mismatch": {
-                    "summary": "The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.",
-                    "value": {
-                      "error": {
-                        "type": "invalid_request_error",
-                        "code": "amount_mismatch",
-                        "audience": "developer",
-                        "message": "The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.",
-                        "advice_code": "do_not_try_again",
-                        "agent_message": null,
-                        "display_message": null,
-                        "agent_action": null,
-                        "doc_url": "https://docs.ringup.dev/api-reference/error-codes#amount_mismatch",
-                        "order_amount_cents": 1650,
-                        "provided_amount_cents": 1595,
                         "request_id": "req_8f3c1d2ab4e9"
                       }
                     }

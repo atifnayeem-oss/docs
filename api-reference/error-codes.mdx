@@ -10,14 +10,6 @@ For the envelope these arrive in, see [Errors](/api-reference/errors).
 
 The request is malformed, or names something that does not exist. Fix the request; retrying it unchanged will fail the same way.
 
-<Accordion title="amount_mismatch  ·  409">
-The amount sent does not match the authoritative total on the referenced processor order. The order always wins; the amount is never taken on trust.
-
-**Resolution.** Send `order_id` without `amount_cents`, or send an amount equal to the order total.
-
-**Your agent says.** Nothing. This is a developer error, so `agent_message`, `display_message` and `agent_action` are all `null`.
-</Accordion>
-
 <Accordion title="instrument_not_found  ·  404">
 No saved card with that id belongs to this caller.
 
