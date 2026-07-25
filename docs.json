@@ -54,7 +54,7 @@
                 ]
               },
               {
-                "group": "Custom",
+                "group": "Custom Platform",
                 "pages": [
                   "integrations/custom/transfer"
                 ]
