@@ -42,7 +42,7 @@ caller = requests.post(
 ```
 </CodeGroup>
 
-```json Response
+```json Response (recognized caller)
 {
   "known": true,
   "consumer": {
@@ -67,7 +67,7 @@ start this way; it is not a failure. Branch on `known`, greet a stranger as a st
 the order the same way. The caller becomes recognized the first time they pay through a
 [texted link](/concepts/send-link).
 
-```json Response
+```json Response (first-time caller)
 { "known": false, "consumer": null }
 ```
 

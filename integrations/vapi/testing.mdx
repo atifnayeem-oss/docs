@@ -1,30 +1,29 @@
 ---
 title: "Testing"
-description: "Test a Vapi Ringup call-transfer integration end to end: a private-line rehearsal, wiring verification, and how to read results, all against the shared sandbox."
+description: "Test a Vapi Ringup call-transfer integration end to end: a test-mode rehearsal from your own phone, wiring verification, and how to read results."
 ---
 
-Vapi tests against Ringup's shared sandbox, the same one every integration uses. The fixtures
-live in one place, [Testing](/concepts/testing): the sandbox card (`4111 1111 1111 1111`), the
-decline card, the test merchants, and the recognized test caller (`+14155550142`, saved Visa
-ending 5858). This page covers the Vapi specifics for [call
-transfer](/integrations/vapi/call-transfer), the recommended integration.
+Vapi tests run in Ringup's test mode, the same one every integration uses. The fixtures
+live in one place, [Testing](/concepts/testing): the test card (`4111 1111 1111 1111`), the
+decline card, and the test merchants you create in the dashboard. This page covers the Vapi
+specifics for [call transfer](/integrations/vapi/call-transfer), the recommended integration.
 
-## Rehearse on a private line
+## Rehearse on a test copy of your agent
 
 When you add payment from the Ringup dashboard (see [Call
-transfer](/integrations/vapi/call-transfer)), Ringup binds a test twin of your agent, with the
-tools and prompt baked in, to a rehearsal number only you know about. Call it from a real
-phone: you hear your actual agent take the order, the heads-up line, the transfer, and the full
-payment flow, before anything you own changes.
+transfer](/integrations/vapi/call-transfer)), you wire a test copy of your agent in test mode,
+with the tool and prompt line in place. Call it from your own phone: you hear your actual agent
+take the order, the heads-up line, the transfer, and the full payment flow, before anything you
+own changes.
 
-Wiring by hand instead? Point the transfer tool's `server.url` at the keyless sandbox
-(`https://ringup.dev/api/transfer-destination`) and call your agent. Two journeys to run:
+Wiring by hand instead? Point the transfer tool's `server.url` at
+`https://ringup.dev/api/transfer-destination` with your test key as `server.secret`, and call
+your agent. Two journeys to run:
 
-1. **Recognized caller**: the test caller is greeted by name and pays on the saved Visa ending
-   5858 with one yes.
-2. **First-time caller**: call from a number the sandbox does not know; the payment line texts
-   a secure link, you pay with `4111 1111 1111 1111`, and the call announces the payment the
-   moment it lands.
+1. **First-time caller**: on your first call, the payment line texts a secure link; you pay
+   with `4111 1111 1111 1111`, and the call announces the payment the moment it lands.
+2. **Recognized caller**: call again from the same phone; you are greeted by name and pay on
+   the saved Visa ending 1111 with one yes.
 
 Both should end with a confirmation code read back and a test-mode `checkout.succeeded`.
 

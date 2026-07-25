@@ -50,7 +50,7 @@ Authorization: Bearer <YOUR_RINGUP_KEY>
 Content-Type: application/json
 
 {
-  "merchant_id": "tonys-pizza",
+  "merchant_id": "mch_1fd0e6c96e6dcd7681f2",
   "caller_phone": "+14155550142",
   "order_id": "ord_7f21",                            // the merchant's order; the total is read from it
   "return_to": "sip:your-app@your-twilio-number",       // optional: transfer the caller back after payment
@@ -67,6 +67,7 @@ Content-Type: application/json
   "currency": "USD",
   "amount_source": "order",                          // "order" | "request"
   "transfer_to": "sip:eyJrIjoiY3NfdGVzdF80NTNiNTQwMTI4NmQwZjgwIiwieCI6MTc4NDk1MjU3MTU5N30.vSkGB9zGRuR6fRhRHxmcTvYQZ5mi@transfer.ringup.dev",  // null unless payment is required
+  "transfer_to_number": "+13235047170",              // dial this on platforms that transfer only to phone numbers
   "expires_at": "2026-07-21T18:35:12Z",
   "cards": [],                                       // saved cards chargeable at this merchant
   "default_card_id": null,
@@ -93,18 +94,18 @@ Speak one line first so the caller is not on silence:
 </Step>
 <Step title="Register your webhook endpoint">
 
-In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+In the Ringup dashboard, under **Webhooks**, add your HTTPS endpoint and copy the
 signing secret. Your code verifies the signature and handles `checkout.succeeded`. See
 [Webhooks](/concepts/webhooks).
 
 </Step>
 <Step title="Test it, then go live">
 
-Point your `POST` at the keyless sandbox, `https://ringup.dev/api/tools/create_checkout` (or keep
-the prod URL with your `sk_test_` key), call your agent, and order: the test caller
-(`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a link and
-enters `4111 1111 1111 1111`. Expect the payment line to read a confirmation code and a test-mode
-`checkout.succeeded` at your endpoint. Swap the URL back to the live endpoint to go live.
+Use your `rk_test_` key, call your agent from your own phone, and order: on your first call you
+are texted a link and pay with the test card `4111 1111 1111 1111` (any future expiry, any CVC);
+on the next call the payment line recognizes you and charges the saved Visa ending 1111. Expect
+the payment line to read a confirmation code and a test-mode `checkout.succeeded` at your
+endpoint. Swap in your `rk_live_` key to go live.
 
 </Step>
 </Steps>
@@ -158,7 +159,7 @@ curl -X POST https://api.ringup.dev/v1/create_checkout \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "merchant_id": "tonys-pizza",
+    "merchant_id": "mch_1fd0e6c96e6dcd7681f2",
     "caller_phone": "+14155550142",
     "order_id": "ord_7f21"
   }'
@@ -246,18 +247,17 @@ const link = await fetch("https://api.ringup.dev/v1/send_link", {
 </Step>
 <Step title="Register your webhook endpoint">
 
-In the Ringup dashboard, under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+In the Ringup dashboard, under **Webhooks**, add your HTTPS endpoint and copy the
 signing secret. Your code verifies the signature and handles `checkout.succeeded`. See
 [Webhooks](/concepts/webhooks).
 
 </Step>
 <Step title="Test it, then go live">
 
-Point your calls at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the prod URLs with
-your `sk_test_` key). Call your agent and order: the test caller (`+14155550142`) is recognized and
-pays on the saved Visa ending 5858; a first-time caller is texted a link and enters
-`4111 1111 1111 1111`. Expect the confirmation read back and a test-mode `checkout.succeeded`. Swap
-to the live URLs to go live.
+Use your `rk_test_` key and call your agent from your own phone. On your first call you are texted
+a link and pay with the test card `4111 1111 1111 1111` (any future expiry, any CVC); on the next
+call you are recognized and pay on the saved Visa ending 1111. Expect the confirmation read back
+and a test-mode `checkout.succeeded`. Swap in your `rk_live_` key to go live.
 
 </Step>
 </Steps>
@@ -271,7 +271,7 @@ to the live URLs to go live.
 
 <CardGroup cols={2}>
   <Card title="Testing" icon="flask" href="/concepts/testing">
-    The sandbox, the test card, and the fixtures to run a full payment.
+    Test mode, the test card, and the flow to run a full payment.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
     Reconcile every payment from one signed event on your server.

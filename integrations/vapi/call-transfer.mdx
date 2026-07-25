@@ -25,18 +25,19 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
 
 <Steps>
   <Step title="Connect Vapi, once for your account">
-    In the Ringup dashboard, open **Integrations**, then **Connect Vapi**, and paste your Vapi
+    In the Ringup dashboard, open **Voice integrations**, choose **Vapi**, and paste your Vapi
     API key. Ringup uses it to list your agents and provision the tools, and never stores it.
     One connection covers every merchant you run.
   </Step>
   <Step title="Pick the agents that take payments">
-    Select the agents that answer merchant calls. Ringup registers `identify` and
-    `transfer_to_payment` on each and shows one prompt line to paste. No per-merchant step:
+    Select the agents that answer merchant calls. Ringup registers the one payment tool
+    (`transfer_to_payment`) on each and shows one prompt line to paste. No per-merchant step:
     the merchant resolves from the dialed number, and activates when it connects its processor.
   </Step>
   <Step title="Optional: add a webhook endpoint">
     You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
-    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret.
+    Under **Webhooks**, add your HTTPS endpoint and copy the signing secret (it is shown once),
+    or script it with [`POST /v1/webhook_endpoints`](/concepts/webhooks).
     Ringup posts a signed `checkout.succeeded` there for every payment. See
     [Webhooks](/concepts/webhooks).
   </Step>
@@ -46,16 +47,17 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
     until a merchant does, the payment layer stays inaudible on their calls, so going live first
     is safe.
 
-    Create one from your dashboard, under **Connections** > **Onboard a merchant**. The link is
+    Create one from your dashboard, under **Merchant integrations**. The link is
     single use, expires in ten minutes, and carries no key, so it is safe to send.
 
     Button options, the hosted connect flow, and supported processors:
     [Payment providers](/payment-providers/overview).
   </Step>
-  <Step title="Test on the rehearsal number, then go live">
-    The dashboard binds a test twin of your agent to a rehearsal number. Call it, order, and
-    pay with the test card (Visa ending 5858): no real charge. When it reads a confirmation
-    code back, click **Go live**.
+  <Step title="Test it, then go live">
+    In test mode, call your wired agent from your own phone and order. On your first call the
+    payment line texts a link and you pay with the test card `4111 1111 1111 1111`; on your
+    next call you are recognized and pay on the saved Visa ending 1111. No real charge. When
+    it reads a confirmation code back, repeat the setup in live mode on your production agent.
   </Step>
 </Steps>
 
@@ -105,8 +107,9 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
   </Step>
   <Step title="Optional: add a webhook endpoint">
     You can go live without this: the merchant's POS shows the paid order, and the caller hears and receives the confirmation. Add it when your own server should react to payments (fulfillment, your dashboard, reconciliation).
-    In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy
-    the signing secret. Your server verifies the signature and handles `checkout.succeeded`
+    In the Ringup dashboard under **Webhooks**, add your HTTPS endpoint and copy the signing
+    secret (it is shown once), or script it with
+    [`POST /v1/webhook_endpoints`](/concepts/webhooks). Your server verifies the signature and handles `checkout.succeeded`
     (`charge_id`, your `order_id`, the card). See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Add the Connect button to your merchant dashboard">
@@ -115,7 +118,7 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
     until a merchant does, the payment layer stays inaudible on their calls, so going live first
     is safe.
 
-    Create one from your dashboard, under **Connections** > **Onboard a merchant**. The link is
+    Create one from your dashboard, under **Merchant integrations**. The link is
     single use, expires in ten minutes, and carries no key, so it is safe to send.
 
     Button options, the hosted connect flow, and supported processors:
@@ -123,10 +126,10 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
   </Step>
   <Step title="Test it, then go live">
     The `server.url` above serves both modes; your key in `server.secret` picks the
-    environment. With a test key, call your agent and order: the test caller
-    (`+14155550142`) pays on the saved Visa ending 5858; a first-time caller is texted a link
-    and enters `4111 1111 1111 1111`. Expect a confirmation code read back and a test-mode
-    `checkout.succeeded`. To go live, replace the secret with your live key.
+    environment. With a test key, call your agent from your own phone and order: on your first
+    call you are texted a link and pay with `4111 1111 1111 1111`; on your next call you are
+    recognized and pay on the saved Visa ending 1111. Expect a confirmation code read back and
+    a test-mode `checkout.succeeded`. To go live, replace the secret with your live key.
   </Step>
 </Steps>
 
@@ -134,10 +137,10 @@ transfer. Hosted call transfer and the REST API are the two supported ways to in
 </Tabs>
 
 <Warning>
-Transfer needs a number that can hand a call to SIP: Vapi-native and SIP-trunk (BYOC) numbers
-both can. A number **imported from a telephony provider** cannot, so move that agent onto a SIP
-trunk, or integrate with the [REST API](/api-reference/introduction) instead (no transfer needed).
-The dashboard flags which path fits each agent when you connect.
+Every Vapi number type can transfer. Vapi-native and SIP-trunk (BYOC) numbers hand the call to
+SIP directly; for a number **imported from a telephony provider** (which cannot dial SIP), Ringup
+automatically transfers by phone number instead and resolves the session by the caller's number.
+You configure nothing: the payment tool detects the number type per call.
 </Warning>
 
 ## What Ringup guarantees during the transfer
@@ -163,7 +166,7 @@ card on the call or a texted link paid mid-call, the payment line announces it i
 
 <CardGroup cols={2}>
   <Card title="Vapi testing" icon="flask" href="/integrations/vapi/testing">
-    The demo caller, the test card, and how to run a full payment on Vapi.
+    The test card, caller recognition, and how to run a full payment on Vapi.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
     Reconcile every payment from one signed event on your server.

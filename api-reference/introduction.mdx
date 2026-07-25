@@ -33,8 +33,8 @@ Every request authenticates with your Ringup API key as a Bearer token:
 Authorization: Bearer <YOUR_RINGUP_KEY>
 ```
 
-The public demo sandbox is open (no key) so you can try the endpoints and the
-[Quickstart](/quickstart) before signing up. For your own merchants and callers, use your key.
+Create a key in the dashboard under **API Keys**. Test keys start with `rk_test_` and live keys
+with `rk_live_`; the key decides which mode the request runs in.
 See [Authentication](/authentication) for test versus live keys and how to keep the key safe.
 
 ## The payment lifecycle
@@ -79,14 +79,17 @@ This is a server guarantee, not a client convention.
 ## Webhooks
 
 Payment outcomes also arrive out of band as signed events: `checkout.succeeded` when a session is
-paid, `checkout.failed` on a decline or an expiry. Add your endpoint in the dashboard under
-**Settings, then Webhooks**, and copy the signing secret. See [Webhooks](/concepts/webhooks).
+paid, `checkout.failed` on a decline or an expiry. Register your endpoint with
+`POST /v1/webhook_endpoints`; the response returns the signing secret once. See
+[Webhooks](/concepts/webhooks).
 
 ## Test mode
 
-The shared sandbox answers the same endpoints, keyless, at `https://ringup.dev/api/tools`, with
-ready-made fixtures (merchants with different policies, a caller with a saved Visa). See
-[Testing](/concepts/testing).
+Your `rk_test_` key answers the same endpoints at the same base URL. Create test merchants in
+the dashboard under **Merchants**; in test mode each is automatically backed by Ringup's test
+processor account, with no merchant signup or OAuth. Every caller starts unknown: pay once on
+the texted pay link with the test card `4111 1111 1111 1111`, and the caller is recognized with
+a saved Visa ending 1111 on every call after. See [Testing](/concepts/testing).
 
 ## Next steps
 

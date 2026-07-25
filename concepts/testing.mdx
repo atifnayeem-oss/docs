@@ -1,16 +1,16 @@
 ---
 title: "Testing"
-description: "A shared sandbox with ready-made merchants and callers. Test mode works before you configure anything, and one test card runs every payment."
+description: "Test mode works end to end before any merchant signs up: create a test merchant, enroll a caller with one test card, and exercise every path."
 ---
 
-Ringup's test mode is a shared sandbox, live for every account from the first command: no test
-keys to mint, no merchants to create before your first working call. Every integration tests
-against it.
+Ringup's test mode is built in from the first request: call the API with your `rk_test_` key and
+every payment runs against Ringup's test processor account. No merchant signup, no processor
+OAuth, and no real money. Every integration tests against it.
 
-## The sandbox test card
+## The test card
 
-Every test payment runs on one card. When a sandbox call texts a pay link, or when you open a
-sandbox Checkout page, enter this card:
+Every test payment runs on one card. When a test-mode call texts a pay link, or when you open a
+test-mode Checkout page, enter this card:
 
 | Field | Value |
 |---|---|
@@ -24,36 +24,39 @@ sandbox Checkout page, enter this card:
   exercise your failure path and the `checkout.failed` webhook.
 </Note>
 
-This card is sandbox-only. It never reaches a live payment processor and never moves real money.
+This card is test-mode only. It never reaches a live payment processor and never moves real money.
 
-## Fixtures
+## Test merchants
 
-| Fixture | Value |
-|---|---|
-| Test merchant, payment optional under $50 | `tonys-pizza` |
-| Test merchant, payment always required | `beacon-insurance` |
-| Test caller with a saved card | `+14155550142` (Visa ending 5858) |
-
-The test caller already has the sandbox card on file, so a session created for that number comes
-back with one entry in `cards` and you can charge it straight away. A first-time (unrecognized)
-caller gets an empty `cards`, is texted a link, and enters the sandbox card above.
+Create a test merchant in the dashboard, under **Merchants**. In test mode every merchant you
+create is automatically backed by Ringup's test processor account, so it is chargeable the moment
+it exists: no merchant signup, no processor OAuth. Use its `mch_` id wherever an example asks for
+a merchant id.
 
 A merchant id Ringup does not know is a `merchant_not_found` error, not a quiet no-op. A merchant
 that exists but has connected no processor is the quiet case: the session returns
 `payment_required: "none"` and payment is never mentioned on the call.
+
+## Test callers enroll like real ones
+
+There is no pre-seeded caller. Every number starts unknown: `identify` returns `known: false`,
+and the first Checkout Session for that number comes back with an empty `cards`. Enroll the way a
+real caller does: the agent texts a pay link, you open it and pay with the test card above. From
+then on that number is recognized, `identify` returns `known: true`, and every session offers the
+saved Visa ending `1111`, ready to charge straight away.
 
 ## Run a test payment
 
 The general shape is the same on every platform:
 
 <Steps>
-  <Step title="Reach the sandbox">
-    Point your agent or bridge at a sandbox merchant fixture and start a call, or create a
-    Checkout Session against the sandbox with your Ringup API key.
+  <Step title="Reach test mode">
+    Point your agent or bridge at a test merchant you created and start a call, or create a
+    Checkout Session with your `rk_test_` key (minted in the dashboard under **API Keys**).
   </Step>
-  <Step title="Pay">
-    As a recognized test caller (`+14155550142`), confirm the saved card. As a first-time
-    caller, follow the texted link and enter the sandbox card above.
+  <Step title="Pay once by link, then by saved card">
+    On your first call the number is unknown: follow the texted link and enter the test card
+    above. Call again and you are recognized: confirm the saved Visa ending `1111` on the call.
   </Step>
   <Step title="Read the result">
     A successful test charge returns `status: "succeeded"` with a `charge_id`, and the `order_id`
@@ -62,7 +65,7 @@ The general shape is the same on every platform:
 </Steps>
 
 Every integration page has a **Test it** section with the platform's specifics: which field points
-at the sandbox, and what to expect on the call. On some platforms the Ringup dashboard wires this
+at test mode, and what to expect on the call. On some platforms the Ringup dashboard wires this
 up for you, binding a rehearsal number to a test copy of your agent.
 
 ## Reading test results
@@ -84,12 +87,13 @@ differently from voice pipelines. Validate with a voice call.
   </Accordion>
   <Accordion title="Web and dashboard test calls have no caller ID" icon="phone-slash">
     A call placed from a dashboard or web widget carries no real caller number, so recognition
-    resolves to nothing. Pin the test caller (`+14155550142`) explicitly to exercise the
-    recognized path. Real inbound phone calls resolve the caller natively.
+    resolves to nothing. Pin a caller number explicitly (for example `+14155550142`); once that
+    number has paid once through a texted link, it exercises the recognized path. Real inbound
+    phone calls resolve the caller natively.
   </Accordion>
-  <Accordion title="The sandbox card never works live" icon="lock">
+  <Accordion title="The test card never works live" icon="lock">
     `4111 1111 1111 1111` never reaches a live payment processor, and a live key rejects it. Use
-    a real card only under a `sk_live_` key.
+    a real card only under an `rk_live_` key.
   </Accordion>
 </AccordionGroup>
 

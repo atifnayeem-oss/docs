@@ -18,10 +18,10 @@ The whole integration is two API calls per phone call, plus one transfer.
     with `rk_test_` and works against real endpoints with no real money: every charge settles
     against a test processor account.
   </Step>
-  <Step title="Connect a test merchant">
-    In the dashboard, add a merchant and connect its payment processor. In test mode this takes a
-    minute and needs no real merchant account. The `merchant_id` you get (like
-    `mch_1fd0e6c96e6dcd7681f2`) identifies whose processor gets paid.
+  <Step title="Create a test merchant">
+    In the dashboard, create a merchant. In test mode it is automatically backed by Ringup's
+    test processor account, so there is no OAuth step and no real merchant account needed. The
+    `merchant_id` you get (like `mch_1fd0e6c96e6dcd7681f2`) identifies whose processor gets paid.
   </Step>
 </Steps>
 
@@ -142,13 +142,13 @@ checkout = res.json()
   "currency": "USD",
   "amount_source": "order",
   "transfer_to": "sip:eyJrIjoiY3NfdGVzdF80NTNiNTQwMTI4NmQwZjgwIiwieCI6MTc4NDk1MjU3MTU5N30.vSkGB9zGRuR6fRhRHxmcTvYQZ5mi@transfer.ringup.dev",
-  "transfer_to_number": "+19256230844",
+  "transfer_to_number": "+13235047170",
   "expires_at": "2026-07-25T04:09:12.000Z",
   "cards": [
     {
       "instrument_id": "ins_7b3f6c0d9e4b5f2a8c1d",
       "brand": "VISA",
-      "last_four": "5858"
+      "last_four": "1111"
     }
   ],
   "default_card_id": "ins_7b3f6c0d9e4b5f2a8c1d",
@@ -195,8 +195,9 @@ speak it verbatim.
 The moment the payment lands (or fails), Ringup tells you two ways. Use whichever fits; both
 carry the same facts.
 
-**Webhook** (push): register your endpoint once with
-[`POST /v1/webhook_endpoints`](/concepts/webhooks) and receive
+**Webhook** (push): register your endpoint once in the dashboard under **Webhooks** (the
+signing secret is shown once), or script it with
+[`POST /v1/webhook_endpoints`](/concepts/webhooks), and receive
 [`checkout.succeeded`](/api-reference/events#checkout-succeeded) or
 [`checkout.failed`](/api-reference/events#checkout-failed), with your `order_id` and
 `platform_call_id` echoed so you can mark the order paid in your own system without a lookup.

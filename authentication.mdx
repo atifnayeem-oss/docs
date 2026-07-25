@@ -1,23 +1,27 @@
 ---
 title: "Authentication"
-description: "Ringup authenticates every API request with a secret API key. Get one from your dashboard and send it as a Bearer token."
+description: "A secret key authenticates every API request as a Bearer token; a publishable key powers the hosted Connect button."
 ---
 
-Ringup authenticates every API request with a secret **API key**. You pass it in the
-`Authorization` header on each call:
+Ringup has two kinds of credentials: a **secret API key** that authenticates every API request,
+and a **publishable key** that identifies your account in the hosted Connect button. Secret keys
+ride the `Authorization` header on each call:
 
 ```bash
 Authorization: Bearer <YOUR_RINGUP_KEY>
 ```
 
-## Get your key
+## Secret keys
 
-Create an API key in your Ringup dashboard, under **Developers, then API keys**. Keys come in two
-kinds, and the same code works with either, so you promote by swapping the key:
+Create one in your Ringup dashboard, under **API Keys**. Keys come in two kinds, and the same
+code works with either, so you promote by swapping the key:
 
-- **Test keys** (`sk_test_...`) run against the sandbox: fake money, real flows, ready-made
-  merchants and callers. See [Testing](/concepts/testing).
-- **Live keys** (`sk_live_...`) run against your real merchants and settle on their own processor.
+- **Test keys** (`rk_test_...`) run against test mode: the real API, no real money, every charge
+  settling on Ringup's test processor account. See [Testing](/concepts/testing).
+- **Live keys** (`rk_live_...`) run against your real merchants and settle on their own processor.
+
+The key picks the environment on every request, and every id you get back says which environment
+it belongs to (`cs_test_…` / `cs_live_…`), so a test object can never be read as a live one.
 
 ## Pass it on every request
 
@@ -29,7 +33,7 @@ Bearer token:
 curl -X POST https://api.ringup.dev/v1/create_checkout \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
-  -d '{ "merchant_id": "tonys-pizza", "caller_phone": "+14155550142", "amount_cents": 2500 }'
+  -d '{ "merchant_id": "mch_1fd0e6c96e6dcd7681f2", "caller_phone": "+14155550142", "amount_cents": 2500 }'
 ```
 
 ```javascript Node
@@ -40,7 +44,7 @@ const res = await fetch("https://api.ringup.dev/v1/create_checkout", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    merchant_id: "tonys-pizza",
+    merchant_id: "mch_1fd0e6c96e6dcd7681f2",
     caller_phone: "+14155550142",
     amount_cents: 2500,
   }),
@@ -54,7 +58,7 @@ res = requests.post(
     "https://api.ringup.dev/v1/create_checkout",
     headers={"Authorization": "Bearer <YOUR_RINGUP_KEY>"},
     json={
-        "merchant_id": "tonys-pizza",
+        "merchant_id": "mch_1fd0e6c96e6dcd7681f2",
         "caller_phone": "+14155550142",
         "amount_cents": 2500,
     },
@@ -78,17 +82,19 @@ prompt, a transcript, or a public repository, and never let the model see or typ
 leaks, roll it from the dashboard.
 </Warning>
 
-## Trying it without a key
+## Publishable keys
 
-The public demo sandbox exposes a seeded caller and demo merchants that need no key, so you can
-run the [Quickstart](/quickstart) and hear a wired demo before you sign up. The moment you point
-at your own merchants and callers, you use your key.
+A **publishable key** (`pk_test_...` / `pk_live_...`) identifies your account without authorizing
+anything sensitive: it starts a merchant connection from the hosted
+[Connect button](/payment-providers/overview) and nothing else. It is safe to embed in a page or
+an email, and the dashboard shows it whenever you need it. It cannot read data or create charges,
+so it needs none of the secret key's handling rules.
 
 ## Next steps
 
 <CardGroup cols={2}>
   <Card title="Testing" icon="flask" href="/concepts/testing">
-    The sandbox fixtures your test key (or no key) runs against.
+    What test mode gives you and how to rehearse every flow.
   </Card>
   <Card title="How it works" icon="diagram-project" href="/concepts/how-it-works">
     The architecture, then the integration guide for your platform.

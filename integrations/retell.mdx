@@ -25,7 +25,7 @@ Ringup takes payment on a transfer. Best when you want the payment moment handle
 
 <Steps>
   <Step title="Connect Retell, once for your account">
-    In the Ringup dashboard, open **Integrations**, then **Connect Retell**, and paste your Retell
+    In the Ringup dashboard, open **Voice integrations**, then **Connect Retell**, and paste your Retell
     API key. Ringup uses it to list your agents and provision the payment objects, and never
     stores it. One connection covers every merchant you run.
   </Step>
@@ -36,13 +36,14 @@ Ringup takes payment on a transfer. Best when you want the payment moment handle
     and activates when it connects its processor.
   </Step>
   <Step title="Add your webhook endpoint">
-    Under **Settings, then Webhooks**, add your HTTPS endpoint and copy the signing secret. Ringup
+    Under **Webhooks**, add your HTTPS endpoint and copy the signing secret. Ringup
     posts a signed `checkout.succeeded` there for every payment. See [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Rehearse on the rehearsal number, then go live">
-    The dashboard binds a test twin of your agent to a rehearsal number. Call it, order, and pay
-    with the test card (Visa ending 5858): no real charge. When it reads a confirmation code back,
-    click **Go live**.
+    The dashboard binds a test twin of your agent to a rehearsal number. Call it from your own
+    phone and order: on your first call you are texted a link and pay with the test card
+    `4111 1111 1111 1111` (any future expiry, any CVC); on the next call you pay on the saved Visa
+    ending 1111, no real charge. When it reads a confirmation code back, click **Go live**.
   </Step>
 </Steps>
 
@@ -155,16 +156,16 @@ model composes neither identity.
     to check their text to pay.*
   </Step>
   <Step title="Add your webhook endpoint">
-    In the Ringup dashboard under **Settings, then Webhooks**, add your HTTPS endpoint and copy the
+    In the Ringup dashboard under **Webhooks**, add your HTTPS endpoint and copy the
     signing secret. Your server verifies the signature and handles `checkout.succeeded`. See
     [Webhooks](/concepts/webhooks).
   </Step>
   <Step title="Test it, then go live">
-    Point the functions' `url` at the keyless sandbox, `https://ringup.dev/api/tools` (or keep the
-    prod URLs with your `sk_test_` key). Call your agent and order: the test caller
-    (`+14155550142`) is recognized and pays on the saved Visa ending 5858; a first-time caller is
-    texted a link and enters `4111 1111 1111 1111`. Expect the confirmation read back and a
-    test-mode `checkout.succeeded`. Swap to the live URLs to go live.
+    Keep the functions' `url` on `https://api.ringup.dev/v1` and auth with your `rk_test_` key.
+    Call your agent from your own phone and order: on your first call you are texted a link and pay
+    with the test card `4111 1111 1111 1111` (any future expiry, any CVC); on the next call you are
+    recognized and pay on the saved Visa ending 1111. Expect the confirmation read back and a
+    test-mode `checkout.succeeded`. Swap in your `rk_live_` key to go live.
   </Step>
 </Steps>
 
@@ -177,7 +178,7 @@ model composes neither identity.
 
 <CardGroup cols={2}>
   <Card title="Testing" icon="flask" href="/concepts/testing">
-    The sandbox, the test card, and the fixtures to run a full payment.
+    Test mode, the test card, and the flow to run a full payment.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/concepts/webhooks">
     Reconcile every payment from one signed event on your server.
