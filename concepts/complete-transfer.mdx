@@ -3,40 +3,47 @@ title: "Call Transfer"
 description: "At payment time the live call moves to a payment line, and a checkout token rides the transfer carrying all the authorization that line needs to finish the one payment."
 ---
 
-When payment runs by [transfer](/concepts/checkout-session), the call leaves your order agent and
-arrives on a payment line. That line holds no account key and needs none: it was handed a
-**checkout token**, all the authorization it needs to finish that one payment.
+Call transfer is how payment happens when your agent does not run it itself: at payment time the
+live call moves from your order agent to a **payment line**, the caller pays there in the same
+phone call, and the confirmation is spoken before the call ends. By default that line is Ringup's
+hosted one, so you write no payment logic; the same mechanism also lets you
+[build a line of your own](/integrations/custom/transfer).
 
-The token is a **session-scoped credential**: a valid, unexpired token authorizes acting on
-exactly the one session it names, whatever account owns that session. It is a scoped, single-use
-secret, safe to hand to the part of the system that completes the payment without any wider
-access.
+## The two destinations
 
-<Note>
-Ringup's own hosted payment line is built on nothing but this. It reads the session, offers the
-card, sends the link, and charges with the token: exactly the four calls below. Any developer can
-build the same line the same way.
-</Note>
+Every [`create_checkout`](/concepts/checkout-session) response carries both ways to move the call,
+and you always receive both:
 
-## What you receive
+- **`transfer_to`** is a SIP URI. Its user part is the **checkout token**, so the session rides
+  the transfer itself. Platforms that dial SIP use this lane.
+- **`transfer_to_number`** is a plain phone number, for platforms that can only transfer to a
+  number. It routes to Ringup's hosted payment line, which resolves the session server-side by
+  the caller's number. No configuration: a platform that cannot dial SIP just uses the number.
 
-`create_checkout` returns the token inside `transfer_to`, a SIP URI whose user part is the token.
-The token carries the checkout session id as its `k` claim and nothing else: the amount, the
-caller, and the cards all come from reading the session it names. The line that takes the transfer
-reads the token off the leg, decodes `k` for the session id, and presents the token as a bearer
-credential:
+Either lane lands the caller on the payment line mid-call. When the merchant configured a
+hand-back, the session's `return_to` carries where to send the caller after payment.
+
+## What rides the transfer: the checkout token
+
+The line that answers a `transfer_to` leg holds no account key and needs none: the token in the
+URI is all the authorization it gets. It is a **session-scoped credential**: a valid, unexpired
+token authorizes acting on exactly the one session it names, whatever account owns that session.
+The token carries the checkout session id as its `k` claim and nothing else; the amount, the
+caller, and the cards all come from reading the session it names. The line reads the token off
+the leg and presents it as a bearer credential:
 
 ```bash
 Authorization: Bearer <CHECKOUT_TOKEN>
 ```
 
 <Note>
-The response also carries `transfer_to_number`, a plain phone number for platforms that cannot
-dial a SIP URI. That number routes to **Ringup's hosted payment line**, which resolves the
-session by the caller's number server-side. A payment line you build yourself completes
-transfers through `transfer_to` only: the token is the credential your line presents, and the
-number lane's session lookup is internal to Ringup.
+Ringup's own hosted payment line is built on nothing but this. It reads the session, offers the
+card, sends the link, and charges with the token: exactly the four calls below. Any developer can
+build the same line the same way; the number lane's session lookup is internal to Ringup, so a
+line you build completes transfers through `transfer_to` only.
 </Note>
+
+## What the payment line does
 
 The token is accepted on exactly four operations, each pinned to its own session. It can touch no
 other session and cannot create, list, or read anything else.
@@ -120,8 +127,8 @@ storage beyond the pay page it was minted for.
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Send a link" icon="link" href="/concepts/send-link">
-    The first-time-caller path, and how the pay page settles it.
+  <Card title="Build your own payment line" icon="code" href="/integrations/custom/transfer">
+    The Custom Platform guide: recognize, create the checkout, transfer, hear the result.
   </Card>
   <Card title="Charge" icon="credit-card" href="/concepts/charge">
     The recognized-caller path: run a saved card directly.
