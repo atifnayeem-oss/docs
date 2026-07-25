@@ -3,13 +3,19 @@ title: "What is Ringup"
 description: "Identity and payments for voice agents. Returning callers are recognized by phone number and pay with their saved card in one sentence."
 ---
 
-Ringup is a hosted payments layer for AI voice agents. Your agent takes the order; Ringup
-recognizes the caller by phone number, knows whether payment is needed for this purchase,
-charges the saved card when the caller agrees, and hands back a confirmation code. Charges
-settle on each merchant's own payment processor, at their rates, in their dashboard.
+Ringup is a **remembered checkout** for phone calls. A caller who has paid once is recognized
+by phone number on every call after and pays again in one sentence: no card read aloud, no
+app, nothing to repeat.
 
-You write no payment prompt and configure no models, transcribers, or languages. The payment
-step inherits everything from your agent.
+For you it is a **payment orchestration engine**. One API recognizes the caller, applies the
+merchant's payment policy, offers the saved card or texts a pay link, charges, and webhooks
+the result. Your agent keeps the conversation; Ringup runs the money. You write no payment
+prompt and configure no models, transcribers, or languages: the payment step inherits
+everything from your agent.
+
+Your merchants **keep the payment setup they already have**. Charges settle on each merchant's
+own processor, at their rates, in their dashboard, and how payment works is a merchant setting
+served at call time: nothing new to operate, and no redeploys when a policy changes.
 
 ## The call, before and after
 
