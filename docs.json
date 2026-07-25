@@ -45,12 +45,18 @@
             ]
           },
           {
-            "group": "Voice integrations",
+            "group": "Developer integrations",
             "pages": [
               {
                 "group": "Vapi",
                 "pages": [
                   "integrations/vapi/dashboard-setup"
+                ]
+              },
+              {
+                "group": "Custom",
+                "pages": [
+                  "integrations/custom/transfer"
                 ]
               }
             ]

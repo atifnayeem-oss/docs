@@ -218,6 +218,13 @@
               "null"
             ]
           },
+          "caller_phone": {
+            "description": "The caller's number this session was opened for. Consumers holding only the checkout token (which carries no payload) read it from here.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "cards": {
             "description": "Cards chargeable AT THIS MERCHANT, newest first, the same shape create_checkout returns. Present so a payment line holding only the checkout token can offer the saved card from this read. Empty when no payment is required or the session is already settled or expired.",
             "items": {
@@ -498,6 +505,13 @@
           },
           "transfer_to": {
             "description": "Null unless payment is required. Nothing to transfer to means do not transfer.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transfer_to_number": {
+            "description": "The same hand-off as a plain phone number, for platforms that can only transfer calls to a number. The call arrives without the token and the payment line resolves the session by the caller's number. Prefer `transfer_to` when the platform can dial a SIP URI.",
             "type": [
               "string",
               "null"
@@ -947,7 +961,7 @@
                   "$ref": "#/components/schemas/CreateCheckoutResponse"
                 },
                 "example": {
-                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "checkout_session_id": "cs_test_453b5401286d0f80",
                   "merchant_id": "mch_4f2c9a1b7e3d",
                   "agent_message": "Payment is ready. Transferring the caller now.",
                   "payment_required": "required",
@@ -955,6 +969,7 @@
                   "currency": "USD",
                   "amount_source": "order",
                   "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev",
+                  "transfer_to_number": "+16283364058",
                   "expires_at": "2026-07-21T18:34:12.000Z",
                   "cards": [
                     {
@@ -1193,10 +1208,11 @@
                     "location_id": "L7Hns8P2M4Q1R",
                     "environment": "production"
                   },
-                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "checkout_session_id": "cs_test_453b5401286d0f80",
                   "merchant_id": "mch_4f2c9a1b7e3d",
                   "order_id": "8QK4M2XJ",
                   "platform_call_id": "call_7c2a91e4",
+                  "caller_phone": "+14155550142",
                   "metadata": {
                     "ticket": "4821"
                   }
@@ -1283,7 +1299,7 @@
                 "$ref": "#/components/schemas/ChargeRequest"
               },
               "example": {
-                "checkout_session_id": "cs_453b5401286d0f80",
+                "checkout_session_id": "cs_test_453b5401286d0f80",
                 "instrument_id": "ins_9d21c7"
               }
             }
@@ -1303,7 +1319,7 @@
                   "currency": "USD",
                   "replay": false,
                   "charge_id": "chg_77386e2f",
-                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "checkout_session_id": "cs_test_453b5401286d0f80",
                   "processor_payment_id": "pay_9J2mQ7bK4dR",
                   "merchant_id": "mch_4f2c9a1b7e3d",
                   "order_id": "8QK4M2XJ",
@@ -1744,7 +1760,7 @@
                 "$ref": "#/components/schemas/SendLinkRequest"
               },
               "example": {
-                "checkout_session_id": "cs_453b5401286d0f80"
+                "checkout_session_id": "cs_test_453b5401286d0f80"
               }
             }
           }
@@ -1762,7 +1778,7 @@
                   "pay_url": "https://ringup.dev/pay/link/?t=eyJhbGciOi...",
                   "short_url": "https://ringup.dev/l/k7m2xq",
                   "payment_required": "required",
-                  "checkout_session_id": "cs_453b5401286d0f80",
+                  "checkout_session_id": "cs_test_453b5401286d0f80",
                   "merchant_id": "mch_4f2c9a1b7e3d",
                   "order_id": "8QK4M2XJ",
                   "platform_call_id": "call_7c2a91e4"
