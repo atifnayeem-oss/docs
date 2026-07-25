@@ -3,9 +3,9 @@ title: "Webhooks"
 description: "Ringup posts a signed event to your server when a payment completes or fails, so your system can mark the order paid without waiting on the call."
 ---
 
-Ringup posts an event to your server when a Checkout Session finishes, paid or not. This is how
-your system learns the outcome out of band, without waiting on the call. It is the same across
-every platform, so you write one handler.
+Ringup posts an event to your server when a Checkout Session finishes, paid or not. Your system
+learns the outcome out of band, without waiting on the call. It is the same across every platform,
+so you write one handler.
 
 ## Register your endpoint
 
@@ -71,8 +71,8 @@ order to paid.
 ## `checkout.failed`
 
 It fires on **a decline as well as an expiry**. A caller whose card is declined and who then hangs
-up is exactly the case your server most needs to hear about, so it is an event, not something you
-discover by polling.
+up is the case your server most needs to hear about, so it is an event, not something you discover
+by polling.
 
 ```jsonc
 "data": {
@@ -103,8 +103,8 @@ discover by polling.
 
 - **`declined`.** A card was charged and the issuer said no. `charge_id` names the attempt, and
   `last_payment_error` says why.
-- **`expired`.** The session lapsed unpaid. `charge_id` is `null` and so is `last_payment_error`,
-  because nothing was ever attempted and there is no error to report.
+- **`expired`.** The session lapsed unpaid. `charge_id` and `last_payment_error` are `null`:
+  nothing was attempted, so there is no error to report.
 
 `last_payment_error` is the **same error object** the `402` returned, so the parser you already
 wrote for a synchronous decline handles the asynchronous one unchanged. See
@@ -113,7 +113,7 @@ and an event is not one.
 
 ## Charge statuses
 
-A charge is in one of three states, and the same values appear on the
+A charge is in one of three states; the same values appear on the
 [session](/concepts/checkout-session) and in the [charge](/concepts/charge) response:
 
 - **`succeeded`**: the charge settled. This is the only status that means money moved.
@@ -129,7 +129,7 @@ Three rules cover almost every webhook bug:
    body plus the `Ringup-Timestamp`. Recompute it with your endpoint's signing secret and reject a
    mismatch or an old timestamp, so nobody can forge an event.
 2. **Dedupe on `event_id`.** Delivery is at-least-once: Ringup retries on any non-2xx response, so
-   the same event can arrive more than once. Treat a repeated `event_id` as a no-op.
+   an event can arrive more than once. Treat a repeated `event_id` as a no-op.
 3. **Acknowledge fast.** Return `2xx` immediately and do your work asynchronously. Ringup retries
    with backoff and parks a persistently failing endpoint after several attempts.
 

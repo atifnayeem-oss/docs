@@ -54,19 +54,18 @@ caller = requests.post(
 }
 ```
 
-`known` tells you whether Ringup has seen this person before. `consumer` carries the record when it
+`known` says whether Ringup has seen this person before. `consumer` carries the record when it
 has, and is `null` when it has not.
 
-Use `first_name` to greet the caller and to skip questions you already have answers to. `email` is
-for the merchant's own workflows, receipts and follow-ups; it is not something the agent reads
-aloud.
+Use `first_name` to greet the caller and skip questions you already have answers to. `email`
+serves the merchant's receipts and follow-ups; the agent never reads it aloud.
 
 ## An unknown caller is not an error
 
-A first-time caller comes back as `200` with `known: false` and `consumer: null`. That is the
-ordinary first-call outcome, not a failure: it is how the majority of callers start. Branch on
-`known`, greet a stranger as a stranger, and take the order the same way. They become a recognized
-caller the first time they pay through a [texted link](/concepts/send-link).
+A first-time caller comes back as `200` with `known: false` and `consumer: null`. Most callers
+start this way; it is not a failure. Branch on `known`, greet a stranger as a stranger, and take
+the order the same way. The caller becomes recognized the first time they pay through a
+[texted link](/concepts/send-link).
 
 ```json Response
 { "known": false, "consumer": null }
@@ -74,11 +73,10 @@ caller the first time they pay through a [texted link](/concepts/send-link).
 
 ## Why cards do not come back here
 
-Whether a saved card can actually be charged depends on which processor the merchant runs. A card
-saved at a merchant on one processor may have no charge handle at a merchant on another, and
-`identify` has no merchant: it takes a phone number and nothing else. Any card-shaped answer here
-would therefore be right for some merchants and wrong for others, and the wrong ones only surface
-at the charge, after the caller has already agreed to a card.
+Whether a saved card can be charged depends on which processor the merchant runs, and `identify`
+has no merchant: it takes a phone number and nothing else. Any card list here would be right for
+some merchants and wrong for others, and the wrong ones surface only at the charge, after the
+caller has already agreed to a card.
 
 So cards come from [`create_checkout`](/concepts/checkout-session), which knows the merchant and
 returns exactly the cards chargeable there. `identify` is the surface that grows with the
@@ -86,25 +84,21 @@ returns exactly the cards chargeable there. `identify` is the surface that grows
 
 ## Recognize at the start of the call
 
-`identify` needs only the caller's phone number, and that arrives the instant the call connects,
-before the caller has said a word. So call it at the **start** of the call, not at the payment
-moment. For a returning caller it hands you their name up front, which you use to personalize the
-whole call: greet them by name, and never ask "what name should I put this under?" when the answer
-is already on your screen.
+The caller's phone number arrives the instant the call connects, before the caller has said a
+word, so call `identify` at the **start** of the call, not at the payment moment. A returning
+caller's name is then on your screen from the first line: greet them by name, and never ask "what
+name should I put this under?" Calling early also hides the lookup in the greeting, where a pause
+is less noticeable than at the payment moment.
 
-Calling it early also moves the lookup off the payment moment, where a pause in the conversation is
-more noticeable than during a greeting.
-
-Some integrations wire recognition for you, so it happens with no tool call in your agent. On the
-others you invoke `identify` yourself, and invoking it at the greeting is what unlocks the
-personalized, no-repeat-questions call.
+Some integrations wire recognition for you, with no tool call in your agent. On the others, invoke
+`identify` yourself at the greeting.
 
 ## Why the number comes from the call, not the model
 
-`caller_phone` is yours to fill from the platform's caller-ID variable, the value the telephony
-layer resolved when the call connected. Template it in at call time. A number the model composes
-can be mistyped, misheard, or prompt-injected by a hostile caller, and a caller number is the whole
-identity: whoever owns it is offered that person's saved cards.
+Fill `caller_phone` from the platform's caller-ID variable, the value the telephony layer resolved
+when the call connected. A number the model composes can be mistyped, misheard, or prompt-injected
+by a hostile caller, and the number is the whole identity: whoever owns it is offered that person's
+saved cards.
 
 <Warning>
 Dashboard and web test calls carry no real caller ID, so the platform's caller-ID template resolves
@@ -119,7 +113,6 @@ natively.
     The other half of every call: which business the caller reached.
   </Card>
   <Card title="Checkout Session" icon="receipt" href="/concepts/checkout-session">
-    Once you know the caller, this is the object every payment turns on, and where the caller's
-    chargeable cards come from.
+    The object every payment turns on, and where the caller's chargeable cards come from.
   </Card>
 </CardGroup>

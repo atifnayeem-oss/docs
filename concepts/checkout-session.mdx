@@ -4,9 +4,9 @@ description: "The central object: created when an order is ready to pay, it reso
 ---
 
 The **Checkout Session** is the object every payment turns on. You create one the moment an order is
-ready to pay, and it carries everything the payment step needs: the resolved amount, Ringup's
-[policy decision](/concepts/payment-policy) for this purchase, the caller's cards that are
-chargeable at this merchant, and, when payment runs by transfer, where to send the live call.
+ready to pay, and it carries everything the payment step needs: the resolved amount, the
+[policy decision](/concepts/payment-policy) for this purchase, the caller's cards chargeable at
+this merchant, and, when payment runs by transfer, where to send the live call.
 
 Both integration modes start here. Whether your agent charges a card itself or hands the call to
 Ringup's payment line, the session is the same object.
@@ -111,8 +111,8 @@ quietly charging one of the two. The response says where the number came from:
 
 ## The cards are the ones chargeable here
 
-`cards` holds the caller's saved cards that can actually be charged **at this merchant**, newest
-first. Each entry is the same shape everywhere a card appears:
+`cards` holds the caller's saved cards chargeable **at this merchant**, newest first. Each entry
+is the same shape everywhere a card appears:
 
 ```json
 { "instrument_id": "ins_4b7e", "brand": "VISA", "last_four": "5858", "expiry": "07/2028" }
@@ -121,11 +121,10 @@ first. Each entry is the same shape everywhere a card appears:
 Offer them by brand and last four, then pass the chosen `instrument_id` to
 [`charge`](/concepts/charge).
 
-This filter is handle-aware, not merely processor-aware. On a processor whose card-on-file is
-scoped per merchant, a card the caller enrolled at one merchant has no charge handle at another,
-and it cannot get one without the card again. Listing it would read fine to your agent and then
-fail at the charge, after the caller had already said yes to it. So a card that cannot be charged
-here is not offered here.
+This filter is handle-aware, not merely processor-aware. On a processor that scopes card-on-file
+per merchant, a card enrolled at one merchant has no charge handle at another, and cannot get one
+without the card again. Listing it would fail at the charge, after the caller had already said yes
+to it. So a card that cannot be charged here is not offered here.
 
 An empty `cards` array means there is nothing to offer: [text a link](/concepts/send-link) instead.
 
@@ -138,18 +137,15 @@ A Checkout Session works two ways, and the difference is invisible to your order
 
 - **In your agent (API).** Your agent reads the session, offers a card from `cards`, and calls
   [`charge`](/concepts/charge) itself. Nothing transfers. The flexible path.
-- **Call transfer.** If you have ever used a hosted web checkout, you already know this shape. In a
-  web checkout you create a session, redirect the browser to a hosted page, and pass a return URL;
-  the customer pays and lands back on your site. A Ringup call transfer is the same over the phone:
-  `transfer_to` is the checkout URL, transferring the call is the redirect, and `return_to` is the
-  return URL. The caller pays on the Ringup line and the call comes back to your agent.
+- **Call transfer.** A hosted web checkout, over the phone: `transfer_to` is the checkout URL,
+  transferring the call is the redirect, and `return_to` is the return URL. The caller pays on the
+  Ringup line and the call comes back to your agent.
 
 `transfer_to` (in the response) is where you send the call. `return_to` (in the request) is where
-Ringup sends the caller back. They are the two ends of the same trip. Both destinations are `null`
-whenever payment is not required, because there is nothing to transfer to.
+Ringup sends the caller back. Both destinations are `null` whenever payment is not required,
+because there is nothing to transfer to.
 
-The response carries the destination in two forms, and you pick one when you set your platform
-up, based on what it can dial:
+The response carries the destination in two forms; pick the one your platform can dial:
 
 - **`transfer_to`**, a SIP URI. The default: it carries a signed session credential, so the
   payment line reads the session directly from the leg. Use it whenever your platform can
@@ -168,15 +164,14 @@ to the end is dropped without an error.
 
 ## Three ways a transfer ends
 
-However the transfer ends, the payment itself is identical: Ringup charges the caller, texts them an
-SMS receipt, and posts a [webhook](/concepts/webhooks) to your server. The three options below
-change only what the caller hears and where the call goes next, never whether they get a receipt or
-whether you get the webhook.
+However the transfer ends, the payment is identical: Ringup charges the caller, texts them an SMS
+receipt, and posts a [webhook](/concepts/webhooks) to your server. The three options below change
+only what the caller hears and where the call goes next.
 
-`return_to` and the spoken messages are complementary. Use whichever fits; you do not need both.
+`return_to` and the spoken messages are complementary; use whichever fits.
 
-1. **Transfer back (`return_to`).** Ringup returns the caller to your agent and attaches the outcome
-   as SIP headers, so your agent resumes already knowing payment succeeded and closes in its own
+1. **Transfer back (`return_to`).** Ringup returns the caller to your agent with the outcome
+   attached as SIP headers, so your agent resumes knowing payment succeeded and closes in its own
    voice. Best when you want to keep talking (upsell, fulfillment, goodbye).
 2. **Ringup speaks the result (`success_message`).** No transfer back: Ringup reads your line and
    ends the call. Best when payment is the last thing on the call but you want the closing words in
@@ -216,9 +211,9 @@ curl https://api.ringup.dev/v1/checkout_sessions/cs_test_x9f2 \
 }
 ```
 
-`session_status` is `open`, `complete`, or `expired`, and it describes the session. The charge has
-its own `status` inside `charge`, which is `null` until something is attempted. This is a read, so a
-declined charge reads as `200` with a failed charge rather than an error.
+`session_status` is `open`, `complete`, or `expired`. The charge has its own `status` inside
+`charge`, `null` until something is attempted. This is a read, so a declined charge comes back
+`200` with a failed charge rather than an error.
 
 ## Reconcile from the webhook
 

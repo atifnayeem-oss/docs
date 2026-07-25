@@ -64,8 +64,8 @@ res = requests.post(
 
 In an agent integration you set the key once and it rides every call:
 
-- **Hosted, from the dashboard:** when Ringup provisions the payment tools for you, it writes your
-  key into them at setup, so it rides every call without you handling it.
+- **Hosted, from the dashboard:** Ringup writes your key into the payment tools it provisions for
+  you, so it rides every call without you handling it.
 - **In your agent (API):** the key lives in the `Authorization` header of the Ringup tools or HTTP
   calls your agent makes, next to the other tool config.
 
@@ -80,9 +80,9 @@ leaks, roll it from the dashboard.
 
 ## Trying it without a key
 
-The public demo sandbox exposes a seeded caller and demo merchants that need no key, so you can run
-the [Quickstart](/quickstart) and hear a wired demo before you sign up. The moment you point at
-your own merchants and callers, you use your key.
+The public demo sandbox exposes a seeded caller and demo merchants that need no key, so you can
+run the [Quickstart](/quickstart) and hear a wired demo before you sign up. The moment you point
+at your own merchants and callers, you use your key.
 
 ## Next steps
 

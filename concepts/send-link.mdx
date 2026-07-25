@@ -1,13 +1,13 @@
 ---
 title: "Send Link"
-description: "When the session offers no chargeable card, send_link texts the caller a secure pay link; they tap it, pay, and are recognized on every call after."
+description: "When the session offers no chargeable card, send_link texts the caller a secure pay link; they tap, pay, and are recognized on every call after."
 ---
 
-When a [Checkout Session](/concepts/checkout-session) comes back with an empty `cards` array, there
-is nothing to charge yet. `send_link` texts the caller a secure pay link so they pay on their own
-phone, without ever reading a card number aloud. It is the first-time path in both integration
-modes, and once they pay they are [recognized](/concepts/identity) on every call after, at any
-Ringup merchant.
+When a [Checkout Session](/concepts/checkout-session) returns an empty `cards` array, there is
+nothing to charge yet. `send_link` texts the caller a secure pay link so they pay on their own
+phone, never reading a card number aloud. It is the first-time path in both integration modes, and
+once they pay they are [recognized](/concepts/identity) on every call after, at any Ringup
+merchant.
 
 ## The whole path
 
@@ -69,19 +69,19 @@ link = requests.post(
 
 ## The session is the only input
 
-`send_link` takes one field: `checkout_session_id`. The caller, the merchant, the amount and the
-policy all live on the session already, so passing them again could only introduce a disagreement.
-This is what makes a pay link trustworthy: it can never carry a total nobody derived from a real
-order, and it can never be texted to a number the session was not opened for.
+`send_link` takes one field: `checkout_session_id`. The caller, merchant, amount, and policy
+already live on the session, so passing them again could only introduce a disagreement. That makes
+a pay link trustworthy: it can never carry a total no real order produced, or be texted to a
+number the session was not opened for.
 
 ## Check `sent` before you speak
 
 `sent` is `false` when a repeat send inside a short dedupe window returned the same link **without
-texting again**. A duplicate is common: platforms retry a slow tool call, and models fire twice.
+texting again**. Duplicates are common: platforms retry slow tool calls, and models fire twice.
 
-Read the field. An agent that assumes a `200` means a text went out tells the caller "I have texted
-you" when nothing went out, and the caller waits for a message that will never arrive. On `false`,
-say the link was already sent and point them at the earlier message.
+Read the field. An agent that treats a `200` as proof a text went out tells the caller "I have
+texted you" when nothing did. On `false`, say the link was already sent and point them at the
+earlier message.
 
 A caller whose link genuinely never arrived and who asks again seconds later is outside the window
 and gets a fresh text, so resending always works.
@@ -92,15 +92,15 @@ Payment can complete either way:
 
 - **During the call.** The caller pays while still on the phone. Poll the
   [session](/concepts/checkout-session) so your agent knows the moment it clears and can close the
-  call knowing the order is paid.
+  call with the order paid.
 - **After the call ends.** The caller hangs up and pays later from the same link. The call does not
   have to wait.
 
 Either way the caller gets an SMS receipt, and your server learns the outcome from a
 `checkout.succeeded` [webhook](/concepts/webhooks). A link payment is not a separate event, so one
-webhook handler covers both a saved-card charge and a first-time link payment.
+handler covers both a saved-card charge and a first-time link payment.
 
-Once the caller has paid once, their card shows up in `cards` on the next session and you can
+After that first payment, the card shows up in `cards` on the next session and you can
 [`charge`](/concepts/charge) it directly.
 
 ## Next steps

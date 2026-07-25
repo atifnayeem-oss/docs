@@ -4,9 +4,9 @@ description: "Take phone payments from any voice platform: two API calls and one
 ---
 
 If your platform can make HTTPS requests and transfer a phone call, it can take payments with
-Ringup. There is no SDK to install and no platform plugin to configure: your agent calls the REST
-API directly, then hands the caller to Ringup's hosted payment line, which handles the card
-conversation, consent, the charge, and the spoken confirmation.
+Ringup. No SDK to install, no plugin to configure: your agent calls the REST API directly, then
+hands the caller to Ringup's hosted payment line, which handles the card conversation, consent,
+the charge, and the spoken confirmation.
 
 The whole integration is two API calls per phone call, plus one transfer.
 
@@ -19,8 +19,8 @@ The whole integration is two API calls per phone call, plus one transfer.
     against a test processor account.
   </Step>
   <Step title="Connect a test merchant">
-    In the dashboard, add a merchant and connect its payment processor. In test mode this takes
-    a minute and needs no real merchant account. The `merchant_id` it gives you (like
+    In the dashboard, add a merchant and connect its payment processor. In test mode this takes a
+    minute and needs no real merchant account. The `merchant_id` you get (like
     `mch_1fd0e6c96e6dcd7681f2`) identifies whose processor gets paid.
   </Step>
 </Steps>
@@ -30,6 +30,7 @@ The whole integration is two API calls per phone call, plus one transfer.
 Call `identify` when the call starts, so your agent can greet a returning customer by name. One
 request, identity only: whether they can pay with a saved card depends on the merchant, and that
 answer comes later, from the checkout.
+
 
 <CodeGroup>
 
@@ -81,9 +82,9 @@ caller = res.json()
 
 ## 2. Create the checkout
 
-When the order is settled, create the Checkout Session. This one response carries everything
-your agent needs to finish the call: the resolved total, whether payment is required, the exact
-line to speak, and both transfer destinations.
+When the order is settled, create the Checkout Session. One response carries everything your
+agent needs to finish the call: the resolved total, whether payment is required, the exact line
+to speak, and both transfer destinations.
 
 <CodeGroup>
 
@@ -162,8 +163,8 @@ named an `order_id`. Send `amount_cents` yourself only when there is no order to
 
 ## 3. Transfer the call
 
-This is the only decision in the integration, and you make it once, when you set your platform
-up, based on what it can dial:
+This is the only decision in the integration, made once at setup, based on what your platform
+can dial:
 
 <ParamField path="transfer_to" type="SIP URI">
   The default. A SIP address carrying a signed, single-session credential (about 156 characters).
@@ -174,14 +175,14 @@ up, based on what it can dial:
 <ParamField path="transfer_to_number" type="E.164 phone number">
   The compatibility path, for platforms that can only transfer calls to a phone number. The call
   arrives without the credential and the payment line resolves the session by the caller's number,
-  which Ringup stored when you called `create_checkout`. Requires the caller's number to survive
-  your platform's transfer, which nearly all number transfers preserve.
+  which Ringup stored when you called `create_checkout`. The caller's number must survive your
+  platform's transfer; nearly all number transfers preserve it.
 </ParamField>
 
-Both fields are present on every response where payment is required, so nothing about your code
-changes if you switch platforms later. Speak `agent_message`, transfer to your chosen
-destination, and your agent's job is done: the hosted line takes the payment, announces the
-confirmation, and ends or returns the call.
+Both fields are present on every response where payment is required, so your code survives a
+platform switch. Speak `agent_message`, transfer to your chosen destination, and your agent's job
+is done: the hosted line takes the payment, announces the confirmation, and ends or returns the
+call.
 
 <Warning>
 If `payment_required` is `"none"`, there is nothing to collect: skip the transfer and keep the
@@ -191,8 +192,8 @@ speak it verbatim.
 
 ## 4. Hear the result
 
-The moment the payment lands (or fails), Ringup tells you two ways. Use whichever fits your
-architecture; both carry the same facts.
+The moment the payment lands (or fails), Ringup tells you two ways. Use whichever fits; both
+carry the same facts.
 
 **Webhook** (push): register your endpoint once with
 [`POST /v1/webhook_endpoints`](/concepts/webhooks) and receive
@@ -234,7 +235,7 @@ session = res.json()
 ## Go live
 
 Swap `rk_test_` for your `rk_live_` key and connect the merchant's real payment processor in the
-dashboard. The endpoints, the fields, and your code stay exactly the same: the key selects the
+dashboard. The endpoints, fields, and your code stay exactly the same: the key selects the
 environment, and every id you receive says which one it belongs to (`cs_test_…` / `cs_live_…`).
 
 ## Next steps

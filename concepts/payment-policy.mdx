@@ -3,9 +3,9 @@ title: "Payment policy"
 description: "Whether payment is required, optional, or absent is a merchant setting Ringup serves per purchase, returned as payment_required on the Checkout Session."
 ---
 
-Whether an order needs payment is not logic in your agent. It is a merchant setting Ringup
-resolves per purchase and returns as the `payment_required` field when you create a Checkout
-Session. The merchant changes the rule with no redeploy, and your agent never hard-codes it.
+Whether an order needs payment is a merchant setting, not logic in your agent. Ringup resolves it
+per purchase and returns it as `payment_required` when you create a Checkout Session. The merchant
+changes the rule with no redeploy.
 
 ## The three values
 
@@ -20,8 +20,8 @@ When you create a Checkout Session, `payment_required` comes back as one of:
 ## It is per purchase, not per merchant
 
 The same merchant can produce different values on different orders. A parts shop might make
-payment optional under $50 and required above it; only the amount changes the rule. That is why the
-session resolves the amount before the verdict, and why the answer cannot be cached across calls.
+payment optional under $50 and required above it. That is why the session resolves the amount
+before the verdict, and why the answer cannot be cached across calls.
 
 ## `none` is the graceful floor
 
@@ -33,17 +33,15 @@ session resolves the amount before the verdict, and why the answer cannot be cac
 - **The merchant's policy says this purchase does not need payment.** A business that takes payment
   at pickup, or an order under a threshold that the merchant chose to let through.
 
-The correct response to either is the same: do not transfer, do not offer a card, carry on with the
-call and end it normally. That is why they share one value. Your agent branches on `payment_required`
-and needs no separate "is this merchant set up yet" check, which is what makes one agent
-configuration safe to run in front of every merchant on your platform, connected or not, from day
-one.
+Either way, respond the same: do not transfer, do not offer a card, carry on and end the call
+normally. That is why they share one value. Branching on `payment_required` alone, with no separate
+"is this merchant set up yet" check, makes one agent configuration safe to run in front of every
+merchant on your platform, connected or not, from day one.
 
 <Note>
-Whoever runs the payment reads `payment_required` and branches on it, so your agent never hard-codes
-payment logic. In hosted mode Ringup's payment step reads it off the Checkout Session; in the
-in-agent API path your agent reads it and decides whether to [`charge`](/concepts/charge). Either
-way the merchant's rule, not your code, decides.
+Whoever runs the payment branches on `payment_required`: in hosted mode Ringup's payment step
+reads it off the Checkout Session; in the in-agent API path your agent reads it and decides whether
+to [`charge`](/concepts/charge). Either way the merchant's rule, not your code, decides.
 </Note>
 
 ## Next steps

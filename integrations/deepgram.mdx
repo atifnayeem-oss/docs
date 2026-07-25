@@ -5,11 +5,11 @@ description: "Add card-on-file payments to a Deepgram Voice Agent two ways: host
 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
-Add card-on-file payments to a Deepgram Voice Agent two ways. **Hosted** transfers the live call to
-a Ringup payment line at payment time, so Ringup runs the whole payment. **In your agent** keeps the
-caller on your bridge and calls Ringup's tools from your own code (recognize the caller, charge the
-saved card), with no transfer at all. A recognized caller never reads a card aloud, so no card data
-touches your bridge either way.
+Add card-on-file payments to a Deepgram Voice Agent two ways. **Hosted** transfers the call to a
+Ringup payment line at payment time; Ringup runs the whole payment. **In your agent** keeps the
+caller on your bridge; your code calls Ringup's tools to recognize the caller and charge the saved
+card, with no transfer. Either way a recognized caller never reads a card aloud, so no card data
+touches your bridge.
 
 ## Prerequisites
 
@@ -26,24 +26,23 @@ Your bridge creates a Checkout Session and transfers the live call to it, like r
 hosted web checkout. Ringup takes payment on its own line and returns the caller if you ask it to.
 
 <Note>
-The transfer is code in your bridge, so there is no dashboard variant of the wiring itself. Your
-Ringup account side (API keys, the webhook endpoint, go-live) lives in the dashboard.
+The wiring is code in your bridge; only your account side (API keys, the webhook endpoint,
+go-live) lives in the dashboard.
 </Note>
 
 <Steps>
 <Step title="Recognize the caller at the greeting">
 
-Call `identify` from your bridge at the greeting, not at payment (a plain HTTP call, like the
-checkout call below). The caller's number is available the instant the call connects; for a
-returning caller `identify` returns their name, so your agent greets them by name. The cards it
-can pay with come later, from the Checkout Session.
-See [Recognize at the start of the call](/concepts/identity).
+Call `identify` from your bridge at the greeting, not at payment (plain HTTP, like the checkout
+call below). The caller's number arrives the instant the call connects; for a returning caller
+`identify` returns their name, so your agent greets them by name. Chargeable cards come later,
+from the Checkout Session. See [Recognize at the start of the call](/concepts/identity).
 
 </Step>
 <Step title="Create a Checkout Session when the order is confirmed">
 
 When the agent signals the order is confirmed (for example via a Deepgram function call your bridge
-handles), `POST` to Ringup's `create_checkout` endpoint with your Ringup API key. If
+handles), `POST` to `create_checkout` with your Ringup API key. If
 `payment_required` is `none`, do not transfer: finish the call normally. Otherwise transfer to the
 returned `transfer_to`.
 
@@ -115,16 +114,15 @@ enters `4111 1111 1111 1111`. Expect the payment line to read a confirmation cod
 <Tab title="Using Tools">
 
 Keep the caller on your bridge and call Ringup's tools straight from your handlers with plain HTTP.
-Recognize the caller at the greeting, then charge their saved card when the order is confirmed. No
-transfer, no payment line.
+No transfer, no payment line.
 
 <Steps>
 <Step title="Recognize the caller at the greeting">
 
 Call `identify` at the greeting, not at payment. Pass `caller_phone`, which your bridge has the
 instant the call connects. For a returning caller it returns their name, so your agent greets them
-by name and skips questions it already has answers to. An unknown caller comes back `known:
-false`, which is an ordinary first call. See [Recognize at the start of the
+by name and skips questions it can already answer. An unknown caller comes back `known:
+false`, an ordinary first call. See [Recognize at the start of the
 call](/concepts/identity).
 
 <CodeGroup>
@@ -190,7 +188,7 @@ const checkout = await fetch("https://api.ringup.dev/v1/create_checkout", {
 
 Read one card from `cards` back by brand and last four with the amount. After the caller agrees,
 `POST` to `charge` with the session and that card's `instrument_id`. Ringup charges it off-session
-on the merchant's own processor. A decline comes back as a `402` in the standard
+on the merchant's own processor. A decline is a `402` in the standard
 [error envelope](/api-reference/errors), carrying the sentence your agent can speak.
 
 <CodeGroup>

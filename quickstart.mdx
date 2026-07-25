@@ -5,13 +5,12 @@ description: "See recognition and a Checkout Session work in test mode in a minu
 
 Ringup adds identity and payments to a voice agent: a returning caller is recognized by phone
 number and pays with a saved card, settling on the merchant's own processor, with no card number
-ever spoken. This quickstart shows the three moves everything is built on, recognize a caller, open
-a Checkout Session, and charge the card they pick, in test mode, then points you to the integration
-for your platform.
+spoken. This quickstart runs the three moves everything is built on (recognize a caller, open a
+Checkout Session, charge the card they pick) in test mode, then points you to the integration for
+your platform.
 
-Test mode runs on a shared sandbox with ready-made merchants and callers, so there is nothing to
-sign up for and nothing to connect between you and a first working response. See
-[Testing](/concepts/testing) for the fixtures.
+Test mode runs on a shared sandbox with ready-made merchants and callers: nothing to sign up for,
+nothing to connect. See [Testing](/concepts/testing) for the fixtures.
 
 <Steps>
   <Step title="Recognize a caller">
@@ -53,13 +52,13 @@ sign up for and nothing to connect between you and a first working response. See
 
     That is the identity layer: at the start of the call your agent greets a returning caller by
     name and skips every question it already has an answer to. A caller Ringup has not seen comes
-    back as `known: false`, which is the ordinary first call, not an error. See
+    back as `known: false`, the ordinary first call, not an error. See
     [Caller Identity](/concepts/identity).
   </Step>
   <Step title="Open a Checkout Session">
     When the order is ready to pay, create a Checkout Session for the caller at a merchant. It
-    resolves the amount, applies the merchant's payment policy, and returns the caller's cards that
-    are chargeable at that merchant.
+    resolves the amount, applies the merchant's payment policy, and returns the caller's cards
+    chargeable at that merchant.
 
     <CodeGroup>
     ```bash curl
@@ -176,20 +175,19 @@ sign up for and nothing to connect between you and a first working response. See
     That is the whole in-agent payment path: `identify` at the greeting, `create_checkout` when the
     order is ready, `charge` when the caller says yes. Only `succeeded` moved money. `order_id` is
     `null` here because this session was created from an amount; open the session with the
-    merchant's `order_id` and it comes back on the charge, which is the number the agent reads out
-    as the confirmation. When `cards` comes back empty,
+    merchant's `order_id` and it comes back on the charge, the number the agent reads out as the
+    confirmation. When `cards` comes back empty,
     [`send_link`](/concepts/send-link) texts a pay link instead. See [Charge](/concepts/charge).
   </Step>
   <Step title="Bring your own API key">
-    The calls above run against the open demo sandbox with no key, so you can try them as-is. For
-    your own merchants and callers you authenticate with your Ringup API key: create one in the
-    dashboard and send it as `Authorization: Bearer <YOUR_RINGUP_KEY>`. See
+    The calls above run against the open demo sandbox with no key. For your own merchants and
+    callers you authenticate with your Ringup API key: create one in the dashboard and send it as
+    `Authorization: Bearer <YOUR_RINGUP_KEY>`. See
     [Authentication](/authentication) for test versus live keys and where the key lives in each
     integration.
   </Step>
   <Step title="Add it to your agent">
-    Both moves live inside your voice agent, and you integrate one of two ways. Every platform guide
-    documents both as tabs:
+    You integrate one of two ways, and every platform guide documents both as tabs:
 
     - **In your agent (API).** Keep the caller in your own agent and add the endpoints you just
       called (`identify`, `create_checkout`, then `charge` or

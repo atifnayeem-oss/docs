@@ -6,10 +6,10 @@ description: "Add card-on-file payments to an ElevenLabs agent two ways: hosted 
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
 Add card-on-file payments to an ElevenLabs agent two ways. **Hosted** transfers the call to Ringup
-at payment time, so Ringup runs the whole payment and you write no payment logic. **In your agent**
-keeps the caller in your agent the whole call: you add three webhook tools that recognize the caller
-and charge their saved card, and nothing transfers. A recognized caller never reads a card aloud, so
-no card data touches your agent either way.
+at payment time; Ringup runs the whole payment and you write no payment logic. **In your agent**
+keeps the caller in your agent the whole call: webhook tools recognize the caller and charge their
+saved card, and nothing transfers. Either way a recognized caller never reads a card aloud, so no
+card data touches your agent.
 
 ## Prerequisites
 
@@ -25,16 +25,16 @@ Ringup takes payment on a transfer. Best when you want the payment moment handle
 
 <Warning>
 The hosted transfer needs the agent's number attached over a **SIP trunk**. ElevenLabs allows a
-SIP-URI transfer destination only with `sip_refer`, and rejects that combination on a native-Twilio
-number, so an agent on a native-Twilio number cannot reach the payment line by transfer. If your
-number cannot transfer, use the **Using Tools** tab, which never transfers.
+SIP-URI transfer destination only with `sip_refer` and rejects that combination on a native-Twilio
+number, so such an agent cannot reach the payment line by transfer. If your number cannot
+transfer, use the **Using Tools** tab, which never transfers.
 </Warning>
 
 <Warning>
 **Preview.** The transfer transport is live: an agent on a SIP-trunk number can refer the call to
-the payment line. The piece that matches the transferred call to the order you registered by the
-caller's number is still in build. Confirm availability in your Ringup dashboard before relying on
-the hosted path in production. The **Using Tools** tab is not affected and works today.
+the payment line. Matching the transferred call to the order registered by the caller's number is
+still in build. Confirm availability in your Ringup dashboard before relying on the hosted path in
+production. The **Using Tools** tab works today.
 </Warning>
 
 <Steps>
@@ -71,8 +71,8 @@ transfers.
 <Steps>
   <Step title="Recognize the caller at the greeting">
     Add a webhook tool `identify` and call it at the greeting, not at payment. For a returning
-    caller it returns their name, so your agent greets them by name and skips questions it already
-    has answers to. An unknown caller comes back `known: false`, which is an ordinary first call.
+    caller it returns their name, so your agent greets them by name and skips questions it can
+    already answer. An unknown caller comes back `known: false`, an ordinary first call.
     See [Recognize at the start of the call](/concepts/identity).
 
     ```jsonc

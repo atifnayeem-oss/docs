@@ -1,11 +1,11 @@
 ---
 title: "Dashboard setup"
-description: "Add Ringup to a Vapi agent from the dashboard. No code: you wire it in Test first on a copy of your agent, then repeat in Live on your real agent."
+description: "Add Ringup to a Vapi agent from the dashboard. No code: wire it in Test on a copy of your agent, then repeat in Live on your real agent."
 ---
 
 Add pay-by-phone to a Vapi agent in a few clicks. Ringup attaches one payment tool and hands you one prompt line to paste. No payment code.
 
-You do this **twice**: in **Test** first, on a copy of your agent, then in **Live** on your real agent. Working on a copy keeps your production agent untouched while you test.
+You do this **twice**: in **Test** on a copy of your agent, then in **Live** on your real agent.
 
 ## Before you start
 
@@ -22,7 +22,7 @@ You do this **twice**: in **Test** first, on a copy of your agent, then in **Liv
 </Steps>
 
 <Warning>
-  Test wires a **copy** of your agent. You duplicate it in Step 1 below, so your production agent stays untouched until you deliberately go live.
+  Test wires a **copy** of your agent (you duplicate it in Step 1), so production stays untouched until you deliberately go live.
 </Warning>
 
 ## Set it up in Test
@@ -31,7 +31,7 @@ Make sure the dashboard is in **Test** mode (top-right toggle).
 
 <Steps>
   <Step title="Duplicate your agent">
-    In Vapi, duplicate your live agent and name the copy something like **Agent (Ringup test)**. You will wire this copy, not your production agent.
+    In Vapi, duplicate your live agent and name the copy something like **Agent (Ringup test)**. You wire this copy, not production.
 
     <Frame caption="Vapi: duplicate your agent and name the copy Agent (Ringup test).">
       <img src="/images/vapi/04-duplicate-agent.png" alt="Duplicate the Vapi agent for testing" />
@@ -42,7 +42,7 @@ Make sure the dashboard is in **Test** mode (top-right toggle).
     In the Ringup dashboard, open **Voice integrations**, choose **Vapi**, and paste your **Private API key**. Ringup lists your agents to check the key, then creates one payment tool on your account.
 
     Then pick what your agent sends at hand-off:
-    - **The order id** it creates in the point of sale. The total is read from that order, so tax and modifiers are always right and the payment lands on the real ticket.
+    - **The order id** it creates in the point of sale. Ringup reads the total from that order, so tax and modifiers are always right and the payment lands on the real ticket.
     - **The total** it works out itself. For agents with no point-of-sale order.
     - **Both**, for a mixed fleet. Each call sends whichever it has; when an order id is present it wins.
 
@@ -60,7 +60,7 @@ Make sure the dashboard is in **Test** mode (top-right toggle).
   </Step>
 
   <Step title="Add the prompt line">
-    Copy the one **system prompt** line Ringup shows and paste it into the test copy's system prompt in Vapi. That is the whole change on your side.
+    Paste the one **system prompt** line Ringup shows into the test copy's system prompt in Vapi. That is the whole change on your side.
 
     <Frame caption="Copy the prompt line into your Vapi agent's system prompt.">
       <img src="/images/vapi/03-prompt-line.png" alt="Paste the Ringup prompt line into the Vapi agent" />
@@ -72,7 +72,7 @@ Make sure the dashboard is in **Test** mode (top-right toggle).
   </Step>
 
   <Step title="Connect a test merchant">
-    The call can only take payment for a merchant that has connected a processor, so connect one in **Test** before you call. In the dashboard, open **Merchant integrations**, create a one-time connect link (single use, expires in ten minutes), open it, and connect a **sandbox** Square or Clover account. Without this, the payment layer stays inaudible and the test call has nothing to charge. See [Merchant integrations](/payment-providers/overview).
+    A call can only take payment for a merchant with a connected processor, so connect one in **Test** first. In the dashboard, open **Merchant integrations**, create a one-time connect link (single use, expires in ten minutes), open it, and connect a **sandbox** Square or Clover account. Without one, the payment layer stays inaudible and the test call has nothing to charge. See [Merchant integrations](/payment-providers/overview).
   </Step>
 
   <Step title="Place a test call">
@@ -84,7 +84,7 @@ Make sure the dashboard is in **Test** mode (top-right toggle).
 
 <Steps>
   <Step title="Wire your real agent">
-    Switch the dashboard to **Live** and run **Connect your platform, Choose the agent, Add the prompt line** again, this time on your **production** agent. No copy this time.
+    Switch the dashboard to **Live** and run **Connect your platform, Choose the agent, Add the prompt line** again, this time on your **production** agent, no copy.
 
     <Frame caption="Switch to Live and wire your production agent the same way.">
       <img src="/images/vapi/05-go-live.png" alt="Go live" />

@@ -6,10 +6,10 @@ description: "Add card-on-file payments to a Retell agent two ways: hosted (Ring
 import ConnectBeforeGoLive from '/snippets/connect-before-golive.mdx';
 
 Add card-on-file payments to a Retell agent two ways. **Hosted** hands the call to Ringup at
-payment time, so Ringup runs the whole payment and you write no payment logic. **In your agent**
+payment time; Ringup runs the whole payment and you write no payment logic. **In your agent**
 keeps the caller in your agent the whole call: you call Ringup's tools to recognize the caller
-and charge their saved card, and nothing transfers. A recognized caller never reads a card
-aloud, so no card data touches your agent either way.
+and charge their saved card, and nothing transfers. Either way a recognized caller never reads a
+card aloud, so no card data touches your agent.
 
 ## Prerequisites
 
@@ -58,14 +58,14 @@ never transfers.
 
 Keep the caller in your agent and add four Retell custom functions pointed at Ringup, authed with
 your Ringup key. Retell interpolates `{{user_number}}` (the caller's number, from the call) and
-`{{merchant_id}}` (a dynamic variable you set per merchant) before the model sees the tool, so
-neither identity is something the model composes.
+`{{merchant_id}}` (a dynamic variable you set per merchant) before the model sees the tool, so the
+model composes neither identity.
 
 <Steps>
   <Step title="Recognize the caller at the greeting">
     Register `identify` and call it at the greeting, not at payment. For a returning caller it
-    returns their name, so your agent greets them by name and skips questions it already has
-    answers to. An unknown caller comes back `known: false`, which is an ordinary first call. See
+    returns their name, so your agent greets them by name and skips questions it can already
+    answer. An unknown caller comes back `known: false`, an ordinary first call. See
     [Recognize at the start of the call](/concepts/identity).
 
     ```jsonc

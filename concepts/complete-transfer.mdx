@@ -1,31 +1,30 @@
 ---
-title: "Complete a transferred payment"
-description: "The checkout token is a session-scoped credential. Present it to read the session, offer a saved card, text a link, and charge, all for one payment, with no account key on the line that took the transfer."
+title: "Call Transfer"
+description: "The checkout token is a session-scoped credential: present it to read the session, offer a saved card, text a link, and charge, with no account key on the payment line."
 ---
 
 When payment runs by [transfer](/concepts/checkout-session), the call leaves your order agent and
-arrives on a payment line. That line does not hold your account key, and it should not need one: it
-was handed a **checkout token**, and the token is all the authorization it needs to finish that one
-payment.
+arrives on a payment line. That line holds no account key and needs none: it was handed a
+**checkout token**, all the authorization it needs to finish that one payment.
 
-The token is a **session-scoped credential**. Possession of a valid, unexpired token authorizes
-acting on exactly the one session it names, whatever account owns that session. It behaves like a
-scoped, single-use secret: short-lived, tied to one object, and safe to hand to the part of the
-system that completes the payment, without giving it any wider access.
+The token is a **session-scoped credential**: a valid, unexpired token authorizes acting on
+exactly the one session it names, whatever account owns that session. It is a scoped, single-use
+secret, safe to hand to the part of the system that completes the payment without any wider
+access.
 
 <Note>
 Ringup's own hosted payment line is built on nothing but this. It reads the session, offers the
-card, sends the link, and charges using the token, exactly the four calls below. Any developer can
+card, sends the link, and charges with the token: exactly the four calls below. Any developer can
 build the same line the same way.
 </Note>
 
 ## What you receive
 
-`create_checkout` returns the token inside `transfer_to` (a SIP URI whose user part is the token),
-and the token carries the checkout session id as its `k` claim and nothing else: every fact about
-the session (the amount, the caller, the cards) comes from reading the session the token names.
-The line that takes the transfer reads the token off the leg, decodes the `k` claim to get the
-session id, and presents the token as a bearer credential:
+`create_checkout` returns the token inside `transfer_to`, a SIP URI whose user part is the token.
+The token carries the checkout session id as its `k` claim and nothing else: the amount, the
+caller, and the cards all come from reading the session it names. The line that takes the transfer
+reads the token off the leg, decodes `k` for the session id, and presents the token as a bearer
+credential:
 
 ```bash
 Authorization: Bearer <CHECKOUT_TOKEN>
@@ -39,13 +38,13 @@ transfers through `transfer_to` only: the token is the credential your line pres
 number lane's session lookup is internal to Ringup.
 </Note>
 
-That credential is accepted on exactly four operations, each pinned to the token's own session. It
-can touch no other session and cannot create, list, or read anything else.
+The token is accepted on exactly four operations, each pinned to its own session. It can touch no
+other session and cannot create, list, or read anything else.
 
 <Steps>
 <Step title="Read the session">
-Get the amount, the caller's name if known, the transfer-back destination, and the cards that are
-chargeable at this merchant. Everything you need to decide what to say next.
+Get the amount, the caller's name if known, the transfer-back destination, and the cards
+chargeable at this merchant: everything you need to decide what to say next.
 </Step>
 <Step title="Offer the saved card, or text a link">
 If `cards` is non-empty, offer the newest one and [charge](/concepts/charge) it. If it is empty,
@@ -81,8 +80,8 @@ curl https://api.ringup.dev/v1/checkout_sessions/cs_test_7f21ab \
 }
 ```
 
-`caller_first_name` lets you greet a returning caller by name even before you know whether they have
-a card. `cards` are already narrowed to what is chargeable at this merchant, so the newest card is
+`caller_first_name` lets you greet a returning caller by name before you know whether they have a
+card. `cards` is already narrowed to what is chargeable at this merchant, so the newest card is
 safe to offer as is.
 
 ## Charge the saved card

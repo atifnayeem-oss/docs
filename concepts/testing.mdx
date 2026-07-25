@@ -3,9 +3,9 @@ title: "Testing"
 description: "A shared sandbox with ready-made merchants and callers. Test mode works before you configure anything, and one test card runs every payment."
 ---
 
-Ringup's test mode is a shared sandbox that is live for every account from the first
-command. There are no test keys to mint and no merchants to create before your first
-working call. Every integration tests against this same sandbox.
+Ringup's test mode is a shared sandbox, live for every account from the first command: no test
+keys to mint, no merchants to create before your first working call. Every integration tests
+against it.
 
 ## The sandbox test card
 
@@ -61,9 +61,9 @@ The general shape is the same on every platform:
   </Step>
 </Steps>
 
-Every integration page has a **Test it** section with the platform's specifics (which field
-points at the sandbox, and what to expect on the call). On some platforms the Ringup dashboard
-wires this up for you, binding a rehearsal number to a test copy of your agent.
+Every integration page has a **Test it** section with the platform's specifics: which field points
+at the sandbox, and what to expect on the call. On some platforms the Ringup dashboard wires this
+up for you, binding a rehearsal number to a test copy of your agent.
 
 ## Reading test results
 
@@ -88,8 +88,8 @@ differently from voice pipelines. Validate with a voice call.
     recognized path. Real inbound phone calls resolve the caller natively.
   </Accordion>
   <Accordion title="The sandbox card never works live" icon="lock">
-    `4111 1111 1111 1111` is sandbox-only. It never reaches a live payment processor and never
-    moves real money, and a live key rejects it. Use a real card only under a `sk_live_` key.
+    `4111 1111 1111 1111` never reaches a live payment processor, and a live key rejects it. Use
+    a real card only under a `sk_live_` key.
   </Accordion>
 </AccordionGroup>
 
