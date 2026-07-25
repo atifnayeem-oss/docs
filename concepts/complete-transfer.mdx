@@ -22,13 +22,22 @@ build the same line the same way.
 ## What you receive
 
 `create_checkout` returns the token inside `transfer_to` (a SIP URI whose user part is the token),
-and the token carries the checkout session id as its `k` claim. The line that takes the transfer
-reads the token off the leg, decodes the `k` claim to get the session id, and presents the token as
-a bearer credential:
+and the token carries the checkout session id as its `k` claim and nothing else: every fact about
+the session (the amount, the caller, the cards) comes from reading the session the token names.
+The line that takes the transfer reads the token off the leg, decodes the `k` claim to get the
+session id, and presents the token as a bearer credential:
 
 ```bash
 Authorization: Bearer <CHECKOUT_TOKEN>
 ```
+
+<Note>
+The response also carries `transfer_to_number`, a plain phone number for platforms that cannot
+dial a SIP URI. That number routes to **Ringup's hosted payment line**, which resolves the
+session by the caller's number server-side. A payment line you build yourself completes
+transfers through `transfer_to` only: the token is the credential your line presents, and the
+number lane's session lookup is internal to Ringup.
+</Note>
 
 That credential is accepted on exactly four operations, each pinned to the token's own session. It
 can touch no other session and cannot create, list, or read anything else.
@@ -52,7 +61,7 @@ Your server still receives a `checkout.succeeded` [webhook](/concepts/webhooks).
 ## Read the session
 
 ```bash
-curl https://api.ringup.dev/v1/checkout_sessions/cs_7f21ab \
+curl https://api.ringup.dev/v1/checkout_sessions/cs_test_7f21ab \
   -H "Authorization: Bearer <CHECKOUT_TOKEN>"
 ```
 

@@ -7,6 +7,33 @@ The notable changes to Ringup's API, tools, and docs. The request and response s
 versioned in the base path (`/v1`): within a version, changes are additive, and a breaking change
 ships under a new version. See the stability note in the [API introduction](/api-reference/introduction).
 
+<Update label="2026-07-25" description="Transfer by phone number, a compact checkout token, and self-describing session ids">
+## Transfer to a phone number
+
+`create_checkout` now returns **two** transfer destinations on every response where payment is
+required: `transfer_to` (the SIP URI, unchanged as the default) and the new **`transfer_to_number`**,
+a plain phone number for platforms that can only transfer calls to a number. The call arrives
+without the token and the payment line resolves the session by the caller's number. Pick one when
+you set your platform up; nothing else about the integration changes. Additive: existing
+integrations keep working untouched.
+
+## The checkout token slimmed to a pure credential
+
+The token inside `transfer_to` now carries only the session id and an expiry (about 122
+characters, down from 332), so it fits transports that cap SIP URI length. Everything the old
+token carried is read from the session it names. You never parse the token, so no code changes.
+
+## Session ids carry their environment
+
+New checkout sessions mint as `cs_test_…` and `cs_live_…`, so any id you meet in a log, a
+webhook, or a support thread says which environment it belongs to. Existing ids keep working.
+
+## A guide for platforms without a Ringup integration
+
+**[Custom (REST API)](/integrations/custom/transfer)**: take payments from any platform that can
+make HTTPS calls and transfer a call. Two API calls and one transfer, end to end.
+</Update>
+
 <Update label="2026-07-23" description="Vapi setup moves to the dashboard, Clover goes live, and the dashboard gains Logs">
 ## Add Vapi from the dashboard, no code
 

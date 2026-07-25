@@ -28,7 +28,7 @@ Ringup merchant.
 curl -X POST https://api.ringup.dev/v1/send_link \
   -H "Authorization: Bearer <YOUR_RINGUP_KEY>" \
   -H "Content-Type: application/json" \
-  -d '{ "checkout_session_id": "cs_x9f2" }'
+  -d '{ "checkout_session_id": "cs_test_x9f2" }'
 ```
 
 ```javascript Node
@@ -60,7 +60,7 @@ link = requests.post(
   "pay_url": "https://ringup.dev/pay/link/eyJhbGciOi...",
   "short_url": "https://ringup.dev/l/k7m2xq",
   "payment_required": "required",
-  "checkout_session_id": "cs_x9f2",
+  "checkout_session_id": "cs_test_x9f2",
   "merchant_id": "tonys-pizza",
   "order_id": "ord_7f21",
   "platform_call_id": "call_abc123"
