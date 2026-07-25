@@ -13,14 +13,29 @@ step inherits everything from your agent.
 
 ## The call, before and after
 
-Before Ringup, a caller who wants to pay reads a card number aloud to a machine, or does not
-pay at all. After Ringup:
+<CardGroup cols={2}>
+  <Card title="Without Ringup" icon="phone-slash">
+    > "To pay by card, please say or enter your sixteen-digit card number, followed by the
+    > expiration date and security code."
+    >
+    > "4 0 2 3... sorry, 4 0 3 2..."
+    >
+    > "I didn't get that. Please say or enter your sixteen-digit card number."
 
-> "That's one large pepperoni, $19. I can put that on your Visa ending 1111. Sound good?"
->
-> "Yep."
->
-> "Done. Your confirmation number is 2PJJZY."
+    The caller reads a card aloud to a machine, digit by digit, on a phone line. Or gives up
+    and does not pay at all.
+  </Card>
+  <Card title="With Ringup" icon="phone-volume">
+    > "That's one large pepperoni, nineteen dollars. I can put that on your Visa ending
+    > 1111. Sound good?"
+    >
+    > "Yep."
+    >
+    > "Done. Your confirmation number is 2PJJZY."
+
+    No card number spoken, ever. The charge settles on the merchant's own processor.
+  </Card>
+</CardGroup>
 
 First-time callers get a texted link instead, pay on their phone, and are recognized on every
 call after that.
