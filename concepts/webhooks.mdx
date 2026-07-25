@@ -9,9 +9,14 @@ so you write one handler.
 
 ## Register your endpoint
 
-Register your HTTPS endpoint with one API call, and save the signing secret from the response: it
-is shown once. Ringup then delivers every event below to it, signed. You can register more than
-one endpoint, and each environment's key registers endpoints for its own environment.
+In the [dashboard](https://ringup.dev/dashboard/#/webhooks), open **Webhooks** and add your HTTPS
+endpoint. Copy the signing secret from the confirmation: it is shown once and cannot be recovered
+afterwards. Ringup then delivers every event below to it, signed. You can register more than one
+endpoint, disable or delete one at any time, and each environment (Test and Live) keeps its own
+list. The same page shows each endpoint's recent deliveries, with attempt counts and the last
+error when one failed.
+
+Prefer to script it? The API does the same thing, with your environment's key:
 
 ```bash
 curl -X POST https://api.ringup.dev/v1/webhook_endpoints \
@@ -19,6 +24,8 @@ curl -X POST https://api.ringup.dev/v1/webhook_endpoints \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/ringup/webhook"}'
 ```
+
+The signing secret is in the response, shown once here too.
 
 ## The envelope
 
