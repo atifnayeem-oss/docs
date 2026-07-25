@@ -194,7 +194,8 @@ speak it verbatim.
 The moment the payment lands (or fails), Ringup tells you two ways. Use whichever fits your
 architecture; both carry the same facts.
 
-**Webhook** (push): subscribe an endpoint in the dashboard and receive
+**Webhook** (push): register your endpoint once with
+[`POST /v1/webhook_endpoints`](/concepts/webhooks) and receive
 [`checkout.succeeded`](/api-reference/events#checkout-succeeded) or
 [`checkout.failed`](/api-reference/events#checkout-failed), with your `order_id` and
 `platform_call_id` echoed so you can mark the order paid in your own system without a lookup.

@@ -9,9 +9,16 @@ every platform, so you write one handler.
 
 ## Register your endpoint
 
-Add your HTTPS endpoint in the Ringup dashboard, under **Settings, then Webhooks**, and copy the
-signing secret it shows at creation. Ringup then delivers every event below to it, signed. You can
-register more than one endpoint, and test mode delivers to its own.
+Register your HTTPS endpoint with one API call, and save the signing secret from the response: it
+is shown once. Ringup then delivers every event below to it, signed. You can register more than
+one endpoint, and each environment's key registers endpoints for its own environment.
+
+```bash
+curl -X POST https://api.ringup.dev/v1/webhook_endpoints \
+  -H "Authorization: Bearer rk_test_5f2a8c1d9e4b7a3f6c0d" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/ringup/webhook"}'
+```
 
 ## The envelope
 
@@ -128,9 +135,8 @@ Three rules cover almost every webhook bug:
 
 <Note>
 **Signature scheme.** `Ringup-Signature` is an HMAC-SHA256 over the timestamp and the raw request
-body, signed with your endpoint's secret, sent as `v1=<signature>`. When you register an endpoint
-the dashboard shows the exact recipe and a copy-paste verification snippet next to your signing
-secret.
+body, signed with your endpoint's secret, sent as `v1=<signature>`. The secret is returned once,
+in the registration response.
 </Note>
 
 ## Next steps
