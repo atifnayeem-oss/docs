@@ -45,6 +45,18 @@ real caller does: the agent texts a pay link, you open it and pay with the test 
 then on that number is recognized, `identify` returns `known: true`, and every session offers the
 saved Visa ending `1111`, ready to charge straight away.
 
+## Apple Pay and Google Pay in test mode
+
+The wallet buttons render on test-mode pay links just as they do live, and you can rehearse the
+whole flow: the sheet opens, you approve, and the contact details come off the sheet. The charge
+itself, however, always comes back declined in test mode. The wallet tokenizes the real card in
+your real wallet, and the test environment accepts only test card data, so the processor answers
+`incorrect_number` every time. That decline is the expected result, not a broken integration:
+everything up to the processor's answer has exercised for real.
+
+To rehearse a wallet payment end to end, use the typed test card instead; to see a wallet payment
+succeed, use live mode. Wallet payments settle only against real cards.
+
 ## Run a test payment
 
 The general shape is the same on every platform:
