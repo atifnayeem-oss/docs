@@ -47,15 +47,18 @@ saved Visa ending `1111`, ready to charge straight away.
 
 ## Apple Pay and Google Pay in test mode
 
-The wallet buttons render on test-mode pay links just as they do live, and you can rehearse the
-whole flow: the sheet opens, you approve, and the contact details come off the sheet. The charge
-itself, however, always comes back declined in test mode. The wallet tokenizes the real card in
-your real wallet, and the test environment accepts only test card data, so the processor answers
-`incorrect_number` every time. That decline is the expected result, not a broken integration:
-everything up to the processor's answer has exercised for real.
+Wallet payments work end to end in test mode. The buttons render on test pay links just as they
+do live: the sheet opens, you approve with a real card from your wallet, the contact details come
+off the sheet, and the payment completes. Your card is never charged; the test environment
+accepts the wallet's token without moving money, and the payment appears in the merchant's own
+processor dashboard like any other test payment.
 
-To rehearse a wallet payment end to end, use the typed test card instead; to see a wallet payment
-succeed, use live mode. Wallet payments settle only against real cards.
+<Note>
+Wallet payments require a merchant connected through the hosted connect flow (the merchant
+authorizes Ringup in their processor account). A merchant connected by a pasted access token can
+take card payments but not wallet payments: the wallet's one-time token is scoped in a way only
+an authorized connection can charge.
+</Note>
 
 ## Run a test payment
 
