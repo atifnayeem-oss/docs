@@ -185,6 +185,14 @@
           },
           "status": {
             "$ref": "#/components/schemas/ChargeStatus"
+          },
+          "wallet": {
+            "description": "Which wallet paid, when the payment came from the pay page's Apple Pay or Google Pay button. Absent on card charges. Wallet payments never create a saved card (the processor does not allow a wallet to become a card on file), so a wallet charge references no saved instrument.",
+            "enum": [
+              "apple_pay",
+              "google_pay"
+            ],
+            "type": "string"
           }
         },
         "type": "object"
@@ -251,6 +259,18 @@
                   },
                   "status": {
                     "$ref": "#/components/schemas/ChargeStatus"
+                  },
+                  "wallet": {
+                    "description": "Which wallet paid (`apple_pay` | `google_pay`), null on a card charge.",
+                    "enum": [
+                      "apple_pay",
+                      "google_pay",
+                      null
+                    ],
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   }
                 },
                 "type": "object"
@@ -1191,7 +1211,8 @@
                     "charge_id": "chg_77386e2f",
                     "status": "succeeded",
                     "amount_cents": 1650,
-                    "processor_payment_id": "pay_9J2mQ7bK4dR"
+                    "processor_payment_id": "pay_9J2mQ7bK4dR",
+                    "wallet": null
                   },
                   "cards": [],
                   "default_card_id": null,

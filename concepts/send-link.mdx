@@ -100,8 +100,22 @@ Either way the caller gets an SMS receipt, and your server learns the outcome fr
 `checkout.succeeded` [webhook](/concepts/webhooks). A link payment is not a separate event, so one
 handler covers both a saved-card charge and a first-time link payment.
 
-After that first payment, the card shows up in `cards` on the next session and you can
-[`charge`](/concepts/charge) it directly.
+After a first payment made with a typed card, that card shows up in `cards` on the next session
+and you can [`charge`](/concepts/charge) it directly.
+
+## Apple Pay and Google Pay, included
+
+The pay page also takes Apple Pay and Google Pay, with zero integration work on your side. One
+wallet button renders based on what the caller's device supports, the wallet sheet supplies their
+name and email so they type nothing, and the payment lands on your server as the same
+`checkout.succeeded` event with `wallet` set to `apple_pay` or `google_pay`.
+
+<Note>
+A wallet payment is pay-now only: the merchant's processor does not allow a wallet payment to be
+saved as a card on file. So a caller who pays by wallet is recognized by name on their next call,
+but has no chargeable card; the agent texts them the link again and they tap the wallet again.
+Only a typed card becomes a saved card the agent can offer on a future call.
+</Note>
 
 ## Next steps
 

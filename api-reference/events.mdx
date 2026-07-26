@@ -78,6 +78,9 @@ A charge against a Checkout Session succeeded. The money moved.
 <ResponseField name="card" type="object | null">
   The card that paid, for a receipt line. Never more than brand and last four.
 </ResponseField>
+<ResponseField name="wallet" type="apple_pay | google_pay | ">
+  Which wallet paid (`apple_pay` | `google_pay`), when the pay page's wallet button did. Null on a card payment. Wallet payments carry `card: null`: a wallet never becomes a saved card, so there is no brand or last four to report.
+</ResponseField>
 <ResponseField name="metadata" type="object | null">
   Whatever you attached at create_checkout, echoed back untouched.
 </ResponseField>
@@ -109,6 +112,9 @@ A charge was declined, or the session expired without payment. `reason` tells yo
 </ResponseField>
 <ResponseField name="platform_call_id" type="string | null">
   Your platform's call id, to tie this failure to your own call logs.
+</ResponseField>
+<ResponseField name="wallet" type="apple_pay | google_pay | ">
+  Which wallet the failed attempt came from, mirroring the succeeded payload. Null on a card attempt or an expiry.
 </ResponseField>
 <ResponseField name="metadata" type="object | null">
   Whatever you attached at create_checkout, echoed back untouched.

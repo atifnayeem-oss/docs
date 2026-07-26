@@ -68,12 +68,18 @@ The one you build against. Its `data` carries everything you need to mark an ord
   "order_id": "ord_7f21",              // your order id, echoed; null if you passed none
   "platform_call_id": "call_abc123",   // your platform's call id, to match back to the call
   "card": { "brand": "VISA", "last_four": "1111" },  // null when no card was involved
+  "wallet": null,                      // "apple_pay" | "google_pay" when a wallet paid
   "metadata": { "table": "12" }        // your own key/value pairs, echoed
 }
 ```
 
 Match on the `order_id` you passed (or `platform_call_id`), store the `charge_id`, and flip your
 order to paid.
+
+A payment made with Apple Pay or Google Pay on the pay page arrives as this same event with
+`wallet` naming the wallet and `card` null: a wallet payment saves no card, so there is no brand
+or last four to report. Label it "Apple Pay" or "Google Pay" in your own surfaces rather than
+treating the missing card as a gap.
 
 ## `checkout.failed`
 
@@ -91,6 +97,7 @@ by polling.
   "merchant_id": "tonys-pizza",
   "order_id": "ord_7f21",
   "platform_call_id": "call_abc123",
+  "wallet": null,                      // the wallet a failed attempt came from; null on expiry
   "metadata": { "table": "12" },
   "last_payment_error": {              // null when the session merely expired
     "type": "processor_error",
