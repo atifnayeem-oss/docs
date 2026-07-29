@@ -47,6 +47,7 @@ Every event has the same shape:
 |---|---|
 | `checkout.succeeded` | A Checkout Session was paid, on a saved card or through the texted link. |
 | `checkout.failed` | The charge was declined, or the session expired unpaid. |
+| `checkout.step_up_required` | Screening found a risk signal on the caller's number, so their saved card was withheld and they were texted a link instead. |
 | `merchant.connected` | A merchant finished connecting their payment processor to Ringup. |
 
 The catalog is deliberately small. A first-time link payment is a `checkout.succeeded` like any
@@ -124,6 +125,39 @@ by polling.
 wrote for a synchronous decline handles the asynchronous one unchanged. See
 [Errors](/api-reference/errors) for every field. It omits `request_id`: that identifies a request,
 and an event is not one.
+
+## `checkout.step_up_required`
+
+Ringup screens the caller's number on every checkout. When it finds a positive risk signal, the
+caller's saved card is **not** offered on that call: they are texted a payment link instead, which
+proves possession of the phone. This event tells you that happened, so the answer to "why did my
+caller get a link when they have a card on file" is in your logs before they ask.
+
+It fires **once per session**, whichever signal found the risk, and only on a real signal. A
+screening lookup that errors or cannot run is treated as neutral and produces no event, because a
+gap on our side is not a fact about your caller.
+
+```jsonc
+"data": {
+  "checkout_session_id": "cs_test_x9f2",
+  "merchant_id": "tonys-pizza",
+  "decision": "step_up",
+  "reasons": ["ported_recently"],      // may carry more than one
+  "attestation": "A",                  // the carrier's grade for the original call, or null
+  "ported_recently": true,             // null when the lookup did not resolve
+  "platform_call_id": "call_abc123",
+  "metadata": { "ticket": "4821" }
+}
+```
+
+`reasons` carries stable codes, not prose: `ported_recently` when the number changed hands inside
+the last seven days, `attestation_C` or `attestation_F` when the carrier's signature on the
+original call was poor or failed.
+
+<Note>
+Nothing here is spoken to the caller, and your agent should not repeat it. The payment line already
+handles the moment gracefully: it offers the link warmly and never mentions checks or verification.
+</Note>
 
 ## Charge statuses
 

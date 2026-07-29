@@ -18,7 +18,7 @@ Every event has the same outer shape. `data` carries the payload for that event 
 <ResponseField name="event_id" type="string">
   Unique per event. Dedupe on this: delivery is at-least-once.
 </ResponseField>
-<ResponseField name="type" type="checkout.succeeded | checkout.failed | merchant.connected">
+<ResponseField name="type" type="checkout.succeeded | checkout.failed | checkout.step_up_required | merchant.connected">
   Which event this is. Branch on it to know what `data` holds.
 </ResponseField>
 <ResponseField name="environment" type="test | live">
@@ -42,6 +42,7 @@ and an endpoint that is not idempotent will double-fulfil an order eventually ra
 |---|---|
 | [`checkout.succeeded`](#checkout-succeeded) | A charge against a Checkout Session succeeded. The money moved. |
 | [`checkout.failed`](#checkout-failed) | A charge was declined, or the session expired without payment. `reason` tells you which, and `last_payment_error` carries the same error object the 402 returned. |
+| [`checkout.step_up_required`](#checkout-step_up_required) | Screening found a positive risk signal on the caller's number, so their saved card was not offered on this call and they were texted a payment link instead. `reasons` says why. Fires once per session, whichever signal found it. |
 | [`merchant.connected`](#merchant-connected) | A merchant finished connecting their payment processor, so their calls can now take payment. |
 
 ## checkout.succeeded
@@ -121,6 +122,35 @@ A charge was declined, or the session expired without payment. `reason` tells yo
 </ResponseField>
 <ResponseField name="last_payment_error" type="object | null">
   The SAME error object the 402 returned, minus `request_id`, which belongs to a request and not to an event. Stripe embeds the error this way on `last_payment_error` rather than flattening it, so one parser handles the synchronous and asynchronous paths. Null when the session merely expired: nothing was attempted, so there is no error to report.
+</ResponseField>
+
+## checkout.step_up_required
+
+Screening found a positive risk signal on the caller's number, so their saved card was not offered on this call and they were texted a payment link instead. `reasons` says why. Fires once per session, whichever signal found it.
+
+<ResponseField name="checkout_session_id" type="string">
+  The session whose caller must pay by link instead of with their saved card.
+</ResponseField>
+<ResponseField name="merchant_id" type="string">
+  The merchant the payment was for.
+</ResponseField>
+<ResponseField name="decision" type="string">
+  Always `step_up` on this event. Present so one parser reads it and the session field alike.
+</ResponseField>
+<ResponseField name="reasons" type="array">
+  Why, as stable codes: `ported_recently` when the caller's number changed hands inside the last seven days, `attestation_C` or `attestation_F` when the carrier's signature on the original call was poor or failed. More than one can apply. Codes only: the underlying carrier records stay ours.
+</ResponseField>
+<ResponseField name="attestation" type="A | B | C | F | ">
+  The carrier attestation grade for the original call, when it resolved.
+</ResponseField>
+<ResponseField name="ported_recently" type="boolean | null">
+  True when a recent port was the cause. Null when the lookup did not resolve.
+</ResponseField>
+<ResponseField name="platform_call_id" type="string | null">
+  Your platform's call id, to tie this to your own call logs.
+</ResponseField>
+<ResponseField name="metadata" type="object | null">
+  Whatever you attached at create_checkout, echoed back untouched.
 </ResponseField>
 
 ## merchant.connected

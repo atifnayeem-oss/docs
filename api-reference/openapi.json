@@ -350,6 +350,90 @@
               "null"
             ]
           },
+          "screen": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "attestation": {
+                    "enum": [
+                      "A",
+                      "B",
+                      "C",
+                      "F",
+                      null
+                    ],
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "attested_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "carrier": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "checked_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "decision": {
+                    "enum": [
+                      "allow",
+                      "step_up"
+                    ],
+                    "type": "string"
+                  },
+                  "line_type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "notes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "port_check": {
+                    "enum": [
+                      "ok",
+                      "error",
+                      "skipped"
+                    ],
+                    "type": "string"
+                  },
+                  "ported_recently": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "reasons": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What screening knows about this caller, and why.\n\n`decision` is `step_up` only when a positive bad signal was found: the caller's number was ported or swapped within the last seven days, or the original call's carrier attestation came back C or Failed. Every such cause is listed in `reasons`. A missing signal is never a cause, so a lookup that errored or timed out lands in `notes` and leaves the decision `allow`: an outage upstream must not cost an honest caller their saved card.\n\nNull until anything has resolved. Read it to understand why a caller was sent a link instead of being offered a saved card; never speak any of it to the caller."
+          },
           "session_status": {
             "description": "Named for the object it describes: the CHARGE has its own `status` below.",
             "enum": [
@@ -1234,6 +1318,18 @@
                   "order_id": "8QK4M2XJ",
                   "platform_call_id": "call_7c2a91e4",
                   "caller_phone": "+14155550142",
+                  "screen": {
+                    "decision": "allow",
+                    "reasons": [],
+                    "notes": [],
+                    "attestation": "A",
+                    "ported_recently": false,
+                    "port_check": "ok",
+                    "line_type": "mobile",
+                    "carrier": "T-MOBILE USA, INC.",
+                    "checked_at": "2026-07-28T17:04:11.000Z",
+                    "attested_at": "2026-07-28T17:04:14.000Z"
+                  },
                   "metadata": {
                     "ticket": "4821"
                   }
