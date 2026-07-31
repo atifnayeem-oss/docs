@@ -173,5 +173,10 @@
       "source": "/integrations/vapi/testing",
       "destination": "/integrations/vapi/dashboard-setup"
     }
-  ]
+  ],
+  "integrations": {
+    "posthog": {
+      "apiKey": "phc_kWiG6vnFemWYbzs9MP6LauRgVVZznuijxYiEmijW2AjM"
+    }
+  }
 }
