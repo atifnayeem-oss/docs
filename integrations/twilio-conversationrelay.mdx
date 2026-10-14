@@ -66,7 +66,7 @@ Content-Type: application/json
   "amount_cents": 1900,                              // resolved from the order
   "currency": "USD",
   "amount_source": "order",                          // "order" | "request"
-  "transfer_to": "sip:eyJrIjoiY3NfdGVzdF80NTNiNTQwMTI4NmQwZjgwIiwieCI6MTc4NDk1MjU3MTU5N30.vSkGB9zGRuR6fRhRHxmcTvYQZ5mi@transfer.ringup.dev",  // null unless payment is required
+  "transfer_to": "sip:eyJrIjoiY3NfdGVzdF80NTNiNTQwMTI4NmQwZjgwIiwieCI6MTc4NDk1MjU3MTU5N30.vSkGB9zGRuR6fRhRHxmcTvYQZ5mi@5p8edvav50y.sip.livekit.cloud",  // null unless payment is required
   "transfer_to_number": "+13235047170",              // dial this on platforms that transfer only to phone numbers
   "expires_at": "2026-07-21T18:35:12Z",
   "cards": [],                                       // saved cards chargeable at this merchant
@@ -86,7 +86,7 @@ Speak one line first so the caller is not on silence:
 <Response>
   <Say>One moment, connecting you to secure payment.</Say>
   <Dial>
-    <Sip>sip:eyJrIjoiY3NfdGVzdF80NTNiNTQwMTI4NmQwZjgwIiwieCI6MTc4NDk1MjU3MTU5N30.vSkGB9zGRuR6fRhRHxmcTvYQZ5mi@transfer.ringup.dev</Sip>
+    <Sip>sip:eyJrIjoiY3NfdGVzdF80NTNiNTQwMTI4NmQwZjgwIiwieCI6MTc4NDk1MjU3MTU5N30.vSkGB9zGRuR6fRhRHxmcTvYQZ5mi@5p8edvav50y.sip.livekit.cloud</Sip>
   </Dial>
 </Response>
 ```

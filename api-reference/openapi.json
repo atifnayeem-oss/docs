@@ -684,6 +684,7 @@
           "order_lookup_unsupported",
           "instrument_not_found",
           "instrument_not_authorized",
+          "card_not_on_file",
           "missing_instrument_fields",
           "processor_mismatch",
           "needs_enrollment",
@@ -1072,7 +1073,7 @@
                   "amount_cents": 1650,
                   "currency": "USD",
                   "amount_source": "order",
-                  "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@transfer.ringup.dev",
+                  "transfer_to": "sip:eyJjIjoiKzE0MTU1NTUwMTQyIiwiYSI6MTY1MCwibSI6Im1jaF80ZjJjOWExYjdlM2QifQ.Xr7QpN2vK9sLd4TfA1mYc8BhE3wZ@5p8edvav50y.sip.livekit.cloud",
                   "transfer_to_number": "+16283364058",
                   "expires_at": "2026-07-21T18:34:12.000Z",
                   "cards": [

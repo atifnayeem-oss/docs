@@ -248,6 +248,16 @@ The key authenticated but its vendor has no provisioned account.
 
 The key is valid but is not allowed to act on this resource.
 
+<Accordion title="card_not_on_file  ·  403">
+That saved card is not on file for this caller at this merchant. The REST API can charge only cards the caller has used with this merchant before; the cross-network wallet is reachable on the hosted payment line.
+
+**Resolution.** Send a pay link to enroll the card at this merchant, or transfer the call to Ringup's payment line to use a card the caller saved elsewhere.
+
+**Your agent says.** "I can text you a secure link to pay instead. Would that work?"
+
+**Then.** `send_link`
+</Accordion>
+
 <Accordion title="instrument_not_authorized  ·  403">
 That saved card does not belong to the caller on this session.
 
