@@ -629,11 +629,17 @@
       "CreateWebhookEndpointRequest": {
         "additionalProperties": false,
         "properties": {
-          "events": {},
+          "events": {
+            "description": "Event types to deliver, or omit for all events."
+          },
           "url": {
+            "description": "The HTTPS endpoint events are delivered to.",
             "type": "string"
           }
         },
+        "required": [
+          "url"
+        ],
         "type": "object"
       },
       "CreateWebhookEndpointResponse": {
