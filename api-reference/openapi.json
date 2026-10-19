@@ -496,7 +496,7 @@
         "additionalProperties": false,
         "properties": {
           "amount_cents": {
-            "description": "Required only when there is no `order_id`. Never trusted over an order.",
+            "description": "The order total in cents. Pass order_id instead to read the total from the merchant's POS order (the order is the amount authority; an amount sent alongside it is only cross-checked).",
             "type": "number"
           },
           "caller_phone": {
@@ -510,7 +510,7 @@
             "type": "string"
           },
           "merchant_id": {
-            "description": "The merchant, when the caller knows it (a developer integrating over REST).",
+            "description": "The merchant being paid (mch_…). Integrations that know only the call may pass merchant_number (the dialed number) instead.",
             "type": "string"
           },
           "merchant_number": {
@@ -542,7 +542,9 @@
           }
         },
         "required": [
-          "caller_phone"
+          "caller_phone",
+          "merchant_id",
+          "amount_cents"
         ],
         "type": "object"
       },
